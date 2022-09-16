@@ -1,0 +1,8 @@
+showerfile
+*.hdf5
+*.pkl
+*.json
+*.project
+*.o
+main
+*.gch
