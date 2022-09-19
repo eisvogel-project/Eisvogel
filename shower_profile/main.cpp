@@ -14,7 +14,7 @@ int main () {
 			2.e18,
 			0.75 * pi,
 			0.3 * pi,
-			1
+			0
 	);
 	std::vector<double> shower_x;
 	std::vector<double> shower_y;
@@ -23,7 +23,7 @@ int main () {
 	std::vector<double> shower_ce;
 
 	new_shower.get_shower(
-		1.e-8,
+		1.e-9,
 		&shower_t,
 		&shower_x,
 		&shower_y,
@@ -31,7 +31,7 @@ int main () {
 		&shower_ce
 	);
 	TCanvas* c = new TCanvas("c", "Something", 0, 0, 800, 600);
-	auto graph1 = new TGraph(shower_t.size(), &shower_x[0], &shower_y[0]);
+	auto graph1 = new TGraph(shower_t.size(), &shower_t[0], &shower_ce[0]);
 	graph1 -> Draw();
 	c -> Print("plot_shower_profile.png");
 }

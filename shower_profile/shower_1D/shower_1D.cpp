@@ -79,8 +79,8 @@ void showers::Shower1D::get_shower(
 			(*ce)[i] = charge_excess_profile.charge_excess[0] * charge_excess_profile_scaling;
 		} else {
 			delta_ce = charge_excess_profile.charge_excess[grammage_i] - charge_excess_profile.charge_excess[grammage_i - 1];
-			delta_grammage = (integrated_grammage - charge_excess_profile.charge_excess[grammage_i - 1]) / (charge_excess_profile.charge_excess[grammage_i] - charge_excess_profile.charge_excess[grammage_i - 1]);
-			(*ce)[i] = (charge_excess_profile.charge_excess[grammage_i - 1] + delta_ce * delta_grammage) * charge_excess_profile_scaling;
+			delta_grammage = (integrated_grammage - charge_excess_profile.grammage[grammage_i - 1]) / (charge_excess_profile.grammage[grammage_i] - charge_excess_profile.grammage[grammage_i - 1]);
+			(*ce)[i] = (charge_excess_profile.charge_excess[grammage_i - 1]+ delta_ce * delta_grammage) * charge_excess_profile_scaling;
 		}
 	}
 }
