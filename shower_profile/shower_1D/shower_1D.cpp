@@ -84,3 +84,39 @@ void showers::Shower1D::get_shower(
 		}
 	}
 }
+
+void showers::Shower1D::get_current(
+		double delta_t,
+		std::vector<double> *t,
+		std::vector<double> *x,
+		std::vector<double> *y,
+		std::vector<double> *z,
+		std::vector<double> *current_x,
+		std::vector<double> *current_y,
+		std::vector<double> *current_z
+){
+	std::vector<double> ce;
+	get_shower(
+			delta_t,
+			t,
+			x,
+			y,
+			z,
+			&ce
+	);
+	int n_points = t -> size();
+	double delta_s = delta_t * 3.e8 / ice_profile.get_maximum_index_of_refraction();
+	double area = delta_s * delta_s;
+	current_x -> resize(n_points);
+	current_y -> resize(n_points);
+	current_z -> resize(n_points);
+	for (int i=0; i < n_points; i++) {
+		(*current_x)[i] = (ce)[i] * sin(zenith) * cos(azimuth) / area / delta_t;
+		(*current_y)[i] = (ce)[i] * sin(zenith) * sin(azimuth) / area / delta_t;
+		(*current_z)[i] = (ce)[i] * cos(zenith) / area / delta_t;
+	}
+}
+
+
+
+
