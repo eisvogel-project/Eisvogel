@@ -6,3 +6,5 @@ showerfile
 *.o
 main
 *.gch
+build
+CMakeFiles
