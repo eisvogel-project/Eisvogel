@@ -34,6 +34,7 @@ showers::ShowerCreator::ShowerCreator(
 		}
 		ce_profiles[profile.hadronic][profile.energy].push_back(profile);
 	}
+	fclose(pFile);
 };
 
 showers::Shower1D showers::ShowerCreator::create_shower(
@@ -45,7 +46,7 @@ showers::Shower1D showers::ShowerCreator::create_shower(
 		) {
 	double closest_energy = stored_energies[had][0];
 	double energy_diff = std::abs(en - stored_energies[had][0]);
-	for (int i=0; i < stored_energies[had].size(); i++) {
+	for (int i=1; i < stored_energies[had].size(); i++) {
 		if (std::abs(en - stored_energies[had][i]) < energy_diff) {
 			closest_energy = stored_energies[had][i];
 			energy_diff = std::abs(en - stored_energies[had][i]);
