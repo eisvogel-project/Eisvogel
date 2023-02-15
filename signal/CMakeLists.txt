@@ -1,8 +1,8 @@
-cmake_minimum_required( VERSION 3.14 FATAL_ERROR )
+cmake_minimum_required( VERSION 3.20 FATAL_ERROR )
 
 project(weighting_field)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 set(CMAKE_CXX_FLAGS "-O3 -Ofast -funroll-loops -march=native")
