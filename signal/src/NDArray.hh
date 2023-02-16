@@ -38,6 +38,30 @@ public:
     return operator_binary(lhs, rhs, std::plus<data_t>());
   }
 
+  friend NDArray<T, Shape...> operator-(const NDArray<T, Shape...>& lhs, const NDArray<T, Shape...>& rhs) {
+    return operator_binary(lhs, rhs, std::minus<data_t>());
+  }
+
+  friend NDArray<T, Shape...> operator-(const NDArray<T, Shape...>& lhs, const T& rhs) {
+    return operator_binary(lhs, rhs, std::minus<data_t>());
+  }
+
+  friend NDArray<T, Shape...> operator*(const NDArray<T, Shape...>& lhs, const NDArray<T, Shape...>& rhs) {
+    return operator_binary(lhs, rhs, std::multiplies<data_t>());
+  }
+
+  friend NDArray<T, Shape...> operator*(const NDArray<T, Shape...>& lhs, const T& rhs) {
+    return operator_binary(lhs, rhs, std::multiplies<data_t>());
+  }
+
+  friend NDArray<T, Shape...> operator/(const NDArray<T, Shape...>& lhs, const NDArray<T, Shape...>& rhs) {
+    return operator_binary(lhs, rhs, std::divides<data_t>());
+  }
+
+  friend NDArray<T, Shape...> operator/(const NDArray<T, Shape...>& lhs, const T& rhs) {
+    return operator_binary(lhs, rhs, std::divides<data_t>());
+  }
+
 private:
 
   stride_t strides;
