@@ -32,6 +32,8 @@ int main(void) {
 
   int n = 10;
 
+  DenseNDArray<scalar_t, 1> vector2({1, 2, 3});
+
   DenseWeightingField wf = WFU::CreateElectricDipoleWeightingField();
 
   std::cout << wf.E_r(0,0,0) << std::endl;

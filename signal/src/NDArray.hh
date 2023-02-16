@@ -47,7 +47,21 @@ public:
     m_data.resize(m_strides.back(), value);
   }
 
-  DenseNDArray(const DenseNDArray<T, dims>& other) : NDArray<T, dims>(other.m_shape), m_strides(other.m_strides), m_data(other.m_data) {}
+  DenseNDArray(const shape_t& shape, std::vector<T>&& data) : NDArray<T, dims>(shape) {
+    m_strides[0] = 1;
+    std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
+
+    if(m_strides.back() != data.size())
+      throw;
+
+    m_data = std::move(data);
+  }
+
+  DenseNDArray(std::vector<T>&& data) requires(dims == 1) : 
+    NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data) { }
+
+  DenseNDArray(const DenseNDArray<T, dims>& other) : 
+    NDArray<T, dims>(other.m_shape), m_strides(other.m_strides), m_data(other.m_data) { }
 
   template <typename... Inds>
   T& operator()(Inds... inds) {
