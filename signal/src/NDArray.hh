@@ -56,6 +56,10 @@ public:
     return m_data[flat_ind];
   }
 
+  T& operator()(DenseNDArray<T, 1>& inds) {    
+    return m_data[0];
+  }
+
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
     return operator_binary(lhs, rhs, std::plus<T>());
   }

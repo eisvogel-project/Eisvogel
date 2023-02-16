@@ -7,8 +7,7 @@
 #include <iostream>
 
 template <template<typename, std::size_t> class StorageT, typename ValueT = float>
-class WeightingField
-{
+class WeightingField {
 
 public:
 
