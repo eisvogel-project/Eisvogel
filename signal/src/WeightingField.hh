@@ -3,10 +3,11 @@
 
 #include <type_traits>
 #include "NDArray.hh"
+#include "Common.hh"
 
 #include <iostream>
 
-template <template<typename, std::size_t> class StorageT, typename ValueT = float>
+template <template<typename, std::size_t> class StorageT, typename ValueT = scalar_t>
 class WeightingField {
 
 public:
