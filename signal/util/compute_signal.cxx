@@ -100,10 +100,10 @@ int main(void) {
 
   std::cout << "-----" << std::endl;
 
-  DenseNDArray<scalar_t, 2> testarr2d({10, 10}, 2.0);
-  Interpolator<DenseNDArray, scalar_t, 2> itpl(testarr2d, kernel);
-  // std::cout << itpl.Interpolate(2, 2) << std::endl;
-  std::cout << itpl.Interpolate(2.5, 2.5) << std::endl;
+  DenseNDArray<scalar_t, 1> testarr1d({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10});
+  Interpolator<DenseNDArray, scalar_t, 1> itpl(testarr1d, kernel);
+
+  std::cout << itpl.Interpolate(0.5) << std::endl;
 
   std::cout << "-----" << std::endl;
 
