@@ -76,6 +76,13 @@ public:
 
   // Indexing with explicit pack of coordinates
   template <typename... Inds>
+  const T& operator()(Inds... inds) const requires(sizeof...(Inds) == dims) {
+    std::size_t flat_ind = 0, dim = 0;
+    (..., (flat_ind += inds * m_strides[dim++]));
+    return m_data[flat_ind];
+  }
+
+  template <typename... Inds>
   T& operator()(Inds... inds) requires(sizeof...(Inds) == dims) {
     std::size_t flat_ind = 0, dim = 0;
     (..., (flat_ind += inds * m_strides[dim++]));
@@ -83,11 +90,19 @@ public:
   }
 
   // Indexing with a vector that holds the coordinates
+  const T& operator()(DenseNDArray<std::size_t, 1>& inds) const {
+    if(inds.size() != dims)
+      throw;
+    
+    std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
+    return m_data[flat_ind];
+  }
+
   T& operator()(DenseNDArray<std::size_t, 1>& inds) {
     if(inds.size() != dims)
       throw;
     
-    std::size_t flat_ind = std::inner_product(inds.begin(), inds.end(), m_strides.begin(), 0);
+    std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
     return m_data[flat_ind];
   }
 
@@ -96,7 +111,9 @@ public:
   }
   
   auto begin() {return m_data.begin();}
+  auto cbegin() {return m_data.cbegin();}
   auto end() {return m_data.end();}
+  auto cend() {return m_data.cend();}
   const std::size_t size() const requires(dims == 1) {return m_data.size();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {

@@ -92,7 +92,7 @@ int main(void) {
 
   std::cout << "HHH " << testarr(inds) << " HHH" << std::endl;
 
-  Kernels::SplineInterpolationKernelOrder1 kernel;
+  SplineInterpolationKernelOrder1 kernel;
 
   std::cout << kernel.Support() << std::endl;
   std::cout << kernel(0.78) << std::endl;
@@ -101,7 +101,7 @@ int main(void) {
   std::cout << "-----" << std::endl;
 
   DenseNDArray<scalar_t, 2> testarr2d({10, 10}, 2.0);
-  Interpolator<DenseNDArray, scalar_t, 2> itpl(testarr2d);
+  Interpolator<DenseNDArray, scalar_t, 2> itpl(testarr2d, kernel);
   std::cout << itpl.Interpolate(2, 2) << std::endl;
 
   std::cout << "-----" << std::endl;
