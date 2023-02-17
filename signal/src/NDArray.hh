@@ -16,12 +16,16 @@ public:
   NDArray(const shape_t& shape) : m_shape(shape) { }
   virtual ~NDArray() = 0;
 
-  shape_t shape() {
+  const shape_t& shape() const {
     return m_shape;
   };
 
+  std::size_t shape(std::size_t dim) const {
+    return m_shape[dim];
+  }
+
 protected:
-  shape_t m_shape = {};
+  const shape_t m_shape = {};
 };
 
 template <class T, std::size_t dims>
@@ -40,8 +44,12 @@ private:
   using data_t = std::vector<T>;
 
 public:
+
+  using type = T;
+
+  DenseNDArray(std::size_t size, const T& value) requires(dims == 1) : DenseNDArray(shape_t({size}), value) { }
   
-  DenseNDArray(const shape_t& shape, const T& value = T()) : NDArray<T, dims>(shape) {
+  DenseNDArray(const shape_t& shape, const T& value) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;
     std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
     m_data.resize(m_strides.back(), value);
@@ -57,22 +65,39 @@ public:
     m_data = std::move(data);
   }
 
+  DenseNDArray(std::initializer_list<T>&& data) requires(dims == 1) :
+    NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data.begin(), data.end()) { }
+
   DenseNDArray(std::vector<T>&& data) requires(dims == 1) : 
     NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data) { }
 
   DenseNDArray(const DenseNDArray<T, dims>& other) : 
     NDArray<T, dims>(other.m_shape), m_strides(other.m_strides), m_data(other.m_data) { }
 
+  // Indexing with explicit pack of coordinates
   template <typename... Inds>
-  T& operator()(Inds... inds) {
+  T& operator()(Inds... inds) requires(sizeof...(Inds) == dims) {
     std::size_t flat_ind = 0, dim = 0;
     (..., (flat_ind += inds * m_strides[dim++]));
     return m_data[flat_ind];
   }
 
-  T& operator()(DenseNDArray<T, 1>& inds) {    
-    return m_data[0];
+  // Indexing with a vector that holds the coordinates
+  T& operator()(DenseNDArray<std::size_t, 1>& inds) {
+    if(inds.size() != dims)
+      throw;
+    
+    std::size_t flat_ind = std::inner_product(inds.begin(), inds.end(), m_strides.begin(), 0);
+    return m_data[flat_ind];
   }
+
+  bool operator==(const DenseNDArray<T, dims>& rhs) {
+    return rhs.m_data == m_data;
+  }
+  
+  auto begin() {return m_data.begin();}
+  auto end() {return m_data.end();}
+  const std::size_t size() const requires(dims == 1) {return m_data.size();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
     return operator_binary(lhs, rhs, std::plus<T>());
@@ -128,5 +153,11 @@ private:
     return result;
   }
 };
+
+// Some type shortcuts
+template <class T>
+using DenseVector = DenseNDArray<T, 1>;
+
+using IndexVector = DenseVector<std::size_t>;
 
 #endif

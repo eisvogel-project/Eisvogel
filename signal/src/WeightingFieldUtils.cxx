@@ -21,9 +21,9 @@ namespace WeightingFieldUtils{
       return 2.0;
     };
     
-    DenseNDArray<float, 3> E_r_sampled({pts_t, pts_r, pts_z});
-    DenseNDArray<float, 3> E_z_sampled({pts_t, pts_r, pts_z});
-    DenseNDArray<float, 3> E_phi_sampled({pts_t, pts_r, pts_z});
+    DenseNDArray<float, 3> E_r_sampled({pts_t, pts_r, pts_z}, 0.0);
+    DenseNDArray<float, 3> E_z_sampled({pts_t, pts_r, pts_z}, 0.0);
+    DenseNDArray<float, 3> E_phi_sampled({pts_t, pts_r, pts_z}, 0.0);
     
     for(auto ind_t = 0; ind_t < pts_t; ind_t++) {
       for(auto ind_r = 0; ind_r < pts_r; ind_r++) {
