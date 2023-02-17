@@ -117,38 +117,38 @@ public:
   const std::size_t size() const requires(dims == 1) {return m_data.size();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::plus<T>());
+    return operator_binary(lhs, rhs, std::plus<>());
   }
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const T& rhs) {
-    auto plus_rhs = [&](const T& el){return std::plus<T>()(el, rhs);};
+    auto plus_rhs = [&](const T& el){return std::plus<>()(el, rhs);};
     return operator_unary(lhs, plus_rhs);
   }
 
   friend DenseNDArray<T, dims> operator-(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::minus<T>());
+    return operator_binary(lhs, rhs, std::minus<>());
   }
 
   friend DenseNDArray<T, dims> operator-(const DenseNDArray<T, dims>& lhs, const T& rhs) {
-    auto minus_rhs = [&](const T& el){return std::minus<T>()(el, rhs);};
+    auto minus_rhs = [&](const T& el){return std::minus<>()(el, rhs);};
     return operator_unary(lhs, minus_rhs);
   }
 
   friend DenseNDArray<T, dims> operator*(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::multiplies<T>());
+    return operator_binary(lhs, rhs, std::multiplies<>());
   }
 
   friend DenseNDArray<T, dims> operator*(const DenseNDArray<T, dims>& lhs, const T& rhs) {
-    auto multiplies_rhs = [&](const T& el){return std::multiplies<T>()(el, rhs);};
+    auto multiplies_rhs = [&](const T& el){return std::multiplies<>()(el, rhs);};
     return operator_unary(lhs, multiplies_rhs);
   }
 
   friend DenseNDArray<T, dims> operator/(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::divides<T>());
+    return operator_binary(lhs, rhs, std::divides<>());
   }
 
   friend DenseNDArray<T, dims> operator/(const DenseNDArray<T, dims>& lhs, const T& rhs) {
-    auto divides_rhs = [&](const T& el){return std::divides<T>()(el, rhs);};
+    auto divides_rhs = [&](const T& el){return std::divides<>()(el, rhs);};
     return operator_unary(lhs, divides_rhs);
   }
 
@@ -157,15 +157,15 @@ private:
   stride_t m_strides = {};
   data_t m_data = {};
 
-  friend DenseNDArray<T, dims> operator_binary(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs,
-					       std::function<T(const T&, const T&)> binary_op) {
-    DenseNDArray<T, dims> result(lhs.m_shape);
+  friend inline DenseNDArray<T, dims> operator_binary(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs,
+						      auto binary_op) {
+    DenseNDArray<T, dims> result(lhs.m_shape, T());
     std::transform(lhs.m_data.begin(), lhs.m_data.end(), rhs.m_data.begin(), result.m_data.begin(), binary_op);
     return result;
   }
 
-  friend DenseNDArray<T, dims> operator_unary(const DenseNDArray<T, dims>& arg, std::function<T(const T&)> unary_op) {
-    DenseNDArray<T, dims> result(arg.m_shape);
+  friend inline DenseNDArray<T, dims> operator_unary(const DenseNDArray<T, dims>& arg, auto unary_op) {
+    DenseNDArray<T, dims> result(arg.m_shape, T());
     std::transform(arg.m_data.begin(), arg.m_data.end(), result.m_data.begin(), unary_op);
     return result;
   }
@@ -176,5 +176,8 @@ template <class T>
 using DenseVector = DenseNDArray<T, 1>;
 
 using IndexVector = DenseVector<std::size_t>;
+
+template <class T>
+using ScalarField3D = DenseNDArray<T, 3>;
 
 #endif

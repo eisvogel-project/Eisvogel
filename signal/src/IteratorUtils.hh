@@ -37,7 +37,7 @@ public:
   auto begin() {return m_cur.begin();}
   auto end() {return m_cur.end();}
 
-  IndexVector& index() {return m_cur;}
+  inline IndexVector& index() {return m_cur;}
 };
 
 #endif

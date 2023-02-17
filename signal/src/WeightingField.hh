@@ -4,21 +4,21 @@
 #include <type_traits>
 #include "NDArray.hh"
 #include "Common.hh"
+#include "CoordUtils.hh"
 
 #include <iostream>
 
-template <template<typename, std::size_t> class StorageT, typename ValueT = scalar_t>
+template <class StorageT = DenseNDArray<scalar_t, 3>>
 class WeightingField {
 
 public:
 
   using index_t = std::size_t;
-  using shape_t = typename StorageT<ValueT, 3>::shape_t;
+  using shape_t = typename StorageT::shape_t;
  
-  WeightingField(StorageT<ValueT, 3>&& E_r, StorageT<ValueT, 3>&& E_z, StorageT<ValueT, 3>&& E_phi,
-		 ValueT t_min, ValueT t_max, ValueT r_min, ValueT r_max, ValueT z_min, ValueT z_max) :
-    m_E_r(E_r), m_E_z(E_z), m_E_phi(E_phi), 
-    m_t_min(t_min), m_t_max(t_max), m_r_min(r_min), m_r_max(r_max), m_z_min(z_min), m_z_max(z_max) { 
+  WeightingField(StorageT&& E_r, StorageT&& E_z, StorageT&& E_phi,
+		 CoordVector start_coords, CoordVector end_coords) :
+    m_E_r(E_r), m_E_z(E_z), m_E_phi(E_phi), m_start_coords(start_coords), m_end_coords(end_coords) {
 
     if((m_E_r.shape() == m_E_z.shape()) && (m_E_z.shape() == m_E_phi.shape())) {
       m_shape = m_E_r.shape();
@@ -28,15 +28,19 @@ public:
     }
   };
 
-  ValueT E_r(index_t ind_t, index_t ind_r, index_t ind_z) {
+  scalar_t E_r(index_t ind_t, index_t ind_r, index_t ind_z) {
     return m_E_r(ind_t, ind_r, ind_z);
   };
 
-  ValueT E_z(index_t ind_t, index_t ind_r, index_t ind_z) {
+  const StorageT& E_r() const {return m_E_r;};
+  const StorageT& E_z() const {return m_E_z;};
+  const StorageT& E_phi() const {return m_E_phi;};
+
+  scalar_t E_z(index_t ind_t, index_t ind_r, index_t ind_z) {
     return m_E_z(ind_t, ind_r, ind_z);
   };
 
-  ValueT E_phi(index_t ind_t, index_t ind_r, index_t ind_z) {
+  scalar_t E_phi(index_t ind_t, index_t ind_r, index_t ind_z) {
     return m_E_phi(ind_t, ind_r, ind_z);
   };
 
@@ -44,15 +48,12 @@ private:
 
   shape_t m_shape;
 
-  StorageT<ValueT, 3> m_E_r;
-  StorageT<ValueT, 3> m_E_z;
-  StorageT<ValueT, 3> m_E_phi;
+  StorageT m_E_r;
+  StorageT m_E_z;
+  StorageT m_E_phi;
 
-  ValueT m_t_min, m_t_max;
-  ValueT m_r_min, m_r_max;
-  ValueT m_z_min, m_z_max;
+  CoordVector m_start_coords;
+  CoordVector m_end_coords;
 };
-
-using DenseWeightingField = WeightingField<DenseNDArray>;
 
 #endif
