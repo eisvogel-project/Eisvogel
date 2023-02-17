@@ -1,6 +1,8 @@
 #ifndef __INTERPOLATOR_HH
 #define __INTERPOLATOR_HH
 
+#include <cmath>
+
 #include "Common.hh"
 #include "Kernels.hh"
 #include "NDArray.hh"
@@ -22,8 +24,8 @@ public:
     IndexVector end_inds(dims, 0);
 
     for(std::size_t i = 0; i < dims; i++) {
-      start_inds(i) = std::size_t(std::clamp(target_inds(i) - m_kernel.Support(), scalar_t(0), scalar_t(m_data.shape(i))));
-      end_inds(i) = std::size_t(std::clamp(target_inds(i) + m_kernel.Support(), scalar_t(0), scalar_t(m_data.shape(i))));
+      start_inds(i) = std::size_t(std::clamp(std::ceil(target_inds(i) - m_kernel.Support()), scalar_t(0), scalar_t(m_data.shape(i))));
+      end_inds(i) = std::size_t(std::clamp(std::floor(target_inds(i) + m_kernel.Support() + 1), scalar_t(0), scalar_t(m_data.shape(i))));
     }
 
     ValueT interpolated_value = ValueT();
@@ -36,7 +38,8 @@ public:
       for(std::size_t i = 0; i < dims; i++) {
 	kernel_weight *= m_kernel(target_inds(i) - cnt(i));
       }
-      interpolated_value += m_data(cnt.index()) * kernel_weight;
+
+      interpolated_value += m_data(cnt.index()) * kernel_weight;      
     }   
     
     return interpolated_value;

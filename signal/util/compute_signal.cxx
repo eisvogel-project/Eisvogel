@@ -78,31 +78,32 @@ int main(void) {
 
   int n = 10;
 
-  DenseNDArray<scalar_t, 1> vector2({1, 2, 3});
+  // DenseNDArray<scalar_t, 1> vector2({1, 2, 3});
 
-  DenseWeightingField wf = WFU::CreateElectricDipoleWeightingField();
+  // DenseWeightingField wf = WFU::CreateElectricDipoleWeightingField();
 
-  std::cout << wf.E_r(0,0,0) << std::endl;
-  std::cout << wf.E_z(0,0,0) << std::endl;
-  std::cout << wf.E_phi(0,0,0) << std::endl;
+  // std::cout << wf.E_r(0,0,0) << std::endl;
+  // std::cout << wf.E_z(0,0,0) << std::endl;
+  // std::cout << wf.E_phi(0,0,0) << std::endl;
 
-  DenseNDArray<scalar_t, 3> testarr({10, 10, 10}, 2.0);
-  testarr(2, 3, 1) = 18;
-  IndexVector inds({2, 3, 1});
+  // DenseNDArray<scalar_t, 3> testarr({10, 10, 10}, 2.0);
+  // testarr(2, 3, 1) = 18;
+  // IndexVector inds({2, 3, 1});
 
-  std::cout << "HHH " << testarr(inds) << " HHH" << std::endl;
+  // std::cout << "HHH " << testarr(inds) << " HHH" << std::endl;
+
+  // std::cout << kernel.Support() << std::endl;
+  // std::cout << kernel(0.78) << std::endl;
+  // std::cout << kernel(1.78) << std::endl;
 
   SplineInterpolationKernelOrder1 kernel;
-
-  std::cout << kernel.Support() << std::endl;
-  std::cout << kernel(0.78) << std::endl;
-  std::cout << kernel(1.78) << std::endl;
 
   std::cout << "-----" << std::endl;
 
   DenseNDArray<scalar_t, 2> testarr2d({10, 10}, 2.0);
   Interpolator<DenseNDArray, scalar_t, 2> itpl(testarr2d, kernel);
-  std::cout << itpl.Interpolate(2, 2) << std::endl;
+  // std::cout << itpl.Interpolate(2, 2) << std::endl;
+  std::cout << itpl.Interpolate(2.5, 2.5) << std::endl;
 
   std::cout << "-----" << std::endl;
 

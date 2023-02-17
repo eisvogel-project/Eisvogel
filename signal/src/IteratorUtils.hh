@@ -29,7 +29,7 @@ public:
   }
 
   bool running() {
-    return m_cur(number_dims - 1) != m_end(number_dims - 1);
+    return m_cur(number_dims - 1) < m_end(number_dims - 1);
   }
 
   IndexVector::type& operator()(size_t ind) {return m_cur(ind);}
