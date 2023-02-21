@@ -8,6 +8,8 @@
 #include "Interpolator.hh"
 #include "Integrator.hh"
 
+#include "Trajectory.hh"
+
 #include "Kernels.hh"
 #include "IteratorUtils.hh"
 
@@ -54,6 +56,22 @@ int main(void) {
   SplineInterpolationKernelOrder1 interpolation_kernel;
 
   Integrator integrator(wf, interpolation_kernel);
+
+  // ======
+
+  scalar_t b = 10;
+  scalar_t tstart = -300, tend = 300;
+  scalar_t beta = 0.9;
+
+  Trajectory traj({
+      CoordUtils::MakeCoordVectorTXYZ(tstart, 2, beta * tstart, b),
+      CoordUtils::MakeCoordVectorTXYZ(tend, 2, beta * tend, b)
+	}
+    );
+
+  integrator.integrate(0.0, traj);
+
+  // =======
 
   return 0;
 }

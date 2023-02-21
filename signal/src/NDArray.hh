@@ -112,8 +112,10 @@ public:
   
   auto begin() {return m_data.begin();}
   auto cbegin() {return m_data.cbegin();}
+  auto begin() const {return m_data.cbegin();}
   auto end() {return m_data.end();}
   auto cend() {return m_data.cend();}
+  auto end() const {return m_data.cend();}
   const std::size_t size() const requires(dims == 1) {return m_data.size();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
