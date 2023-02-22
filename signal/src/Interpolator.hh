@@ -17,12 +17,12 @@ public:
     m_data(data), m_kernel(kernel) { };
 
   template <typename... FracInds>
-  ValueT Interpolate(FracInds... frac_inds) requires(sizeof...(FracInds) == dims) {
+  ValueT Interpolate(FracInds... frac_inds) const requires(sizeof...(FracInds) == dims) {
     DenseVector<scalar_t> target_inds({static_cast<scalar_t>(frac_inds)...});
     return Interpolate(target_inds);
   }
 
-  ValueT Interpolate(const DenseVector<scalar_t>& target_inds) {
+  ValueT Interpolate(const DenseVector<scalar_t>& target_inds) const {
     IndexVector start_inds(dims, 0);
     IndexVector end_inds(dims, 0);
 

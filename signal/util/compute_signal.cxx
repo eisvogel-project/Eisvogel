@@ -63,9 +63,11 @@ int main(void) {
   scalar_t tstart = -300, tend = 300;
   scalar_t beta = 0.9;
 
+  // test trajectory: a point charge moving parallel to the x-axis 
+  // with a constant impact parameter of 'b' along the z-axis
   Trajectory traj({
-      CoordUtils::MakeCoordVectorTXYZ(tstart, 2, beta * tstart, b),
-      CoordUtils::MakeCoordVectorTXYZ(tend, 2, beta * tend, b)
+      CoordUtils::MakeCoordVectorTXYZ(tstart, beta * tstart, 0, b),
+	CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b)
 	}
     );
 

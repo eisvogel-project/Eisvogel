@@ -10,6 +10,14 @@ public:
   
   Trajectory() : m_points({}) { };
   Trajectory(std::vector<CoordVector>&& points) : m_points(points) { };
+  
+  void AddPoint(CoordVector& point);
+  void AddPoint(CoordVector&& point);
+
+  std::size_t size() const {return m_points.size();}
+
+  CoordVector& operator()(std::size_t ind);
+  const CoordVector& operator()(std::size_t ind) const;
 
   auto begin() {return m_points.begin();}
   auto begin() const {return m_points.cbegin();}

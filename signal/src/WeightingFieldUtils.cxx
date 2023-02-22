@@ -32,12 +32,13 @@ namespace WeightingFieldUtils {
       return 2.0;
     };
     
-    ScalarField3D<scalar_t> E_r_sampled({pts_t, pts_r, pts_z}, 0.0);
-    ScalarField3D<scalar_t> E_z_sampled({pts_t, pts_r, pts_z}, 0.0);
-    ScalarField3D<scalar_t> E_phi_sampled({pts_t, pts_r, pts_z}, 0.0);
+    // TODO: find a better way to make sure the ordering t, z, r etc is not messed up
+    ScalarField3D<scalar_t> E_r_sampled({pts_t, pts_z, pts_r}, 0.0);
+    ScalarField3D<scalar_t> E_z_sampled({pts_t, pts_z, pts_r}, 0.0);
+    ScalarField3D<scalar_t> E_phi_sampled({pts_t, pts_z, pts_r}, 0.0);
     
     IndexVector start_inds({0, 0, 0});
-    IndexVector end_inds({pts_t, pts_r, pts_z});
+    IndexVector end_inds({pts_t, pts_z, pts_r});
 
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
 
