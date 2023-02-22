@@ -68,11 +68,17 @@ public:
   DenseNDArray(std::initializer_list<T>&& data) requires(dims == 1) :
     NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data.begin(), data.end()) { }
 
-  DenseNDArray(std::vector<T>&& data) requires(dims == 1) : 
-    NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data) { }
+  template <typename T1>
+  DenseNDArray(std::vector<T1>&& data) requires(dims == 1) : 
+    NDArray<T, 1>({data.size()}), m_strides({1, data.size()}), m_data(data.begin(), data.end()) { }
 
-  DenseNDArray(const DenseNDArray<T, dims>& other) : 
-    NDArray<T, dims>(other.m_shape), m_strides(other.m_strides), m_data(other.m_data) { }
+  template <typename T1, std::size_t length>
+  DenseNDArray(const std::array<T1, length>& data) requires(dims == 1) : 
+    NDArray<T, 1>({length}), m_strides({1, length}), m_data(data.cbegin(), data.cend()) { }
+
+  template <typename T1>
+  DenseNDArray(const DenseNDArray<T1, dims>& other) : 
+    NDArray<T, dims>(other.m_shape), m_strides(other.m_strides), m_data(other.m_data.cbegin(), other.m_data.cend()) { }
 
   // Indexing with explicit pack of coordinates
   template <typename... Inds>

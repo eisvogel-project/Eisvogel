@@ -50,21 +50,24 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
     scalar_t t_start = CU::getT(traj(segment_ind));
     scalar_t t_end = CU::getT(traj(segment_ind + 1));
 
-    // Integrate along segment
+    // Integrate along segment (bail out early if allowed by causality)
     for(scalar_t cur_t = t_start; cur_t < std::min(t_end, t); cur_t += t_step) {
 
       CoordVector cur_pos_txyz = traj(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
       CoordVector wf_eval_pos{t - cur_t, CU::getZ(cur_pos_trz), CU::getR(cur_pos_trz)}; // position where to evaluate weighting field
+      
+      CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
 
       std::cout << "cur_t = " << cur_t << std::endl;
       std::cout << "t = " << CU::getT(cur_pos_txyz) << ", x = " << CU::getX(cur_pos_txyz) << ", y = " << CU::getY(cur_pos_txyz) << ", z = " << CU::getZ(cur_pos_txyz) << std::endl;
       std::cout << "t = " << CU::getT(cur_pos_trz) << ", r = " << CU::getR(cur_pos_trz) << ", z = " << CU::getZ(cur_pos_trz) << std::endl;
       std::cout << "t(eval) = " << CU::getT(wf_eval_pos) << ", r(eval) = " << CU::getR(wf_eval_pos) << ", z(eval) = " << CU::getZ(wf_eval_pos) << std::endl;
+      std::cout << "t_fracind(eval) = " << CU::getT(wf_eval_frac_inds) << ", r_fracind(eval) = " << CU::getR(wf_eval_frac_inds) << ", z_fracind(eval) = " << CU::getZ(wf_eval_frac_inds) << std::endl;
 
-      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r.Interpolate(wf_eval_pos),
-						      m_itpl_E_z.Interpolate(wf_eval_pos),
-						      m_itpl_E_phi.Interpolate(wf_eval_pos));
+      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r.Interpolate(wf_eval_frac_inds),
+						      m_itpl_E_z.Interpolate(wf_eval_frac_inds),
+						      m_itpl_E_phi.Interpolate(wf_eval_frac_inds));
       
       std::cout << "E_r = " << CU::getRComponent(wf_rzphi) << ", E_z = " << CU::getZComponent(wf_rzphi) << ", E_phi = " << CU::getZComponent(wf_rzphi) << std::endl;
 

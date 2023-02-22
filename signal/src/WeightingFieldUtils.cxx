@@ -11,9 +11,9 @@ namespace WeightingFieldUtils {
   WeightingField<> CreateElectricDipoleWeightingField() {   
     
     // These will be arguments eventually
-    CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.0, 0.0);
-    CoordVector end_coords = C::MakeCoordVectorTRZ(1.0, 1.0, 1.0);
-    DeltaVector delta = C::MakeCoordVectorTRZ(0.1, 0.1, 0.1); // step size
+    CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.0, -10.0);
+    CoordVector end_coords = C::MakeCoordVectorTRZ(310.0, 300.0, 30.0);
+    DeltaVector delta = C::MakeCoordVectorTRZ(0.1, 0.1, 1); // step size
     
     // ==============
 
@@ -54,6 +54,6 @@ namespace WeightingFieldUtils {
     }
     
     return WeightingField(std::move(E_r_sampled), std::move(E_z_sampled), std::move(E_phi_sampled),
-			       std::move(start_coords), std::move(end_coords));
+			  std::move(start_coords), std::move(end_coords));
   }
 }

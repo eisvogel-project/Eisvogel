@@ -27,12 +27,13 @@ public:
     IndexVector end_inds(dims, 0);
 
     for(std::size_t i = 0; i < dims; i++) {
-      start_inds(i) = std::size_t(std::clamp(std::ceil(target_inds(i) - m_kernel.Support()), 
-					     scalar_t(0), scalar_t(m_data.shape(i)))
-				  );
-      end_inds(i) = std::size_t(std::clamp(std::floor(target_inds(i) + m_kernel.Support() + 1), 
-					   scalar_t(0), scalar_t(m_data.shape(i)))
-				);
+      start_inds(i) = std::size_t(std::ceil(target_inds(i) - m_kernel.Support()));
+      end_inds(i) = std::size_t(std::floor(target_inds(i) + m_kernel.Support() + 1));
+
+      // extrapolation is not permitted
+      if((start_inds(i) < 0) || (end_inds(i) > m_data.shape(i))) {
+	throw;
+      }
     }
 
     ValueT interpolated_value = ValueT();
