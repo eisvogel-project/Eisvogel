@@ -69,7 +69,7 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
 						      m_itpl_E_z.Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_phi.Interpolate(wf_eval_frac_inds));
       
-      std::cout << "E_r = " << CU::getRComponent(wf_rzphi) << ", E_z = " << CU::getZComponent(wf_rzphi) << ", E_phi = " << CU::getZComponent(wf_rzphi) << std::endl;
+      std::cout << "E_r = " << CU::getRComponent(wf_rzphi) << ", E_z = " << CU::getZComponent(wf_rzphi) << ", E_phi = " << CU::getPHIComponent(wf_rzphi) << std::endl;
 
       FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
 

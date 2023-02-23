@@ -13,6 +13,8 @@
 #include "Kernels.hh"
 #include "IteratorUtils.hh"
 
+#include "MathUtils.hh"
+
 namespace WFU = WeightingFieldUtils;
 
 int main(void) {
@@ -31,8 +33,8 @@ int main(void) {
   std::cout << "Building trajectory ..." << std::endl;
   Trajectory traj({
       CoordUtils::MakeCoordVectorTXYZ(tstart, beta * tstart, 0, b),
-	CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b)
-	}
+  	CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b)
+  	}
     );
 
   std::cout << "Computing signal ..." << std::endl;
