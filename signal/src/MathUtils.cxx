@@ -22,7 +22,7 @@ namespace MathUtils {
     return std::exp(std::lgamma(a)) * (1 - std::exp(a * std::log(z) - std::lgamma(a + 1) - z) * accum);
   }
 
-  // Algorithm from https://doi.org/10.2307/2347328
+  // Uses Laplace's continued fraction
   scalar_t incomplete_gamma_continued_fraction(scalar_t a, scalar_t z, scalar_t rel_tol) {
 
     scalar_t An2 = 0;
