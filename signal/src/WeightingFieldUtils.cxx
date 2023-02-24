@@ -14,15 +14,15 @@ namespace WeightingFieldUtils {
     
     // These will be arguments eventually
     CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.1, -10.0);
-    CoordVector end_coords = C::MakeCoordVectorTRZ(310.0, 300.0, 30.0);
-    DeltaVector step = C::MakeCoordVectorTRZ(0.5, 0.5, 1); // step size
+    CoordVector end_coords = C::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
+    DeltaVector step = C::MakeCoordVectorTRZ(0.2, 0.2, 1); // step size
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;
     scalar_t n = 1.0;
     scalar_t ds = 1.0;
 
-    scalar_t tp = 1.0;
+    scalar_t tp = 5.0;
     unsigned int N = 1;
 
     // These will be stored in some central place
