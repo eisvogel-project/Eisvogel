@@ -13,9 +13,9 @@ namespace WeightingFieldUtils {
   WeightingField<> CreateElectricDipoleWeightingField() {   
     
     // These will be arguments eventually
-    CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.0, -10.0);
+    CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.1, -10.0);
     CoordVector end_coords = C::MakeCoordVectorTRZ(310.0, 300.0, 30.0);
-    DeltaVector step = C::MakeCoordVectorTRZ(0.1, 0.1, 1); // step size
+    DeltaVector step = C::MakeCoordVectorTRZ(0.5, 0.5, 1); // step size
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;
@@ -29,24 +29,25 @@ namespace WeightingFieldUtils {
     scalar_t c = 1.0;
 
     auto filtered_theta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
+      if(t <= 0) {
+	return 0.0;
+      }
       return 1.0 - MathUtils::incomplete_gamma(1 + N, N * t / tp) / std::exp(std::lgamma(N + 1));
     };
 
     auto filtered_delta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
       if(t <= 0) {
 	return 0.0;
-      } else {
-	return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
       }
+      return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
     };
 
     auto filtered_delta_prime = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
       if(t <= 0) {
 	return 0.0;
-      } else {
-	return filtered_delta(t, tp, N) * (tp - t) * N / (tp * t);
       }
-    };
+      return filtered_delta(t, tp, N) * (tp - t) * N / (tp * t);
+    };  
     
     // ==============
 
@@ -57,6 +58,7 @@ namespace WeightingFieldUtils {
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
       scalar_t cos_theta = z / r;
+
       return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + 
 										t_prop * filtered_delta(t_del, tp, N));
     };
@@ -94,12 +96,18 @@ namespace WeightingFieldUtils {
       scalar_t t = C::getT(start_coords) + C::getTInd(ind) * C::getT(step);
       scalar_t r = C::getR(start_coords) + C::getRInd(ind) * C::getR(step);
       scalar_t z = C::getZ(start_coords) + C::getZInd(ind) * C::getZ(step);
-      
-      E_r_sampled(ind) = E_r(t, r, z);
-      E_z_sampled(ind) = E_z(t, r, z);
-      E_phi_sampled(ind) = E_phi(t, r, z);
 
-      std::cout << "E_r = " << E_r_sampled(ind) << ", E_z = " << E_z_sampled(ind) << ", E_phi = " << E_phi_sampled(ind) << std::endl;
+      scalar_t cur_E_r = E_r(t, r, z);
+      scalar_t cur_E_z = E_z(t, r, z);
+      scalar_t cur_E_phi = E_phi(t, r, z);
+      
+      if(!(std::isfinite(cur_E_r) && std::isfinite(cur_E_z) && std::isfinite(cur_E_phi))) {
+	throw;
+      }
+
+      E_r_sampled(ind) = cur_E_r;
+      E_z_sampled(ind) = cur_E_z;
+      E_phi_sampled(ind) = cur_E_phi;
     }
     
     return WeightingField(std::move(E_r_sampled), std::move(E_z_sampled), std::move(E_phi_sampled),
