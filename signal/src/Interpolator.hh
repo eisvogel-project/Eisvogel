@@ -2,6 +2,7 @@
 #define __INTERPOLATOR_HH
 
 #include <cmath>
+#include <iostream>
 
 #include "Common.hh"
 #include "Kernels.hh"
@@ -32,6 +33,7 @@ public:
 
       // extrapolation is not permitted
       if((start_inds(i) < 0) || (end_inds(i) > m_data.shape(i))) {
+	std::cerr << "Extrapolation is not permitted" << std::endl;
 	throw;
       }
     }
