@@ -45,7 +45,7 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
   for(std::size_t segment_ind = 0; segment_ind < deltas.size(); segment_ind++) {
     
     // TODO: Integration step size to be computed dynamically from frequency content
-    scalar_t t_step = CU::getT(deltas(segment_ind)) / 10000;
+    scalar_t t_step = CU::getT(deltas(segment_ind)) / 500000.0;
 
     scalar_t t_start = CU::getT(traj(segment_ind));
     scalar_t t_end = CU::getT(traj(segment_ind + 1));
