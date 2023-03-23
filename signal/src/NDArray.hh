@@ -5,6 +5,9 @@
 #include <array>
 #include <numeric>
 #include <algorithm>
+#include <iostream>
+
+#include "Serialization.hh"
 
 template <class T, std::size_t dims>
 class NDArray {
@@ -42,6 +45,9 @@ public:
 private:
   using stride_t = std::array<std::size_t, dims + 1>;
   using data_t = std::vector<T>;
+
+private:
+  friend struct stor::Traits<DenseNDArray<T, dims>>;
 
 public:
 
@@ -178,6 +184,27 @@ private:
     return result;
   }
 };
+
+namespace stor {
+
+  template<typename T, std::size_t dims>
+  struct Traits<DenseNDArray<T, dims>> {
+    using type = DenseNDArray<T, dims>;
+    using shape_t = typename type::shape_t;
+    using data_t = typename type::data_t;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<shape_t>::serialize(stream, val.m_shape);
+      Traits<data_t>::serialize(stream, val.m_data);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      shape_t shape = Traits<shape_t>::deserialize(stream);
+      data_t data = Traits<data_t>::deserialize(stream);
+      return DenseNDArray<T, dims>(shape, std::move(data));
+    }
+  };
+}
 
 // Some type shortcuts
 template <class T>
