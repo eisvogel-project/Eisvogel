@@ -6,10 +6,15 @@
 #include "Common.hh"
 #include "CoordUtils.hh"
 
-#include <iostream>
+#include "Serialization.hh"
 
-template <class StorageT = DenseNDArray<scalar_t, 3>>
 class WeightingField {
+
+public:
+  using storage_t = DenseNDArray<scalar_t, 3>;
+
+private:
+  friend struct stor::Traits<WeightingField>;
 
 public:
 
@@ -57,5 +62,32 @@ private:
   CoordVector m_start_coords;
   CoordVector m_end_coords;
 };
+
+namespace stor {
+  
+  template <>
+  struct Traits<WeightingField> {
+    using type = WeightingField;
+    using storage_t = typename WeightingField::storage_t;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<storage_t>::serialize(stream, val.m_E_r);
+      Traits<storage_t>::serialize(stream, val.m_E_z);
+      Traits<storage_t>::serialize(stream, val.m_E_phi);
+      Traits<CoordVector>::serialize(stream, val.m_start_coords);
+      Traits<CoordVector>::serialize(stream, val.m_end_coords);
+    }
+    
+    static type deserialize(std::iostream& stream) {
+      storage_t E_r = Traits<storage_t>::deserialize(stream);
+      storage_t E_z = Traits<storage_t>::deserialize(stream);
+      storage_t E_phi = Traits<storage_t>::deserialize(stream);
+      CoordVector start_coords = Traits<CoordVector>::deserialize(stream);
+      CoordVector end_coords = Traits<CoordVector>::deserialize(stream);
+      return WeightingField(std::move(E_r), std::move(E_z), std::move(E_phi),
+			    start_coords, end_coords);
+    }
+  };
+}
 
 #endif
