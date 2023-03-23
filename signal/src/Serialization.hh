@@ -28,10 +28,10 @@ namespace stor {
       stream.write((char*)&outval, sizeof(outval));
     }
 
-    static void deserialize(std::iostream& stream, type& val) {
+    static type deserialize(std::iostream& stream) {
       ser_type inval;
       stream.read((char*)&inval, sizeof(inval));
-      val = ntohl(inval);
+      return ntohl(inval);
     }
   };
 
@@ -45,10 +45,10 @@ namespace stor {
       stream.write((char*)&outval, sizeof(outval));
     }
 
-    static void deserialize(std::iostream& stream, type& val) {
+    static type deserialize(std::iostream& stream) {
       ser_type inval;
       stream.read((char*)&inval, sizeof(inval));
-      val = ntohll(inval);
+      return ntohll(inval);
     }
   };
 
@@ -62,10 +62,9 @@ namespace stor {
       Traits<ser_type>::serialize(stream, ser_val);
     }
 
-    static void deserialize(std::iostream& stream, type& val) {
-      ser_type ser_val;
-      Traits<ser_type>::deserialize(stream, ser_val);
-      val = reinterpret_cast<type&>(ser_val);
+    static type deserialize(std::iostream& stream) {
+      ser_type ser_val = Traits<ser_type>::deserialize(stream);
+      return reinterpret_cast<type&>(ser_val);
     }
   };
 
@@ -80,14 +79,13 @@ namespace stor {
       }
     }
     
-    static void deserialize(std::iostream& stream, type& val) {
-      std::size_t size;
-      Traits<std::size_t>::deserialize(stream, size);
+    static type deserialize(std::iostream& stream) {
+      type val;
+      std::size_t size = Traits<std::size_t>::deserialize(stream);
       for(std::size_t ind = 0; ind < size; ind++) {
-	T cur;
-	Traits<T>::deserialize(stream, cur);
-	val.push_back(cur);
+	val.push_back(Traits<T>::deserialize(stream));
       }
+      return val;
     }
   };
 
@@ -101,12 +99,12 @@ namespace stor {
       }
     }
 
-    static void deserialize(std::iostream& stream, type& val) {
+    static type deserialize(std::iostream& stream) {
+      type val;
       for(std::size_t ind = 0; ind < n; ind++) {
-	T cur;
-	Traits<T>::deserialize(stream, cur);
-	val[ind] = cur;
+	val[ind] = Traits<T>::deserialize(stream);
       }
+      return val;
     }
   };
 
@@ -116,24 +114,17 @@ namespace stor {
     Serializer(std::iostream& stream) : m_stream(stream) { }
     
     template <typename T>
-    friend Serializer operator<<(Serializer& ser, const T& value) {
-      Traits<T>::serialize(ser.stream(), value);
-      return ser;
+    void serialize(const T& value) {
+      Traits<T>::serialize(m_stream, value);
     }
 
     template <typename T>
-    friend Serializer operator>>(Serializer& ser, T& value) {
-      Traits<T>::deserialize(ser.stream(), value);
-      return ser;
-    }
-
-    std::iostream& stream() {
-      return m_stream;
+    T deserialize() {
+      return Traits<T>::deserialize(m_stream);
     }
 
   private:
     std::iostream& m_stream;
-
   };
 }
 
