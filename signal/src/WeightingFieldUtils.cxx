@@ -10,7 +10,7 @@ namespace C = CoordUtils;
 
 namespace WeightingFieldUtils {
 
-  WeightingField<> CreateElectricDipoleWeightingField() {   
+  WeightingField CreateElectricDipoleWeightingField() {
     
     // These will be arguments eventually
     CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.1, -10.0);

@@ -5,7 +5,7 @@
 
 namespace WeightingFieldUtils {
 
-  WeightingField<> CreateElectricDipoleWeightingField();
+  WeightingField CreateElectricDipoleWeightingField();
 
 }
 
