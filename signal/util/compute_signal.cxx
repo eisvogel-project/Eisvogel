@@ -17,19 +17,39 @@
 
 #include "SignalExport.hh"
 
+#include "Serialization.hh"
+
+#include <fstream>
+
 namespace WFU = WeightingFieldUtils;
 
 int main(void) {
 
+  std::string path = "/home/windischhofer/Eisvogel/Eisvogel/signal/build/test.bin";
+  std::fstream ofs;
+  
+  //ofs.open(path, std::ios::out | std::ios::binary);
+  ofs.open(path, std::ios::in | std::ios::binary);
+  stor::Serializer ser(ofs);
+
   std::cout << "Building weighting field ..." << std::endl;
-  WeightingField wf = WFU::CreateElectricDipoleWeightingField();
+  CoordVector start_coords = CoordUtils::MakeCoordVectorTRZ(0.0, 0.1, -30.0);
+  CoordVector end_coords = CoordUtils::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
+  scalar_t tp = 5.0;
+  unsigned int N = 1;
+  WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N);
+  ser.serialize(wf);
+  ofs.close();
+
+  // WeightingField wf = ser.deserialize<WeightingField>();
+
   SplineInterpolationKernelOrder1 interpolation_kernel;
   Integrator integrator(wf, interpolation_kernel);
 
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis
   scalar_t b = 1;
-  scalar_t tstart = -300, tend = 300;
+  scalar_t tstart = -250, tend = 250;
   scalar_t beta = 0.9;
 
   std::cout << "Building trajectory ..." << std::endl;

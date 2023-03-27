@@ -2,7 +2,6 @@
 #include "Common.hh"
 #include "IteratorUtils.hh"
 #include "CoordUtils.hh"
-#include "NDArray.hh"
 #include "MathUtils.hh"
 #include <cmath>
 
@@ -10,23 +9,28 @@ namespace C = CoordUtils;
 
 namespace WeightingFieldUtils {
 
-  WeightingField CreateElectricDipoleWeightingField() {
-    
-    // These will be arguments eventually
-    CoordVector start_coords = C::MakeCoordVectorTRZ(0.0, 0.1, -10.0);
-    CoordVector end_coords = C::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
-    DeltaVector step = C::MakeCoordVectorTRZ(0.1, 0.1, 1); // step size
+  WeightingField CreateElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
+						    scalar_t tp, unsigned int N, scalar_t os_factor) {
 
     scalar_t Qw = 1.0;
-    scalar_t eps0 = 1.0;
-    scalar_t n = 1.0;
+    scalar_t eps0 = 1.0;  // vacuum dielectric constant
+    scalar_t n = 1.0;  // refractive index of medium
     scalar_t ds = 1.0;
+    scalar_t c = 1.0;  // speed of light in vacuum
 
-    scalar_t tp = 5.0;
-    unsigned int N = 1;
+    // compute required step size for sampling of weighting field
+    scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
+    scalar_t lambda_min = c / (fmax * n);
+    scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
+    scalar_t delta_pos = lambda_min / (2.0 * os_factor);
+    
+    std::cout << "---------------------------" << std::endl;
+    std::cout << "Using oversampling factor = " << os_factor << std::endl;
+    std::cout << "delta_t = " << delta_t << std::endl;
+    std::cout << "delta_r = delta_z = " << delta_pos << std::endl;
+    std::cout << "---------------------------" << std::endl;
 
-    // These will be stored in some central place
-    scalar_t c = 1.0;
+    DeltaVector step = C::MakeCoordVectorTRZ(delta_t, delta_pos, delta_pos);
 
     auto filtered_theta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
       if(t <= 0) {

@@ -39,13 +39,22 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
   // std::cout << "-------" << std::endl;
 
   // =======================================
+
+  DeltaVector wf_sampling_intervals = m_wf.getSamplingIntervals();
   
   // Main signal integration loop
   scalar_t signal = 0;
   for(std::size_t segment_ind = 0; segment_ind < deltas.size(); segment_ind++) {
+
+    CoordVector& segment_velocity = velocities(segment_ind);
     
-    // TODO: Integration step size to be computed dynamically from frequency content
-    scalar_t t_step = CU::getT(deltas(segment_ind)) / 500000.0;
+    // scalar_t t_step = CU::getT(deltas(segment_ind)) / 500000.0;
+    scalar_t t_step = 1.0 / (1.0 / CU::getT(wf_sampling_intervals) + 
+			     std::sqrt(std::pow(CU::getX(segment_velocity), 2) + std::pow(CU::getY(segment_velocity), 2)) / CU::getR(wf_sampling_intervals) + 
+			     std::fabs(CU::getZ(segment_velocity)) / CU::getZ(wf_sampling_intervals)
+			     );
+
+    std::cout << "using t_step = " << t_step << std::endl;
 
     scalar_t t_start = CU::getT(traj(segment_ind));
     scalar_t t_end = CU::getT(traj(segment_ind + 1));
@@ -55,7 +64,7 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
 
       CoordVector cur_pos_txyz = traj(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-      CoordVector wf_eval_pos{t - cur_t, CU::getZ(cur_pos_trz), CU::getR(cur_pos_trz)}; // position where to evaluate weighting field
+      CoordVector wf_eval_pos{t - cur_t, CU::getZ(cur_pos_trz), CU::getR(cur_pos_trz)}; // position where to evaluate weighting field (this is like this because of the internal order {t, z, r} in CoordVector ... to be made less error-prone!
       
       CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
 
@@ -75,9 +84,13 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
 
       // std::cout << "E_x = " << CU::getXComponent(wf_xyz) << ", E_y = " << CU::getYComponent(wf_xyz) << ", E_z = " << CU::getZComponent(wf_xyz) << std::endl;
 
-      signal += -t_step * (CU::getXComponent(wf_xyz) * CU::getX(velocities(segment_ind)) +
-			   CU::getYComponent(wf_xyz) * CU::getY(velocities(segment_ind)) +
-			   CU::getZComponent(wf_xyz) * CU::getZ(velocities(segment_ind)));
+      scalar_t val_step = -t_step * (CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
+			   CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
+			   CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity));
+
+      std::cout << "val_step = " << val_step << std::endl;
+
+      signal += val_step;
     }
   }
 

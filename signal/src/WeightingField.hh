@@ -51,6 +51,10 @@ public:
     return frac_inds;
   }
 
+  DeltaVector getSamplingIntervals() const {
+    return (m_end_coords - m_start_coords) / m_shape;
+  }
+
 private:
 
   CoordVector m_shape;
