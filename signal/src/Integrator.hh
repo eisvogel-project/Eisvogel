@@ -11,7 +11,7 @@ class Integrator {
 public:
 
   Integrator(const WeightingField& wf, const Kernel& kernel);
-  scalar_t integrate(scalar_t t, const Trajectory& traj) const;
+  scalar_t integrate(scalar_t t, const Trajectory& traj, scalar_t os_factor = 1.0) const;
 
 private:
 

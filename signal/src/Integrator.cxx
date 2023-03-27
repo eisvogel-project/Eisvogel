@@ -9,7 +9,7 @@ namespace CU = CoordUtils;
 Integrator::Integrator(const WeightingField& wf, const Kernel& kernel) : 
   m_wf(wf), m_itpl_E_r(wf.E_r(), kernel), m_itpl_E_z(wf.E_z(), kernel), m_itpl_E_phi(wf.E_phi(), kernel) { }
 
-scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
+scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_factor) const {
 
   // compute velocity vector for each segment
   Trajectory deltas, velocities;
@@ -53,8 +53,11 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj) const {
 			     std::sqrt(std::pow(CU::getX(segment_velocity), 2) + std::pow(CU::getY(segment_velocity), 2)) / CU::getR(wf_sampling_intervals) + 
 			     std::fabs(CU::getZ(segment_velocity)) / CU::getZ(wf_sampling_intervals)
 			     );
+    t_step /= os_factor;
 
     std::cout << "using t_step = " << t_step << std::endl;
+
+    // 
 
     scalar_t t_start = CU::getT(traj(segment_ind));
     scalar_t t_end = CU::getT(traj(segment_ind + 1));
