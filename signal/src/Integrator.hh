@@ -15,6 +15,7 @@ public:
 
 private:
 
+  const Kernel& m_kernel;
   const WeightingField& m_wf;
 
   Interpolator<DenseNDArray, scalar_t, 3> m_itpl_E_r;

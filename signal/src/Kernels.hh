@@ -13,6 +13,7 @@ class Kernel {
 public:
   virtual std::size_t Support() const = 0;
   virtual scalar_t operator()(scalar_t arg) const = 0;
+  virtual scalar_t CDF(scalar_t arg) const = 0;
   
 protected:
   static constexpr scalar_t Inf = std::numeric_limits<scalar_t>::infinity();
@@ -24,6 +25,7 @@ class SplineInterpolationKernelOrder1 : public Kernel {
 public:
   std::size_t Support() const;
   scalar_t operator()(scalar_t arg) const;
+  scalar_t CDF(scalar_t arg) const;
 };
 
 class SplineInterpolationKernelOrder3 : public Kernel {
@@ -31,6 +33,7 @@ class SplineInterpolationKernelOrder3 : public Kernel {
 public:
   std::size_t Support() const;
   scalar_t operator()(scalar_t arg) const;
+  scalar_t CDF(scalar_t arg) const;
 };
 
 #endif

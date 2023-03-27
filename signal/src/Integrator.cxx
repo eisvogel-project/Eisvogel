@@ -7,7 +7,7 @@
 namespace CU = CoordUtils;
 
 Integrator::Integrator(const WeightingField& wf, const Kernel& kernel) : 
-  m_wf(wf), m_itpl_E_r(wf.E_r(), kernel), m_itpl_E_z(wf.E_z(), kernel), m_itpl_E_phi(wf.E_phi(), kernel) { }
+  m_kernel(kernel), m_wf(wf), m_itpl_E_r(wf.E_r(), kernel), m_itpl_E_z(wf.E_z(), kernel), m_itpl_E_phi(wf.E_phi(), kernel) { }
 
 scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_factor) const {
 
@@ -55,15 +55,27 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 			     );
     t_step /= os_factor;
 
-    std::cout << "using t_step = " << t_step << std::endl;
-
-    // 
-
     scalar_t t_start = CU::getT(traj(segment_ind));
-    scalar_t t_end = CU::getT(traj(segment_ind + 1));
+    scalar_t t_end = std::min(t, CU::getT(traj(segment_ind + 1)));
+
+    std::cout << "t_start = " << t_start << std::endl;
+    std::cout << "t_end = " << t_end << std::endl;
+
+    std::cout << "using initial t_step = " << t_step << std::endl;
+
+    // choose final time step so that an integer number of sampling points fits
+    const std::size_t number_points = std::ceil((t_end - t_start) / t_step);
+    t_step = (t_end - t_start) / number_points;
+    
+    std::cout << "using final t_step = " << t_step << std::endl;
+
+    // TODO: check why kernel integral of points at the boundary don't give 0.5
 
     // Integrate along segment (bail out early if allowed by causality)
-    for(scalar_t cur_t = t_start; cur_t < std::min(t_end, t); cur_t += t_step) {
+    scalar_t cur_t = t_start - t_step * m_kernel.Support();
+    for(int step_ind = -m_kernel.Support(); step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
+
+      std::cout << "step_ind = " << step_ind << std::endl;
 
       CoordVector cur_pos_txyz = traj(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
@@ -87,13 +99,19 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 
       // std::cout << "E_x = " << CU::getXComponent(wf_xyz) << ", E_y = " << CU::getYComponent(wf_xyz) << ", E_z = " << CU::getZComponent(wf_xyz) << std::endl;
 
-      scalar_t val_step = -t_step * (CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
-			   CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
-			   CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity));
+      // TODO: add evaluation of partial integrals over kernels
+      scalar_t wf_val =  (CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
+				     CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
+				     CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity));
 
-      std::cout << "val_step = " << val_step << std::endl;
+      scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
 
-      signal += val_step;
+      std::cout << "cur_t (t) = " << cur_t << " (" << t << ")" << std::endl;
+      std::cout << "wf_val = " << wf_val << std::endl;
+      std::cout << "kernel_int = " << kernel_int << std::endl;
+
+      signal += -t_step * wf_val * kernel_int;
+      cur_t += t_step;
     }
   }
 

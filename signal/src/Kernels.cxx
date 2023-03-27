@@ -19,6 +19,19 @@ scalar_t SplineInterpolationKernelOrder1::operator()(scalar_t arg) const {
   throw;
 }
 
+scalar_t SplineInterpolationKernelOrder1::CDF(scalar_t arg) const {
+
+  if(arg > 0) {
+    return 1.0 - CDF(-arg);
+  }
+  
+  if(InRange(-1, 0, arg)) {
+    return std::pow(arg, 2) / 2.0 + arg + 0.5;
+  }
+
+  return 0.0;
+}
+
 std::size_t SplineInterpolationKernelOrder3::Support() const {
   return 1;
 }
@@ -29,4 +42,8 @@ scalar_t SplineInterpolationKernelOrder3::operator()(scalar_t arg) const {
   return 0.0;
 
   throw;
+}
+
+scalar_t SplineInterpolationKernelOrder3::CDF(scalar_t arg) const {
+  return 0.0;
 }
