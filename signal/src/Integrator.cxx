@@ -99,11 +99,10 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 
       // std::cout << "E_x = " << CU::getXComponent(wf_xyz) << ", E_y = " << CU::getYComponent(wf_xyz) << ", E_z = " << CU::getZComponent(wf_xyz) << std::endl;
 
-      // TODO: add evaluation of partial integrals over kernels
-      scalar_t wf_val =  (CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
-				     CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
-				     CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity));
-
+      scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
+	CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
+	CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity);
+      
       scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
 
       std::cout << "cur_t (t) = " << cur_t << " (" << t << ")" << std::endl;
