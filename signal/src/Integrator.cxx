@@ -4,6 +4,8 @@
 #include <utility>
 #include <iostream>
 
+#include "SignalExport.hh"
+
 namespace CU = CoordUtils;
 
 Integrator::Integrator(const WeightingField& wf, const Kernel& kernel) : 
@@ -18,28 +20,6 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
     velocities.AddPoint(deltas(pt_ind) / CU::getT(deltas(pt_ind)));
   }
 
-  // =======================================
-
-  // std::cout << "-------" << std::endl;
-
-  // for(const auto& cur_pt : std::as_const(traj)) {
-  //   std::cout << "t = " << CU::getT(cur_pt) << ", x = " << CU::getX(cur_pt) << ", y = " << CU::getY(cur_pt) << ", z = " << CU::getZ(cur_pt) << std::endl;
-  // }
-
-  // std::cout << "-------" << std::endl;
-
-  // for(const auto& cur_delta : std::as_const(deltas)) {
-  //   std::cout << "delta_t = " << CU::getT(cur_delta) << ", delta_x = " << CU::getX(cur_delta) << ", delta_y = " << CU::getY(cur_delta) << ", delta_z = " << CU::getZ(cur_delta) << std::endl;
-  // }  
-
-  // for(const auto& cur_vel : std::as_const(velocities)) {
-  //   std::cout << "v_t = " << CU::getT(cur_vel) << ", v_x = " << CU::getX(cur_vel) << ", v_y = " << CU::getY(cur_vel) << ", v_z = " << CU::getZ(cur_vel) << std::endl;
-  // }
-
-  // std::cout << "-------" << std::endl;
-
-  // =======================================
-
   DeltaVector wf_sampling_intervals = m_wf.getSamplingIntervals();
   
   // Main signal integration loop
@@ -48,7 +28,6 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 
     CoordVector& segment_velocity = velocities(segment_ind);
     
-    // scalar_t t_step = CU::getT(deltas(segment_ind)) / 500000.0;
     scalar_t t_step = 1.0 / (1.0 / CU::getT(wf_sampling_intervals) + 
 			     std::sqrt(std::pow(CU::getX(segment_velocity), 2) + std::pow(CU::getY(segment_velocity), 2)) / CU::getR(wf_sampling_intervals) + 
 			     std::fabs(CU::getZ(segment_velocity)) / CU::getZ(wf_sampling_intervals)
@@ -60,7 +39,6 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 
     std::cout << "t_start = " << t_start << std::endl;
     std::cout << "t_end = " << t_end << std::endl;
-
     std::cout << "using initial t_step = " << t_step << std::endl;
 
     // choose final time step so that an integer number of sampling points fits
@@ -69,11 +47,12 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
     
     std::cout << "using final t_step = " << t_step << std::endl;
 
-    // TODO: check why kernel integral of points at the boundary don't give 0.5
+    std::vector<scalar_t> signal_times, signal_values;
 
     // Integrate along segment (bail out early if allowed by causality)
     scalar_t cur_t = t_start - t_step * m_kernel.Support();
     for(int step_ind = -m_kernel.Support(); step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
+//    for(int step_ind = number_points - 10; step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
 
       std::cout << "step_ind = " << step_ind << std::endl;
 
@@ -105,13 +84,18 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
       
       scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
 
+      signal_times.push_back(cur_t);
+      signal_values.push_back(CU::getZComponent(wf_rzphi));
+
       std::cout << "cur_t (t) = " << cur_t << " (" << t << ")" << std::endl;
       std::cout << "wf_val = " << wf_val << std::endl;
       std::cout << "kernel_int = " << kernel_int << std::endl;
 
-      signal += -t_step * wf_val * kernel_int;
+      signal += -t_step * wf_val;// * kernel_int;
       cur_t += t_step;
     }
+
+    ExportSignal(signal_times, signal_values, "./integration_dump.csv");
   }
 
   return signal;

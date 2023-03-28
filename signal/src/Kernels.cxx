@@ -2,7 +2,7 @@
 #include <cmath>
 
 std::size_t SincInterpolationKernel::Support() const {
-  return 10; // some cutoff
+  return 5; // some cutoff
 }
 
 scalar_t SincInterpolationKernel::operator()(scalar_t arg) const {
