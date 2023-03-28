@@ -28,18 +28,27 @@ public:
     IndexVector end_inds(dims, 0);
 
     for(std::size_t i = 0; i < dims; i++) {
-      start_inds(i) = std::size_t(std::ceil(target_inds(i) - m_kernel.Support()));
-      end_inds(i) = std::size_t(std::floor(target_inds(i) + m_kernel.Support() + 1));
+      scalar_t start_ind = std::ceil(target_inds(i) - m_kernel.Support());
+      scalar_t end_ind = std::floor(target_inds(i) + m_kernel.Support() + 1);
 
       // extrapolation is not permitted
-      if((start_inds(i) < 0) || (end_inds(i) > m_data.shape(i))) {
+      if((start_ind < 0) || (end_ind > m_data.shape(i))) {
 	std::cerr << "Extrapolation is not permitted" << std::endl;
 	throw;
       }
+
+      start_inds(i) = std::size_t(start_ind);
+      end_inds(i) = std::size_t(end_ind);
     }
 
     ValueT interpolated_value = ValueT();
-    IndexVector cur_inds = start_inds;
+
+    // std::cout << "--------------" << std::endl;
+    // std::cout << "interpolating onto: ";
+    // for(auto cur: target_inds) {
+    //   std::cout << cur << "  ";
+    // }
+    // std::cout << std::endl;
 
     // iterate over all dimensions
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
@@ -49,7 +58,16 @@ public:
 	kernel_weight *= m_kernel(target_inds(i) - cnt(i));
       }
       interpolated_value += m_data(cnt.index()) * kernel_weight;      
-    }   
+
+      // std::cout << "cur pt = ";
+      // for(auto cur: cnt.index()) {
+      // 	std::cout << cur << "  ";
+      // }
+      // std::cout << " --> val = " << m_data(cnt.index()) << ", weight = " << kernel_weight << std::endl;
+    }
+
+    // std::cout << "interpolated value: " << interpolated_value << std::endl;
+    // std::cout << "--------------" << std::endl;
     
     return interpolated_value;
   }
