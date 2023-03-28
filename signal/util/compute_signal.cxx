@@ -28,22 +28,25 @@ int main(void) {
   std::string path = "/home/windischhofer/Eisvogel/Eisvogel/signal/build/test.bin";
   std::fstream ofs;
   
-  //ofs.open(path, std::ios::out | std::ios::binary);
+  // ofs.open(path, std::ios::out | std::ios::binary);
   ofs.open(path, std::ios::in | std::ios::binary);
   stor::Serializer ser(ofs);
 
   std::cout << "Building weighting field ..." << std::endl;
-  CoordVector start_coords = CoordUtils::MakeCoordVectorTRZ(0.0, 0.1, -30.0);
+  CoordVector start_coords = CoordUtils::MakeCoordVectorTRZ(-10.0, -10.0, -30.0);
   CoordVector end_coords = CoordUtils::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
   scalar_t tp = 5.0;
-  unsigned int N = 1;
-  WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N);
-  ser.serialize(wf);
-  ofs.close();
+  unsigned int N = 4;
+  // WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, 50);
+  // ser.serialize(wf);
+  // ofs.close();
 
-  // WeightingField wf = ser.deserialize<WeightingField>();
+  WeightingField wf = ser.deserialize<WeightingField>();
 
-  SplineInterpolationKernelOrder1 interpolation_kernel;
+  // SplineInterpolationKernelOrder1 interpolation_kernel;
+  SplineInterpolationKernelOrder3 interpolation_kernel;
+  // SincInterpolationKernel interpolation_kernel;
+
   Integrator integrator(wf, interpolation_kernel);
 
   // test trajectory: a point charge moving parallel to the x-axis 
@@ -62,7 +65,7 @@ int main(void) {
   std::cout << "Computing signal ..." << std::endl;
 
   std::vector<scalar_t> signal_times, signal_values;
-  for(scalar_t cur_t = -15; cur_t < 15; cur_t += 1) {
+  for(scalar_t cur_t = 5; cur_t < 6; cur_t += 1) {
     scalar_t cur_signal = integrator.integrate(cur_t, traj);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);

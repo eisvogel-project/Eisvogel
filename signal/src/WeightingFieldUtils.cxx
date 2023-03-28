@@ -60,6 +60,7 @@ namespace WeightingFieldUtils {
 
     // Weighting field in spherical coordinates
     auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
       scalar_t cos_theta = z / r;
@@ -69,6 +70,7 @@ namespace WeightingFieldUtils {
     };
 
     auto E_theta = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
       scalar_t sin_theta = r_xy / r;
@@ -78,12 +80,14 @@ namespace WeightingFieldUtils {
 
     // Weighting field in cylindrical coordinates
     auto E_rxy = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t cos_theta = z / r, sin_theta = r_xy / r;
       return E_r(t, r_xy, z) * sin_theta + E_theta(t, r_xy, z) * cos_theta;
     };
     
     auto E_z = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t cos_theta = z / r, sin_theta = r_xy / r;
       return E_r(t, r_xy, z) * cos_theta - E_theta(t, r_xy, z) * sin_theta;
