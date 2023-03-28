@@ -20,6 +20,14 @@ protected:
   static constexpr scalar_t NegInf = Inf * (-1);    
 };
 
+class SincInterpolationKernel : public Kernel {
+
+public:
+  std::size_t Support() const;
+  scalar_t operator()(scalar_t arg) const;
+  scalar_t CDF(scalar_t arg) const;
+};
+
 class SplineInterpolationKernelOrder1 : public Kernel {
   
 public:
