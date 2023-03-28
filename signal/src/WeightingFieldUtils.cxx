@@ -58,6 +58,7 @@ namespace WeightingFieldUtils {
     CoordVector number_pts = (end_coords - start_coords) / step;
     std::size_t pts_t = C::getT(number_pts), pts_r = C::getR(number_pts), pts_z = C::getZ(number_pts);
 
+    // Weighting field in spherical coordinates
     auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
@@ -73,6 +74,13 @@ namespace WeightingFieldUtils {
       scalar_t sin_theta = r_xy / r;
       return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + t_prop * filtered_delta(t_del, tp, N)
 									  + std::pow(t_prop, 2) * filtered_delta_prime(t_del, tp, N));
+    };
+
+    // Weighting field in cylindrical coordinates
+    auto E_rxy = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t cos_theta = z / r, sin_theta = r_xy / r;
+      return E_r(t, r_xy, z) * sin_theta + E_theta(t, r_xy, z) * cos_theta;
     };
     
     auto E_z = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
@@ -91,7 +99,7 @@ namespace WeightingFieldUtils {
     ScalarField3D<scalar_t> E_phi_sampled({pts_t, pts_z, pts_r}, 0.0);
     
     IndexVector start_inds({0, 0, 0});
-    IndexVector end_inds({pts_t, pts_z, pts_r});
+    IndexVector end_inds({pts_t, pts_z, pts_r});    
 
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
 
@@ -101,15 +109,15 @@ namespace WeightingFieldUtils {
       scalar_t r = C::getR(start_coords) + C::getRInd(ind) * C::getR(step);
       scalar_t z = C::getZ(start_coords) + C::getZInd(ind) * C::getZ(step);
 
-      scalar_t cur_E_r = E_r(t, r, z);
+      scalar_t cur_E_rxy = E_rxy(t, r, z);
       scalar_t cur_E_z = E_z(t, r, z);
       scalar_t cur_E_phi = E_phi(t, r, z);
       
-      if(!(std::isfinite(cur_E_r) && std::isfinite(cur_E_z) && std::isfinite(cur_E_phi))) {
+      if(!(std::isfinite(cur_E_rxy) && std::isfinite(cur_E_z) && std::isfinite(cur_E_phi))) {
 	throw;
       }
 
-      E_r_sampled(ind) = cur_E_r;
+      E_r_sampled(ind) = cur_E_rxy;
       E_z_sampled(ind) = cur_E_z;
       E_phi_sampled(ind) = cur_E_phi;
     }
