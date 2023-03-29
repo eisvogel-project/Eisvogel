@@ -68,6 +68,22 @@ namespace stor {
     }
   };
 
+  template<>
+  struct Traits<double> {
+    using type = double;
+    using ser_type = uint64_t;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      const ser_type ser_val = reinterpret_cast<const ser_type&>(val);
+      Traits<ser_type>::serialize(stream, ser_val);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      ser_type ser_val = Traits<ser_type>::deserialize(stream);
+      return reinterpret_cast<type&>(ser_val);
+    }
+  };
+
   template <typename T>
   struct Traits<std::vector<T>> {
     using type = std::vector<T>;
