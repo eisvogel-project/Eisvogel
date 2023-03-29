@@ -43,12 +43,12 @@ public:
 
     ValueT interpolated_value = ValueT();
 
-    // std::cout << "--------------" << std::endl;
-    // std::cout << "interpolating onto: ";
-    // for(auto cur: target_inds) {
-    //   std::cout << cur << "  ";
-    // }
-    // std::cout << std::endl;
+    std::cout << "--------------" << std::endl;
+    std::cout << "interpolating onto: ";
+    for(auto cur: target_inds) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
 
     // iterate over all dimensions
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
@@ -57,18 +57,26 @@ public:
       for(std::size_t i = 0; i < dims; i++) {
 	kernel_weight *= m_kernel(target_inds(i) - cnt(i));
       }
-      interpolated_value += m_data(cnt.index()) * kernel_weight;      
 
-      // std::cout << "cur pt = ";
-      // for(auto cur: cnt.index()) {
-      // 	std::cout << cur << "  ";
-      // }
-      // std::cout << " --> val = " << m_data(cnt.index()) << ", weight = " << kernel_weight << std::endl;
+      scalar_t cur_val = m_data(cnt.index());
+      if(std::isnan(cur_val)) {
+	std::cout << "Unallowed region" << std::endl;
+	throw;
+      }
+      interpolated_value += cur_val * kernel_weight;      
+
+      if(std::fabs(m_data(cnt.index())) > 0.1) {
+	std::cout << "cur pt = ";
+	for(auto cur: cnt.index()) {
+	  std::cout << cur << "  ";
+	}
+	std::cout << " --> val = " << m_data(cnt.index()) << ", weight = " << kernel_weight << ", accum = " << interpolated_value << std::endl;
+      }
     }
 
-    // std::cout << "interpolated value: " << interpolated_value << std::endl;
-    // std::cout << "--------------" << std::endl;
-    
+    std::cout << "interpolated value: " << interpolated_value << std::endl;
+    std::cout << "--------------" << std::endl; 
+
     return interpolated_value;
   }
 

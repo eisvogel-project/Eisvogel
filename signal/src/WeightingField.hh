@@ -47,7 +47,39 @@ public:
   };
 
   CoordVector getFracInds(const CoordVector& coords) const {
+
+    std::cout << "coords = ";
+    for(auto cur: coords) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "m_start_coords = ";
+    for(auto cur: m_start_coords) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "m_end_coords = ";
+    for(auto cur: m_end_coords) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "m_shape = ";
+    for(auto cur: m_shape) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
+
     CoordVector frac_inds = (coords - m_start_coords) / (m_end_coords - m_start_coords) * m_shape;
+
+    std::cout << "frac_inds = ";
+    for(auto cur: frac_inds) {
+      std::cout << cur << "  ";
+    }
+    std::cout << std::endl;
+
     return frac_inds;
   }
 

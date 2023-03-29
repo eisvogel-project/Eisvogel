@@ -10,7 +10,7 @@ namespace C = CoordUtils;
 namespace WeightingFieldUtils {
 
   WeightingField CreateElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
-						    scalar_t tp, unsigned int N, scalar_t os_factor) {
+						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor) {
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;  // vacuum dielectric constant
@@ -19,10 +19,13 @@ namespace WeightingFieldUtils {
     scalar_t c = 1.0;  // speed of light in vacuum
 
     // compute required step size for sampling of weighting field
-    scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
-    scalar_t lambda_min = c / (fmax * n);
-    scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
-    scalar_t delta_pos = lambda_min / (2.0 * os_factor);
+    // scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
+    // scalar_t lambda_min = c / (fmax * n);
+    // scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
+    // scalar_t delta_pos = lambda_min / (2.0 * os_factor);
+
+    scalar_t delta_t = 0.12345;
+    scalar_t delta_pos = 0.12345;
     
     std::cout << "---------------------------" << std::endl;
     std::cout << "Using oversampling factor = " << os_factor << std::endl;
@@ -62,6 +65,9 @@ namespace WeightingFieldUtils {
     auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      if(r < r_min) {
+	return std::nan("");
+      }
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
       scalar_t cos_theta = z / r;
 
@@ -72,6 +78,9 @@ namespace WeightingFieldUtils {
     auto E_theta = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
       scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      if(r < r_min) {
+	return std::nan("");
+      }
       scalar_t t_prop = r * n / c, t_del = t - t_prop;
       scalar_t sin_theta = r_xy / r;
       return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + t_prop * filtered_delta(t_del, tp, N)
@@ -116,9 +125,14 @@ namespace WeightingFieldUtils {
       scalar_t cur_E_rxy = E_rxy(t, r, z);
       scalar_t cur_E_z = E_z(t, r, z);
       scalar_t cur_E_phi = E_phi(t, r, z);
-      
-      if(!(std::isfinite(cur_E_rxy) && std::isfinite(cur_E_z) && std::isfinite(cur_E_phi))) {
-	throw;
+
+      if(std::fabs(cur_E_z) > 1) {
+	std::cout << "ind = ";
+	for(auto cur: ind) {
+	  std::cout << cur << "  ";
+	}
+	std::cout << std::endl;
+	std::cout << "t = " << t << ", r_xy = " << r << ", z = " << z << " --> E_z = " << cur_E_z << std::endl;
       }
 
       E_r_sampled(ind) = cur_E_rxy;

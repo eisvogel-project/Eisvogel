@@ -2,11 +2,11 @@
 #include <cmath>
 
 std::size_t SincInterpolationKernel::Support() const {
-  return 5; // some cutoff
+  return 2; // some cutoff
 }
 
 scalar_t SincInterpolationKernel::operator()(scalar_t arg) const {
-  scalar_t scaled_arg = M_PI * arg;
+  scalar_t scaled_arg = M_PI * std::fabs(arg);
   return std::sin(scaled_arg) / scaled_arg;
 }
 

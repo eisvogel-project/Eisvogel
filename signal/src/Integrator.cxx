@@ -58,7 +58,7 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
 
       CoordVector cur_pos_txyz = traj(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-      CoordVector wf_eval_pos{t - cur_t, CU::getZ(cur_pos_trz), CU::getR(cur_pos_trz)}; // position where to evaluate weighting field (this is like this because of the internal order {t, z, r} in CoordVector ... to be made less error-prone!
+      CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
       
       CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
 

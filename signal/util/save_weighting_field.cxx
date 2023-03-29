@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include "Common.hh"
 #include "Serialization.hh"
 #include "CoordUtils.hh"
 #include "WeightingFieldUtils.hh"
