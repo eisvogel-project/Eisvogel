@@ -1,3 +1,5 @@
 add_executable(compute_signal compute_signal.cxx)
+add_executable(save_weighting_field save_weighting_field.cxx)
 
 target_link_libraries(compute_signal PUBLIC signal)
+target_link_libraries(save_weighting_field PUBLIC signal)
