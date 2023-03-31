@@ -10,12 +10,13 @@ class Integrator {
 
 public:
 
-  Integrator(const WeightingField<>& wf, const Kernel& kernel);
-  scalar_t integrate(scalar_t t, const Trajectory& traj) const;
+  Integrator(const WeightingField& wf, const Kernel& kernel);
+  scalar_t integrate(scalar_t t, const Trajectory& traj, scalar_t os_factor = 1.0) const;
 
 private:
 
-  const WeightingField<>& m_wf;
+  const Kernel& m_kernel;
+  const WeightingField& m_wf;
 
   Interpolator<DenseNDArray, scalar_t, 3> m_itpl_E_r;
   Interpolator<DenseNDArray, scalar_t, 3> m_itpl_E_z;
