@@ -46,6 +46,16 @@ public:
     return m_E_phi(ind_t, ind_r, ind_z);
   };
 
+  static inline CoordVector FracIndsToCoord(const CoordVector& frac_inds, const CoordVector& start_coords, const CoordVector& end_coords, 
+  					const CoordVector& shape) {
+    return start_coords + (end_coords - start_coords) / shape * frac_inds;
+  }
+
+  static inline CoordVector CoordToFracInds(const CoordVector& coords, const CoordVector& start_coords, 
+					    const CoordVector& end_coords, const CoordVector& shape) {
+    return (coords - start_coords) / (end_coords - start_coords) * shape;
+  }
+
   CoordVector getFracInds(const CoordVector& coords) const {
 
     std::cout << "coords = ";
@@ -72,7 +82,7 @@ public:
     }
     std::cout << std::endl;
 
-    CoordVector frac_inds = (coords - m_start_coords) / (m_end_coords - m_start_coords) * m_shape;
+    CoordVector frac_inds = CoordToFracInds(coords, m_start_coords, m_end_coords, m_shape);
 
     std::cout << "frac_inds = ";
     for(auto cur: frac_inds) {

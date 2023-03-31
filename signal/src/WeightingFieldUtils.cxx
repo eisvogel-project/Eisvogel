@@ -117,23 +117,14 @@ namespace WeightingFieldUtils {
 
       IndexVector ind = cnt.index();
 
-      // TOOD: move this into WeightingField
-      scalar_t t = C::getT(start_coords) + C::getTInd(ind) * C::getT(step);
-      scalar_t r = C::getR(start_coords) + C::getRInd(ind) * C::getR(step);
-      scalar_t z = C::getZ(start_coords) + C::getZInd(ind) * C::getZ(step);
+      CoordVector coords = WeightingField::FracIndsToCoord(ind, start_coords, end_coords, E_r_sampled.shape());
+      scalar_t t = C::getT(coords);
+      scalar_t r = C::getR(coords);
+      scalar_t z = C::getZ(coords);
 
       scalar_t cur_E_rxy = E_rxy(t, r, z);
       scalar_t cur_E_z = E_z(t, r, z);
       scalar_t cur_E_phi = E_phi(t, r, z);
-
-      if(std::fabs(cur_E_z) > 1) {
-	std::cout << "ind = ";
-	for(auto cur: ind) {
-	  std::cout << cur << "  ";
-	}
-	std::cout << std::endl;
-	std::cout << "t = " << t << ", r_xy = " << r << ", z = " << z << " --> E_z = " << cur_E_z << std::endl;
-      }
 
       E_r_sampled(ind) = cur_E_rxy;
       E_z_sampled(ind) = cur_E_z;
