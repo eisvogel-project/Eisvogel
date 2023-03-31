@@ -43,20 +43,11 @@ public:
 
     ValueT interpolated_value = ValueT();
 
-    // std::cout << "--------------" << std::endl;
-    // std::cout << "interpolating onto: ";
-    // for(auto cur: target_inds) {
-    //   std::cout << cur << "  ";
-    // }
-    // std::cout << std::endl;
-
     // iterate over all dimensions
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
 
       ValueT kernel_weight = 1.0;
       for(std::size_t i = 0; i < dims; i++) {
-	// std::cout << target_inds(i) - cnt(i) << std::endl;
-	// std::cout << m_kernel(target_inds(i) - cnt(i)) << std::endl;
 	kernel_weight *= m_kernel(target_inds(i) - cnt(i));
       }
 
@@ -66,16 +57,7 @@ public:
 	throw;
       }
       interpolated_value += cur_val * kernel_weight;      
-
-      // std::cout << "cur pt = ";
-      // for(auto cur: cnt.index()) {
-      // 	std::cout << cur << "  ";
-      // }
-      // std::cout << " --> val = " << m_data(cnt.index()) << ", weight = " << kernel_weight << ", accum = " << interpolated_value << std::endl;
     }
-
-    // std::cout << "interpolated value: " << interpolated_value << std::endl;
-    // std::cout << "--------------" << std::endl; 
 
     return interpolated_value;
   }

@@ -25,7 +25,7 @@ int main(void) {
   unsigned int N = 4;
 
   // Sampling parameters
-  scalar_t os_factor = 4;
+  scalar_t os_factor = 7;
   scalar_t r_min = 0.1;
 
   std::cout << "Building weighting field ..." << std::endl;

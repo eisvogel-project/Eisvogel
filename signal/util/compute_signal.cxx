@@ -28,25 +28,14 @@ int main(void) {
   std::string path = "/home/windischhofer/Eisvogel/Eisvogel/signal/build/electric_dipole_wf.bin";
   std::fstream ofs;
   
-  // ofs.open(path, std::ios::out | std::ios::binary);
   ofs.open(path, std::ios::in | std::ios::binary);
   stor::Serializer ser(ofs);
 
-  std::cout << "Building weighting field ..." << std::endl;
-  // CoordVector start_coords = CoordUtils::MakeCoordVectorTRZ(-10.0, -10.0, -30.0);
-  // CoordVector end_coords = CoordUtils::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
-  // scalar_t tp = 5.0;
-  // unsigned int N = 4;
-  // WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, 50);
-  // ser.serialize(wf);
-  // ofs.close();
-
+  std::cout << "Loading weighting field ..." << std::endl;
   WeightingField wf = ser.deserialize<WeightingField>();
 
   // SplineInterpolationKernelOrder1 interpolation_kernel;
   SplineInterpolationKernelOrder3 interpolation_kernel;
-  // SincInterpolationKernel interpolation_kernel;
-
   Integrator integrator(wf, interpolation_kernel);
 
   // test trajectory: a point charge moving parallel to the x-axis 
