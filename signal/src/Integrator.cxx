@@ -54,7 +54,7 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
     for(int step_ind = -m_kernel.Support(); step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
 //    for(int step_ind = number_points - 10; step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
 
-      std::cout << "step_ind = " << step_ind << std::endl;
+      // std::cout << "step_ind = " << step_ind << std::endl;
 
       CoordVector cur_pos_txyz = traj(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
@@ -85,11 +85,11 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
       scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
 
       signal_times.push_back(cur_t);
-      signal_values.push_back(CU::getZComponent(wf_rzphi));
+      signal_values.push_back(wf_val);
 
-      std::cout << "cur_t (t) = " << cur_t << " (" << t << ")" << std::endl;
-      std::cout << "wf_val = " << wf_val << std::endl;
-      std::cout << "kernel_int = " << kernel_int << std::endl;
+      // std::cout << "cur_t (t) = " << cur_t << " (" << t << ")" << std::endl;
+      // std::cout << "wf_val = " << wf_val << std::endl;
+      // std::cout << "kernel_int = " << kernel_int << std::endl;
 
       signal += -t_step * wf_val;// * kernel_int;
       cur_t += t_step;

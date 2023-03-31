@@ -19,13 +19,10 @@ namespace WeightingFieldUtils {
     scalar_t c = 1.0;  // speed of light in vacuum
 
     // compute required step size for sampling of weighting field
-    // scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
-    // scalar_t lambda_min = c / (fmax * n);
-    // scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
-    // scalar_t delta_pos = lambda_min / (2.0 * os_factor);
-
-    scalar_t delta_t = 0.12345;
-    scalar_t delta_pos = 0.12345;
+    scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
+    scalar_t lambda_min = c / (fmax * n);
+    scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
+    scalar_t delta_pos = lambda_min / (2.0 * os_factor);
     
     std::cout << "---------------------------" << std::endl;
     std::cout << "Using oversampling factor = " << os_factor << std::endl;

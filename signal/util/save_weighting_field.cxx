@@ -17,18 +17,19 @@ int main(void) {
   stor::Serializer ser(ofs);
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-10.0, -10.0, -30.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(320.0, 300.0, 30.0);
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(-20.0, -10.0, -40.0);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(320.0, 300.0, 40.0);
 
   // Filter parameters
   scalar_t tp = 5.0;
   unsigned int N = 4;
 
   // Sampling parameters
-  scalar_t os_factor = 50;
+  scalar_t os_factor = 4;
+  scalar_t r_min = 0.1;
 
   std::cout << "Building weighting field ..." << std::endl;
-  WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, os_factor);
+  WeightingField wf = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor);
 
   std::cout << "Saving weighting field ..." << std::endl;
   ser.serialize(wf);
