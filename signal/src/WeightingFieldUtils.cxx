@@ -33,7 +33,7 @@ namespace WeightingFieldUtils {
     std::cout << "delta_r = delta_z = " << delta_pos << std::endl;
     std::cout << "---------------------------" << std::endl;
 
-    DeltaVector step = C::MakeCoordVectorTRZ(delta_t, delta_pos, delta_pos);
+    DeltaVector step_requested = C::MakeCoordVectorTRZ(delta_t, delta_pos, delta_pos);
 
     auto filtered_theta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
       if(t <= 0) {
@@ -55,11 +55,6 @@ namespace WeightingFieldUtils {
       }
       return filtered_delta(t, tp, N) * (tp - t) * N / (tp * t);
     };  
-    
-    // ==============
-
-    CoordVector number_pts = (end_coords - start_coords) / step;
-    std::size_t pts_t = C::getT(number_pts), pts_r = C::getR(number_pts), pts_z = C::getZ(number_pts);
 
     // Weighting field in spherical coordinates
     auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
@@ -106,11 +101,18 @@ namespace WeightingFieldUtils {
       return 0.0;
     };
     
+    // ==============
+
+    CoordVector number_pts = (end_coords - start_coords) / step_requested;
+    std::size_t pts_t = C::getT(number_pts), pts_r = C::getR(number_pts), pts_z = C::getZ(number_pts);
+
     // TODO: find a better way to make sure the ordering t, z, r etc is not messed up
     ScalarField3D<scalar_t> E_r_sampled({pts_t, pts_z, pts_r}, 0.0);
     ScalarField3D<scalar_t> E_z_sampled({pts_t, pts_z, pts_r}, 0.0);
     ScalarField3D<scalar_t> E_phi_sampled({pts_t, pts_z, pts_r}, 0.0);
-    
+        
+    DeltaVector step = (end_coords - start_coords) / E_r_sampled.shape();
+
     IndexVector start_inds({0, 0, 0});
     IndexVector end_inds({pts_t, pts_z, pts_r});    
 
@@ -118,6 +120,7 @@ namespace WeightingFieldUtils {
 
       IndexVector ind = cnt.index();
 
+      // TOOD: move this into WeightingField
       scalar_t t = C::getT(start_coords) + C::getTInd(ind) * C::getT(step);
       scalar_t r = C::getR(start_coords) + C::getRInd(ind) * C::getR(step);
       scalar_t z = C::getZ(start_coords) + C::getZInd(ind) * C::getZ(step);
