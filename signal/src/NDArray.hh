@@ -48,6 +48,7 @@ private:
 
 private:
   friend struct stor::Traits<DenseNDArray<T, dims>>;
+  template <typename T1> friend class DenseNDArray<T, dims>;
 
 public:
 
