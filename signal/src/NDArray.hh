@@ -12,7 +12,7 @@
 template <class T, std::size_t dims>
 class NDArray {
 
-protected:
+public:
   using shape_t = std::array<std::size_t, dims>;
 
 public:
