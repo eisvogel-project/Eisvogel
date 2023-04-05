@@ -1,27 +1,12 @@
 #include <iostream>
-#include <cmath>
-#include <vector>
-
-#include "Common.hh"
-#include "NDArray.hh"
-#include "WeightingFieldUtils.hh"
-#include "Interpolator.hh"
-#include "Integrator.hh"
-
-#include "Current0D.hh"
-
-#include "Kernels.hh"
-#include "IteratorUtils.hh"
-
-#include "MathUtils.hh"
-
-#include "SignalExport.hh"
-
-#include "Serialization.hh"
-
 #include <fstream>
 
-namespace WFU = WeightingFieldUtils;
+#include "Common.hh"
+#include "Integrator.hh"
+#include "Current0D.hh"
+#include "Kernels.hh"
+#include "SignalExport.hh"
+#include "Serialization.hh"
 
 int main(void) {
 
