@@ -8,7 +8,7 @@
 #include "Interpolator.hh"
 #include "Integrator.hh"
 
-#include "Trajectory.hh"
+#include "Current0D.hh"
 
 #include "Kernels.hh"
 #include "IteratorUtils.hh"
@@ -42,20 +42,22 @@ int main(void) {
   // with a constant impact parameter of 'b' along the z-axis
   scalar_t b = 10;
   scalar_t tstart = -250, tend = 250;
+  scalar_t charge = 1;
   scalar_t beta = 0.9;
 
   std::cout << "Building trajectory ..." << std::endl;
-  Trajectory traj({
+  Current0D curr({
       CoordUtils::MakeCoordVectorTXYZ(tstart, beta * tstart, 0, b),
   	CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b)
-  	}
+  	},
+    {charge}
     );
 
   std::cout << "Computing signal ..." << std::endl;
 
   std::vector<scalar_t> signal_times, signal_values;
   for(scalar_t cur_t = -15; cur_t < 15; cur_t += 1) {
-    scalar_t cur_signal = integrator.integrate(cur_t, traj);
+    scalar_t cur_signal = integrator.integrate(cur_t, curr);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);
   }
