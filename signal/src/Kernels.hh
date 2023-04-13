@@ -10,10 +10,6 @@ public:
   virtual std::size_t Support() const = 0;
   virtual scalar_t operator()(scalar_t arg) const = 0;
   virtual scalar_t CDF(scalar_t arg) const = 0;
-  
-protected:
-  static constexpr scalar_t Inf = std::numeric_limits<scalar_t>::infinity();
-  static constexpr scalar_t NegInf = Inf * (-1);    
 };
 
 class SincInterpolationKernel : public Kernel {

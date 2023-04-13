@@ -54,7 +54,7 @@ scalar_t SplineInterpolationKernelOrder3::operator()(scalar_t arg) const {
   scalar_t abs_arg = std::fabs(arg);
 
   if(abs_arg < 1.0) {
-    return 1.0 + std::pow(abs_arg, 2) * (-2.196152422706632 + 1.196152422706632 * abs_arg);
+    return 1.0 + abs_arg * abs_arg * (-2.196152422706632 + 1.196152422706632 * abs_arg);
   }
   else if((1.0 <= abs_arg) && (abs_arg < 2.0)) {
     return 2.7846096908265263 + abs_arg * (-5.353829072479582 + (3.1576766497729514 - 0.5884572681198961 * abs_arg) * abs_arg);
