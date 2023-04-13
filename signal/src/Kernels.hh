@@ -4,10 +4,6 @@
 #include <limits>
 #include "Common.hh"
 
-inline bool InRangeInclusive(scalar_t min, scalar_t max, scalar_t& val) {
-  return (min <= val) && (val <= max);
-}
-
 class Kernel {
   
 public:
