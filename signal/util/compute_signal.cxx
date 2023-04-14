@@ -20,7 +20,8 @@ int main(void) {
   WeightingField wf = ser.deserialize<WeightingField>();
 
   // SplineInterpolationKernelOrder1 interpolation_kernel;
-  SplineInterpolationKernelOrder3 interpolation_kernel;
+  // SplineInterpolationKernelOrder3 interpolation_kernel;
+  KeysCubicInterpolationKernel interpolation_kernel;
   Integrator integrator(wf, interpolation_kernel);
 
   // test trajectory: a point charge moving parallel to the x-axis 

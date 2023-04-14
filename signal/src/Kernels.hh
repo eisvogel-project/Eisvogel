@@ -36,4 +36,12 @@ public:
   scalar_t CDF(scalar_t arg) const;
 };
 
+class KeysCubicInterpolationKernel : public Kernel {
+
+public:
+  std::size_t Support() const;
+  scalar_t operator()(scalar_t arg) const;
+  scalar_t CDF(scalar_t arg) const;  
+};
+
 #endif

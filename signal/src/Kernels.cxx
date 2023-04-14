@@ -25,7 +25,7 @@ scalar_t SplineInterpolationKernelOrder1::operator()(scalar_t arg) const {
   if(abs_arg < 1.0) {
     return 1.0 - abs_arg;
   }
-  else if((abs_arg < 1.0) && (abs_arg < 2.0)) {
+  else {
     return 0.0;
   }
   
@@ -56,16 +56,16 @@ scalar_t SplineInterpolationKernelOrder3::operator()(scalar_t arg) const {
   if(abs_arg < 1.0) {
     return 1.0 + abs_arg * abs_arg * (-2.196152422706632 + 1.196152422706632 * abs_arg);
   }
-  else if((1.0 <= abs_arg) && (abs_arg < 2.0)) {
+  else if(abs_arg < 2.0) {
     return 2.7846096908265263 + abs_arg * (-5.353829072479582 + (3.1576766497729514 - 0.5884572681198961 * abs_arg) * abs_arg);
   }
-  else if((2.0 <= abs_arg) && (abs_arg < 3.0)) {
+  else if(abs_arg < 3.0) {
     return -3.1844616523161946 + abs_arg * (3.599777942234521 + (-1.3191268575841093 + 0.1576766497729487 * abs_arg) * abs_arg);
   }
-  else if((3.0 <= abs_arg) && (abs_arg < 4.0)) {
+  else if(abs_arg < 4.0) {
     return 2.2135398277940794 + abs_arg * (-1.798223537875998 + (0.4802069691194646 - 0.04224933097189876 * abs_arg) * abs_arg);
   }
-  else if(abs_arg >= 4.0) {
+  else {
     return 0.0;
   }
 
@@ -73,5 +73,27 @@ scalar_t SplineInterpolationKernelOrder3::operator()(scalar_t arg) const {
 }
 
 scalar_t SplineInterpolationKernelOrder3::CDF(scalar_t arg) const {
+  return 1.0;
+}
+
+std::size_t KeysCubicInterpolationKernel::Support() const {
+  return 2;
+}
+
+scalar_t KeysCubicInterpolationKernel::operator()(scalar_t arg) const {
+  scalar_t abs_arg = std::fabs(arg);
+
+  if(abs_arg < 1.0) {
+    return 1.0 + abs_arg * abs_arg * (-2.5 + 1.5 * abs_arg);
+  }
+  else if(abs_arg < 2.0) {
+    return 2.0 + abs_arg * (-4.0 + (2.5 - 0.5 * abs_arg) * abs_arg);
+  }
+  else {
+    return 0.0;
+  }
+}
+
+scalar_t KeysCubicInterpolationKernel::CDF(scalar_t arg) const {
   return 1.0;
 }
