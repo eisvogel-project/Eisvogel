@@ -5,4 +5,3 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -msse2 -ftree-vectorizer-verbose=2 -funroll-loops -march=native")
 
 add_subdirectory(src)
-add_subdirectory(util)
