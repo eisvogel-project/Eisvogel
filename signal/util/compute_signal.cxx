@@ -10,7 +10,7 @@
 
 int main(void) {
 
-  std::string path = "/home/windischhofer/Eisvogel/Eisvogel/signal/build/electric_dipole_wf.bin";
+  std::string path = "electric_dipole_wf.bin";
   std::fstream ofs;
   
   ofs.open(path, std::ios::in | std::ios::binary);
