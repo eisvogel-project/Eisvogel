@@ -5,7 +5,7 @@ set(PY_OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/build/")
 configure_file(${SETUP_PY_IN} ${SETUP_PY})
 
 add_custom_command(OUTPUT "${PY_OUTPUT}" 
-                   COMMAND python ${SETUP_PY} build_ext
+                   COMMAND python ${SETUP_PY} build_ext --inplace
 )
 
 add_custom_target(signal_python ALL DEPENDS ${PY_OUTPUT})

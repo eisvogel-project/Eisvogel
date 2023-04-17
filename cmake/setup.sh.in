@@ -1,0 +1,3 @@
+# set up a minimal environment
+export LD_LIBRARY_PATH=@PROJECT_BINARY_DIR@/signal:$LD_LIBRARY_PATH
+export PYTHONPATH=@PROJECT_BINARY_DIR@/signal/python:$PYTHONPATH
