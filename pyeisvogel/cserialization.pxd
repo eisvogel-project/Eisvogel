@@ -1,8 +1,8 @@
-cdef extern from "<iostream>" namespace "std":
-     cdef cppclass iostream:
+cdef extern from "<fstream>" namespace "std":
+     cdef cppclass fstream:
           pass
 
-cdef extern from "Serialization.hh":
+cdef extern from "Eisvogel/Serialization.hh" namespace "stor":
      cdef cppclass Serializer:
-          Serializer(iostream& stream)
+          Serializer(fstream& stream)
           T deserialize[T]()

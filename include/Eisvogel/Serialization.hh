@@ -127,7 +127,7 @@ namespace stor {
   class Serializer {
 
   public:
-    Serializer(std::iostream& stream) : m_stream(stream) { }
+    Serializer(std::fstream& stream) : m_stream(stream) { }
     
     template <typename T>
     void serialize(const T& value) {
@@ -140,7 +140,7 @@ namespace stor {
     }
 
   private:
-    std::iostream& m_stream;
+    std::fstream& m_stream;
   };
 }
 
