@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "SignalExport.hh"
+#include "shower_1D.h"
 
 namespace CU = CoordUtils;
 
@@ -69,4 +70,30 @@ scalar_t Integrator::integrate(scalar_t t, const Trajectory& traj, scalar_t os_f
   }
 
   return signal;
+}
+scalar_t Integrator::integrate(scalar_t, const showers::Shower1D shower, double t_step) const {
+    scalar_t signal = 0;
+    std::vector<double> shower_x;
+    std::vector<double> shower_y;
+    std::vector<double> shower_z;
+    std::vector<double> shower_t;
+    std::vector<double> current_x;
+    std::vector<double> current_y;
+    std::vector<double> current_z;
+    shower.get_current(
+            t_step,
+            shower_t,
+            shower_x,
+            shower_y,
+            shower_z,
+            current_x,
+            current_y,
+            current_z
+            );
+    number_of_points = shower_t.size;
+    for (int step_ind = -m_kernel.Support();step_ind <= (int)(number_of_points + m_kernel.Support()); step_ind++){
+      CoordVector cur_pos_txyz = CU::MakeCoordVectorTXYZ(shower_t[step_ind], shower_x[step_ind], shower_y[step_ind], shower_t[step_ind]);
+      CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
+      
+    }
 }
