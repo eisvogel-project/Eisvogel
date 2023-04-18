@@ -1,24 +1,7 @@
+from pyeisvogel.libpyeisvogel cimport *
 from pyeisvogel cimport cweightingfield
 from pyeisvogel.cserialization cimport Serializer
 import os
-
-cdef extern from "<iostream>":
-     cdef cppclass openmode:
-          pass
-     cdef openmode binary_in "std::ios_base::binary | std::ios_base::in"
-
-cdef extern from "<iostream>" namespace "std":
-     cdef cppclass iostream:
-          pass
-
-cdef extern from "<fstream>" namespace "std":
-     cdef cppclass fstream(iostream):
-          void open(const char*, openmode)
-
-cdef extern from "<string>" namespace "std":
-     cdef cppclass string:
-          char* c_str()
-          string(char*)
 
 cdef class WeightingField:
      cdef cweightingfield.WeightingField* c_wf

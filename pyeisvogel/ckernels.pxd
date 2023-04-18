@@ -1,5 +1,4 @@
-cdef extern from "Eisvogel/Common.hh":
-    ctypedef float scalar_t
+from pyeisvogel.libpyeisvogel cimport *
 
 cdef extern from "Eisvogel/Kernels.hh":
      cdef cppclass KeysCubicInterpolationKernel:

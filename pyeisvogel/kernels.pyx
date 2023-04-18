@@ -1,3 +1,4 @@
+from pyeisvogel.libpyeisvogel cimport *
 from pyeisvogel cimport ckernels
 
 cdef class KeysCubicInterpolationKernel:
