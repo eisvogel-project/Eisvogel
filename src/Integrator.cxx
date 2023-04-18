@@ -6,6 +6,7 @@
 
 #include "Eisvogel/Trajectory.hh"
 #include "Eisvogel/SignalExport.hh"
+#include "shower_1D.h"
 
 namespace CU = CoordUtils;
 
@@ -73,7 +74,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 
   return signal;
 }
-scalar_t Integrator::integrate(scalar_t, const showers::Shower1D shower, double t_step) const {
+scalar_t Integrator::integrate(scalar_t t, showers::Shower1D shower, double t_step)  {
     scalar_t signal = 0;
     std::vector<double> shower_x;
     std::vector<double> shower_y;
@@ -84,18 +85,33 @@ scalar_t Integrator::integrate(scalar_t, const showers::Shower1D shower, double 
     std::vector<double> current_z;
     shower.get_current(
             t_step,
-            shower_t,
-            shower_x,
-            shower_y,
-            shower_z,
-            current_x,
-            current_y,
-            current_z
+            &shower_t,
+            &shower_x,
+            &shower_y,
+            &shower_z,
+            &current_x,
+            &current_y,
+            &current_z
             );
-    number_of_points = shower_t.size;
-    for (int step_ind = -m_kernel.Support();step_ind <= (int)(number_of_points + m_kernel.Support()); step_ind++){
+    int number_of_points = shower_t.size();
+    for (int step_ind = 0;step_ind < number_of_points; step_ind++){
       CoordVector cur_pos_txyz = CU::MakeCoordVectorTXYZ(shower_t[step_ind], shower_x[step_ind], shower_y[step_ind], shower_t[step_ind]);
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
+      CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - shower_t[step_ind], CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
       
+      CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
+
+      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r.Interpolate(wf_eval_frac_inds),
+						      m_itpl_E_z.Interpolate(wf_eval_frac_inds),
+						      m_itpl_E_phi.Interpolate(wf_eval_frac_inds));
+
+      FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
+
+      scalar_t wf_val = CU::getXComponent(wf_xyz) * current_x[step_ind] +
+	CU::getYComponent(wf_xyz) * current_y[step_ind] +
+	CU::getZComponent(wf_xyz) * current_z[step_ind];
+     signal += -wf_val; 
     }
+    signal *= t_step;
+    return signal;
 }

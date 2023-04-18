@@ -6,3 +6,10 @@ add_subdirectory(cmake)
 add_subdirectory(src)
 add_subdirectory(pyeisvogel)
 add_subdirectory(examples)
+add_subdirectory(extern/shower_profile)
+
+target_link_libraries(eisvogel PUBLIC Shower1D)
+target_include_directories(eisvogel PUBLIC
+                          "${PROJECT_BINARY_DIR}"
+                          "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_1D"
+                          )
