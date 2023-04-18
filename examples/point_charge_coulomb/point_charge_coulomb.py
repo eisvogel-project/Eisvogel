@@ -3,8 +3,11 @@ import pyeisvogel
 
 def compute_signal(wf_path):
 
-    wf = pyeisvogel.WeightingField.from_path(wf_path)
-    print(wf)
+    calc = pyeisvogel.SignalCalculator(wf_path)
+    print(calc)
+
+    vec = pyeisvogel.CoordVector.MakeCoordVectorTXYZ(1, 2, 3, 4)
+    print(vec)
 
 if __name__ == "__main__":
 
