@@ -1,4 +1,4 @@
-#include "Kernels.hh"
+#include "Eisvogel/Kernels.hh"
 #include <cmath>
 
 std::size_t SincInterpolationKernel::Support() const {

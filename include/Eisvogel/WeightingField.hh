@@ -20,6 +20,11 @@ public:
 
   using index_t = std::size_t;
   using shape_t = typename storage_t::shape_t;
+
+  WeightingField(WeightingField&& other) : 
+    m_shape(std::move(other.m_shape)), m_E_r(std::move(other.m_E_r)), 
+    m_E_z(std::move(other.m_E_z)), m_E_phi(std::move(other.m_E_phi)),
+    m_start_coords(std::move(other.m_start_coords)), m_end_coords(std::move(other.m_end_coords)) { };
  
   WeightingField(storage_t&& E_r, storage_t&& E_z, storage_t&& E_phi,
 		 CoordVector start_coords, CoordVector end_coords) :

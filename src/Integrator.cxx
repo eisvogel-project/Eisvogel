@@ -1,11 +1,11 @@
-#include "Integrator.hh"
-#include "CoordUtils.hh"
+#include "Eisvogel/Integrator.hh"
+#include "Eisvogel/CoordUtils.hh"
 
 #include <utility>
 #include <iostream>
 
-#include "Trajectory.hh"
-#include "SignalExport.hh"
+#include "Eisvogel/Trajectory.hh"
+#include "Eisvogel/SignalExport.hh"
 
 namespace CU = CoordUtils;
 

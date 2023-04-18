@@ -1,13 +1,13 @@
 #include <iostream>
 #include <fstream>
 
-#include "Common.hh"
-#include "Integrator.hh"
-#include "Current0D.hh"
-#include "Kernels.hh"
-#include "SignalExport.hh"
-#include "Serialization.hh"
-#include "WeightingFieldUtils.hh"
+#include "Eisvogel/Common.hh"
+#include "Eisvogel/Integrator.hh"
+#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Kernels.hh"
+#include "Eisvogel/SignalExport.hh"
+#include "Eisvogel/Serialization.hh"
+#include "Eisvogel/WeightingFieldUtils.hh"
 
 namespace WFU = WeightingFieldUtils;
 namespace CU = CoordUtils;
