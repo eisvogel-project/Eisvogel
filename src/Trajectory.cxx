@@ -1,4 +1,4 @@
-#include "Trajectory.hh"
+#include "Eisvogel/Trajectory.hh"
 
 void Trajectory::AddPoint(CoordVector& point) {
   m_points.push_back(point);

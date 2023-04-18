@@ -1,10 +1,11 @@
+import os, glob
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
 
 ext_modules = [
-    Extension("kernels",
-              sources = ["${CMAKE_CURRENT_SOURCE_DIR}/kernels.pyx"],
+    Extension("signal",
+              sources = glob.glob(os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "*.pyx")),
               libraries = ["signal"],
               library_dirs = ["${PROJECT_BINARY_DIR}/signal/"],
               language = "c++",

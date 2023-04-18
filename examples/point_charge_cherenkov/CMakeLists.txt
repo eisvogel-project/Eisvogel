@@ -2,4 +2,4 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 add_executable(point_charge_cherenkov point_charge_cherenkov.cxx)
-target_link_libraries(point_charge_cherenkov signal)
+target_link_libraries(point_charge_cherenkov eisvogel)
