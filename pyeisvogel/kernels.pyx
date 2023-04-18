@@ -1,4 +1,4 @@
-cimport ckernels
+from pyeisvogel cimport ckernels
 
 cdef class KeysCubicInterpolationKernel:
      cdef ckernels.KeysCubicInterpolationKernel c_kernel

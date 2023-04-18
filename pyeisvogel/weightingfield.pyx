@@ -1,4 +1,4 @@
-cimport cweightingfield
+from pyeisvogel cimport cweightingfield
 
 cdef class WeightingField:
      cdef cweightingfield.WeightingField* c_wf

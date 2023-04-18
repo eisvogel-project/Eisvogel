@@ -8,5 +8,5 @@ add_custom_command(OUTPUT "${PY_OUTPUT}"
                    COMMAND python ${SETUP_PY} build_ext --inplace
 )
 
-add_custom_target(signal_python ALL DEPENDS ${PY_OUTPUT})
-add_dependencies(signal_python signal)
+add_custom_target(pyeisvogel ALL DEPENDS ${PY_OUTPUT})
+add_dependencies(pyeisvogel eisvogel)
