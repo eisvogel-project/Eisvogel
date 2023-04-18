@@ -16,8 +16,10 @@ public:
     }
   };
 
-  void AddPoint(CoordVector& point, FieldVector& current);
-  void AddPoint(CoordVector&& point, FieldVector&& current);
+  void AddPoint(CoordVector& point, scalar_t charge) {
+    m_points.push_back(point);
+    m_charges.push_back(charge);
+  };
 
   std::size_t number_segments() const {return m_charges.size();}
 
