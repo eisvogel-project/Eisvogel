@@ -119,6 +119,23 @@ public:
     return m_data[flat_ind];
   }
 
+  // indexing for special (low-dimensional) cases
+  inline const T& operator()(std::size_t ind) const requires(dims == 1) {
+    return m_data[ind];
+  }
+
+  inline T& operator()(std::size_t ind) requires(dims == 1) {
+    return m_data[ind];
+  }
+
+  inline const T& operator()(DenseNDArray<std::size_t, 1>& inds) const requires(dims == 3) {
+    return m_data[inds.m_data[0] * m_strides[0] + inds.m_data[1] * m_strides[1] + inds.m_data[2] * m_strides[2]];
+  }
+
+  inline T& operator()(DenseNDArray<std::size_t, 1>& inds) requires(dims == 3) {
+    return m_data[inds.m_data[0] * m_strides[0] + inds.m_data[1] * m_strides[1] + inds.m_data[2] * m_strides[2]];
+  }
+
   bool operator==(const DenseNDArray<T, dims>& rhs) {
     return rhs.m_data == m_data;
   }

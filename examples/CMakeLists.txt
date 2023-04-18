@@ -1,0 +1,2 @@
+add_subdirectory(point_charge_coulomb)
+add_subdirectory(point_charge_cherenkov)

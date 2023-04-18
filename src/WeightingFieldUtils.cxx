@@ -1,8 +1,8 @@
-#include "WeightingFieldUtils.hh"
-#include "Common.hh"
-#include "IteratorUtils.hh"
-#include "CoordUtils.hh"
-#include "MathUtils.hh"
+#include "Eisvogel/WeightingFieldUtils.hh"
+#include "Eisvogel/Common.hh"
+#include "Eisvogel/IteratorUtils.hh"
+#include "Eisvogel/CoordUtils.hh"
+#include "Eisvogel/MathUtils.hh"
 #include <cmath>
 
 namespace C = CoordUtils;

@@ -4,14 +4,14 @@
 #include "Common.hh"
 #include "WeightingField.hh"
 #include "Interpolator.hh"
-#include "Trajectory.hh"
+#include "Current0D.hh"
 
 class Integrator {
 
 public:
 
   Integrator(const WeightingField& wf, const Kernel& kernel);
-  scalar_t integrate(scalar_t t, const Trajectory& traj, scalar_t os_factor = 1.0) const;
+  scalar_t integrate(scalar_t t, const Current0D& curr, scalar_t os_factor = 1.0) const;
 
 private:
 
