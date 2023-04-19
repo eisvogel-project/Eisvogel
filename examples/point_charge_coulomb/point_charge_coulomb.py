@@ -1,13 +1,24 @@
 import argparse
-import pyeisvogel
+from pyeisvogel import CoordVector, SignalCalculator, Current0D
 
 def compute_signal(wf_path):
+    
+    b = 10
+    tstart = -250.0
+    tend = 250.0
+    charge = 1
+    beta = 0.9
 
-    calc = pyeisvogel.SignalCalculator(wf_path)
-    print(calc)
+    points = [CoordVector.FromTXYZ(tstart, beta * tstart, 0, b),
+              CoordVector.FromTXYZ(tend, beta * tend, 0, b)]
+    charges = [charge]
+    track = Current0D.FromSegments(points, charges)
 
-    vec = pyeisvogel.CoordVector.FromTXYZ(1, 2, 3, 4)
-    print(vec)
+    calc = SignalCalculator(wf_path)
+
+    for cur_t in range(-10, 20):
+        cur_sig = calc.ComputeSignal(track, cur_t)
+        print(f"{cur_t}: {cur_sig}")
 
 if __name__ == "__main__":
 

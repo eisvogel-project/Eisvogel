@@ -1,3 +1,4 @@
+from cython.operator import dereference
 from pyeisvogel.libpyeisvogel cimport *
 from libcpp.utility cimport move
 from libcpp.memory cimport unique_ptr, make_unique
@@ -19,7 +20,24 @@ cdef class CoordVector:
 
 from pyeisvogel cimport ccurrent
 cdef class Current0D:
-    cdef ccurrent.Current0D* c_current
+    cdef unique_ptr[ccurrent.Current0D] c_current
+
+    @staticmethod
+    def FromSegments(points, charges):
+        cdef vector[ccoordutils.CoordVector] vec_points
+        cdef vector[scalar_t] vec_charges
+        cdef scalar_t charge
+        cdef CoordVector point
+
+        for point in points:
+            vec_points.push_back(dereference(point.c_vec))
+
+        for charge in charges:
+            vec_charges.push_back(charge)
+
+        cdef Current0D cur = Current0D.__new__(Current0D)
+        cur.c_current = make_unique[ccurrent.Current0D](move(vec_points), move(vec_charges))
+        return cur
     
 from pyeisvogel cimport csignalcalculator
 cdef class SignalCalculator:
@@ -28,5 +46,7 @@ cdef class SignalCalculator:
     def __init__(self, geometry_path):
         self.c_calc = new csignalcalculator.SignalCalculator(geometry_path.encode("utf-8"))
 
-    def ComputeSignal(track, t_sig):
-        return 0.0
+    def ComputeSignal(self, Current0D track, t_sig):
+        cdef scalar_t signal
+        signal = self.c_calc.ComputeSignal(dereference(track.c_current), t_sig)
+        return signal
