@@ -16,9 +16,6 @@ public:
     }
   };
 
-  void AddPoint(CoordVector& point, FieldVector& current);
-  void AddPoint(CoordVector&& point, FieldVector&& current);
-
   std::size_t number_segments() const {return m_charges.size();}
 
   const scalar_t& GetCharge(std::size_t ind) const {return m_charges[ind];}
