@@ -1,2 +1,4 @@
+cmake_minimum_required( VERSION 3.20 FATAL_ERROR )
 add_subdirectory(point_charge_coulomb)
 add_subdirectory(point_charge_cherenkov)
+add_subdirectory(shower_1D)

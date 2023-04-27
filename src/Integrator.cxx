@@ -3,11 +3,12 @@
 
 #include <utility>
 #include <iostream>
+#include <vector>
 
 #include "Eisvogel/Trajectory.hh"
 #include "Eisvogel/SignalExport.hh"
+#include "Eisvogel/Current0D.hh"
 #include "shower_1D.h"
-
 namespace CU = CoordUtils;
 
 Integrator::Integrator(const WeightingField& wf, const Kernel& kernel) : 
@@ -27,10 +28,8 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
   // Main signal integration loop
   scalar_t signal = 0;
   for(std::size_t segment_ind = 0; segment_ind < deltas.size(); segment_ind++) {
-
     CoordVector& segment_velocity = velocities(segment_ind);
     scalar_t segment_charge = curr.GetCharge(segment_ind);
-    
     scalar_t t_step = 1.0 / (1.0 / CU::getT(wf_sampling_intervals) + 
 			     std::sqrt(std::pow(CU::getX(segment_velocity), 2) + std::pow(CU::getY(segment_velocity), 2)) / CU::getR(wf_sampling_intervals) + 
 			     std::fabs(CU::getZ(segment_velocity)) / CU::getZ(wf_sampling_intervals)
@@ -51,9 +50,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
       CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
       CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
-      
       CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
-
       FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r.Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_z.Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_phi.Interpolate(wf_eval_frac_inds));
@@ -65,7 +62,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 	CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity);
       
       scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
-
+      
       signal += -wf_val;// * kernel_int;
       cur_t += t_step;
     }
@@ -74,44 +71,8 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 
   return signal;
 }
-scalar_t Integrator::integrate(scalar_t t, showers::Shower1D shower, double t_step)  {
-    scalar_t signal = 0;
-    std::vector<double> shower_x;
-    std::vector<double> shower_y;
-    std::vector<double> shower_z;
-    std::vector<double> shower_t;
-    std::vector<double> current_x;
-    std::vector<double> current_y;
-    std::vector<double> current_z;
-    shower.get_current(
-            t_step,
-            &shower_t,
-            &shower_x,
-            &shower_y,
-            &shower_z,
-            &current_x,
-            &current_y,
-            &current_z
-            );
-    int number_of_points = shower_t.size();
-    for (int step_ind = 0;step_ind < number_of_points; step_ind++){
-      CoordVector cur_pos_txyz = CU::MakeCoordVectorTXYZ(shower_t[step_ind], shower_x[step_ind], shower_y[step_ind], shower_t[step_ind]);
-      CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-      CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - shower_t[step_ind], CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
-      
-      CoordVector wf_eval_frac_inds = m_wf.getFracInds(wf_eval_pos);
-
-      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r.Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_z.Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_phi.Interpolate(wf_eval_frac_inds));
-
-      FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
-
-      scalar_t wf_val = CU::getXComponent(wf_xyz) * current_x[step_ind] +
-	CU::getYComponent(wf_xyz) * current_y[step_ind] +
-	CU::getZComponent(wf_xyz) * current_z[step_ind];
-     signal += -wf_val; 
-    }
-    signal *= t_step;
+scalar_t Integrator::integrate(scalar_t t, showers::Shower1D& shower, double t_step)  {
+    Current0D current = shower.get_current(t_step);
+    scalar_t signal = integrate(t, current, 1);
     return signal;
 }

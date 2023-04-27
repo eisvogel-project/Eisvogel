@@ -1,6 +1,7 @@
 #include "shower_creator.h"
 #include "shower_1D.h"
 #include "charge_excess_profile.cpp"
+#include "units.h"
 #include <iostream>
 #include <array>
 #include <stdio.h>
@@ -74,7 +75,12 @@ int showers::ShowerCreator::read_shower(FILE *f, int *N, int *hadronic, double *
 	grammage -> resize(*N);
 	q -> resize(*N);
 	fread(&((*grammage)[0]), sizeof(double),*N,f);
-	fread(&((*q)[0]), sizeof(double), *N, f);
+        for (int i=0; i < (*grammage).size(); i++) {
+            (*grammage)[i] = (*grammage)[i] * units::kilogram / units::square_meter;
+            
+        }
+        fread(&((*q)[0]), sizeof(double), *N, f);
+        
 	return 0;
 }
 

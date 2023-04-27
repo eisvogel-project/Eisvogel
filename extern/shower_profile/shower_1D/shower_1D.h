@@ -3,6 +3,7 @@
 #include <array>
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
+#include "Eisvogel/Current0D.hh"
 
 namespace showers {
 	class Shower1D {
@@ -15,16 +16,8 @@ namespace showers {
 				std::vector<double> *z,
 				std::vector<double> *ce
 		);
-		void get_current(
-				double delta_t,
-				std::vector<double> *t,
-				std::vector<double> *x,
-				std::vector<double> *y,
-				std::vector<double> *z,
-				std::vector<double> *current_x,
-				std::vector<double> *current_y,
-				std::vector<double> *current_z
-
+		Current0D get_current(
+				double delta_t
 		);
 		Shower1D(
 				std::array<float, 3> pos,
