@@ -23,7 +23,7 @@ int main(void) {
   stor::Serializer oser(ofs);
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-1000.0, -500.0, -50.0);
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(-1000.0, -10, -50.0);
   CoordVector end_coords = CU::MakeCoordVectorTRZ(1000.0, 1000.0, 50.0);
 
   // Filter parameters
@@ -58,10 +58,10 @@ int main(void) {
   scalar_t charge = 1;
   scalar_t beta = 0.9;
   
-  std::array<float, 3> shower_vertex = {0, 0, -10};
+  std::array<float, 3> shower_vertex = {0.1, 0.1, -10};
   std::cout << "Building Shower \n";
 
-  showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
+  showers::ShowerCreator shower_creator("/home/windischhofer/Eisvogel/Eisvogel/extern/shower_profile/shower_file");
   showers::Shower1D shower = shower_creator.create_shower(
           shower_vertex,
           5.0e+17,
@@ -72,7 +72,7 @@ int main(void) {
 
   std::vector<scalar_t> signal_times, signal_values;
   std::cout << "Interating \n";
-  for(scalar_t cur_t = 0; cur_t < 10; cur_t += 1) {
+  for(scalar_t cur_t = 30; cur_t < 1000; cur_t += 10) {
       std::cout << "Calculating t=" << cur_t << "\n";
     scalar_t cur_signal = integrator.integrate(cur_t, shower, 1);
     signal_times.push_back(cur_t);
