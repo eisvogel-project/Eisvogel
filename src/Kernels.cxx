@@ -10,7 +10,7 @@ scalar_t SincInterpolationKernel::operator()(scalar_t arg) const {
   return std::sin(scaled_arg) / scaled_arg;
 }
 
-scalar_t SincInterpolationKernel::CDF(scalar_t arg) const {
+scalar_t SincInterpolationKernel::CDF(int arg) const {
   return 1.0;
 }
 
@@ -33,7 +33,7 @@ scalar_t SplineInterpolationKernelOrder1::operator()(scalar_t arg) const {
 }
 
 // TOOD: can simplify this, as will only ever need to evaluate it at integer values (in terms of number of sampling steps)
-scalar_t SplineInterpolationKernelOrder1::CDF(scalar_t arg) const {
+scalar_t SplineInterpolationKernelOrder1::CDF(int arg) const {
 
   if(arg > 0) {
     return 1.0 - CDF(-arg);
@@ -72,7 +72,7 @@ scalar_t SplineInterpolationKernelOrder3::operator()(scalar_t arg) const {
   throw;
 }
 
-scalar_t SplineInterpolationKernelOrder3::CDF(scalar_t arg) const {
+scalar_t SplineInterpolationKernelOrder3::CDF(int arg) const {
   return 1.0;
 }
 
@@ -94,6 +94,23 @@ scalar_t KeysCubicInterpolationKernel::operator()(scalar_t arg) const {
   }
 }
 
-scalar_t KeysCubicInterpolationKernel::CDF(scalar_t arg) const {
+scalar_t KeysCubicInterpolationKernel::CDF(int arg) const {
+
+  if(arg <= -2) {
+    return 0.0;
+  }
+  else if(arg == -1) {
+    return -0.0416667;
+  }
+  else if(arg == 0) {
+    return 0.5;
+  }
+  else if(arg == 1) {
+    return 1.04167;
+  }
+  else if(arg >= 2) {
+    return 1.0;
+  }
+
   return 1.0;
 }
