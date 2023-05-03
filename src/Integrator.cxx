@@ -46,11 +46,16 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
     scalar_t t_start = CU::getT(curr.GetPoint(segment_ind));
     scalar_t t_end = std::min(t, CU::getT(curr.GetPoint(segment_ind + 1)));
 
+    if(t_end <= t_start) {
+      continue;
+    }
+
     // choose final time step so that an integer number of sampling points fits
     const std::size_t number_points = std::ceil((t_end - t_start) / t_step);
     t_step = (t_end - t_start) / number_points;
 
     // Integrate along segment (bail out early if allowed by causality)
+    scalar_t segment_signal = 0;
     scalar_t cur_t = t_start - t_step * m_kernel -> Support();
     for(int step_ind = -m_kernel -> Support(); step_ind <= (int)(number_points + m_kernel -> Support()); step_ind++) {
 
@@ -71,11 +76,12 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 	CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity);
       
       scalar_t kernel_int = m_kernel -> CDF(number_points - step_ind) - m_kernel -> CDF(-step_ind);
-
-      signal += -wf_val;// * kernel_int;
+      
+      segment_signal += -wf_val * kernel_int;
       cur_t += t_step;
     }
-    signal *= t_step * segment_charge;
+    segment_signal *= t_step * segment_charge;
+    signal += segment_signal;
   }
 
   return signal;
