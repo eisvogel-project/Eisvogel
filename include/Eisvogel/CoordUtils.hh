@@ -54,8 +54,11 @@ namespace CoordUtils {
 
   static inline FieldVector RZPHI_to_XYZ(const FieldVector& field_rzphi, const CoordVector& point_txyz) {
     scalar_t r_xy = std::sqrt(std::pow(getX(point_txyz), 2) + std::pow(getY(point_txyz), 2));
-    scalar_t cos_phi = getX(point_txyz) / r_xy;
-    scalar_t sin_phi = getY(point_txyz) / r_xy;
+    scalar_t cos_phi = 0.0, sin_phi = 0.0;
+    if(r_xy > 0) {
+      cos_phi = getX(point_txyz) / r_xy;
+      sin_phi = getY(point_txyz) / r_xy;
+    }
 
     return MakeFieldVectorXYZ(cos_phi * getRComponent(field_rzphi) - sin_phi * getPHIComponent(field_rzphi),
 			      sin_phi * getRComponent(field_rzphi) + cos_phi * getPHIComponent(field_rzphi),
