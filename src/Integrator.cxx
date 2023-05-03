@@ -56,8 +56,8 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 
     // Integrate along segment (bail out early if allowed by causality)
     scalar_t segment_signal = 0;
-    scalar_t cur_t = t_start - t_step * m_kernel.Support();
-    for(int step_ind = -m_kernel.Support(); step_ind <= (int)(number_points + m_kernel.Support()); step_ind++) {
+    scalar_t cur_t = t_start - t_step * m_kernel -> Support();
+    for(int step_ind = -m_kernel -> Support(); step_ind <= (int)(number_points + m_kernel -> Support()); step_ind++) {
 
       CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
@@ -75,7 +75,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 	CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
 	CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity);
       
-      scalar_t kernel_int = m_kernel.CDF(number_points - step_ind) - m_kernel.CDF(-step_ind);
+      scalar_t kernel_int = m_kernel -> CDF(number_points - step_ind) - m_kernel -> CDF(-step_ind);
       
       segment_signal += -wf_val;// * kernel_int;
       cur_t += t_step;
