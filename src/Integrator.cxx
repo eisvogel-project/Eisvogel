@@ -77,7 +77,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
       
       scalar_t kernel_int = m_kernel -> CDF(number_points - step_ind) - m_kernel -> CDF(-step_ind);
       
-      segment_signal += -wf_val;// * kernel_int;
+      segment_signal += -wf_val * kernel_int;
       cur_t += t_step;
     }
     segment_signal *= t_step * segment_charge;
