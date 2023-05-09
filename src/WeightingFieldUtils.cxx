@@ -3,13 +3,33 @@
 #include "Eisvogel/IteratorUtils.hh"
 #include "Eisvogel/CoordUtils.hh"
 #include "Eisvogel/MathUtils.hh"
+#include "Eisvogel/Serialization.hh"
 #include <cmath>
+#include <iostream>
+#include <fstream>
 
 namespace C = CoordUtils;
 
 namespace WeightingFieldUtils {
 
-  WeightingField CreateElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
+  void CreateElectricDipoleWeightingField(std::string wf_path,
+					  const CoordVector& start_coords, const CoordVector& end_coords,
+					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor) {
+
+    std::fstream ofs;
+    ofs.open(wf_path, std::ios::out | std::ios::binary);  
+    stor::Serializer oser(ofs);
+
+    // TODO: later, this will also break up the weighting field into multiple chunks just like for meep
+    std::cout << "Building weighting field ..." << std::endl;
+    WeightingField wf_out = SampleElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor);
+    
+    std::cout << "Saving weighting field ..." << std::endl;
+    oser.serialize(wf_out);
+    ofs.close();
+  }
+
+  WeightingField SampleElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
 						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor) {
 
     scalar_t Qw = 1.0;
