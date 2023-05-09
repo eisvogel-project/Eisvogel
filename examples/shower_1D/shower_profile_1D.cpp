@@ -1,42 +1,37 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-
+#include <stdlib.h>
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/Integrator.hh"
+#include "Eisvogel/SignalCalculator.hh"
 #include "Eisvogel/Current0D.hh"
-#include "Eisvogel/Kernels.hh"
 #include "Eisvogel/SignalExport.hh"
-#include "Eisvogel/Serialization.hh"
-#include "Eisvogel/WeightingFieldUtils.hh"
 #include "shower_creator.h"
 #include "shower_1D.h"
 #include "constants.h"
+#include "units.h"
 
-namespace WFU = WeightingFieldUtils;
 namespace CU = CoordUtils;
 
-int main(void) {
+int main(int argc, char* argv[]) {
     
-  std::string wf_path = "electric_dipole_wf.bin";
+  std::string wf_path = argv[1];
+  SignalCalculator signal_calc(wf_path);
 
-  std::fstream ofs;
-  ofs.open(wf_path, std::ios::out | std::ios::binary);  
-  stor::Serializer oser(ofs);
 
-  //std::array<float, 3> shower_vertex = {-76, .1, -63};
-  std::array<float, 3> shower_vertex = {-76, .1, -63};
+  std::array<float, 3> shower_vertex = {-346 * 2, .1, -256 * 2};
   std::cout << "Building Shower \n";
 
   showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
   showers::Shower1D shower = shower_creator.create_shower(
           shower_vertex,
-          2.0e+19,
-          1.5708,
+          5.0e+18,
+          90 * units::degree,
           0,
-          1
+          0
           );
 
+  // Show dimensions of the required weighting field
   std::vector<double> t;
   std::vector<double> x;
   std::vector<double> y;
@@ -49,7 +44,7 @@ int main(void) {
   double z_min = z[0];
   double r;
   for (int i=0; i<t.size(); i++) {
-      r = sqrt(x[i] * x[i] + y[i] * y[i] + z[i] * z[i]);
+      r = sqrt(x[i] * x[i] + y[i] * y[i]);
       r_min = std::min(r_min, r);
       r_max = std::max(r_max, r);
       z_min = std::min(z_min, z[i]);
@@ -59,43 +54,11 @@ int main(void) {
   r_min /= constants::c;
   z_max /= constants::c;
   z_min /= constants::c;
-  // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-500, -100, z_min - 200);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(1000.0, r_max + 800, z_max + 200);
 
-  // Filter parameters
-  scalar_t tp = 5.0;
-  unsigned int N = 4;
+  std::cout << "Required weighting field size:\n";
+  std::cout << r_min << "< r < " << r_max << "\n";
+  std::cout << z_min << "< z < " << z_max << "\n";
 
-  // Sampling parameters
-  scalar_t os_factor = 7;
-  scalar_t R_min = 0.1;
-  scalar_t refractive_index = 1.3;
-
-  std::cout << "Building weighting field ..." << std::endl;
-  WeightingField wf_out = WFU::CreateElectricDipoleWeightingField(
-          start_coords,
-          end_coords,
-          tp,
-          N,
-          R_min,
-          os_factor,
-          refractive_index
-          );
-
-  std::cout << "Saving weighting field ..." << std::endl;
-  oser.serialize(wf_out);
-  ofs.close();
-
-  std::fstream ifs; 
-  ifs.open(wf_path, std::ios::in | std::ios::binary);
-  stor::Serializer iser(ifs);
-
-  std::cout << "Loading weighting field ..." << std::endl;
-  WeightingField wf_in = iser.deserialize<WeightingField>();
-
-  KeysCubicInterpolationKernel interpolation_kernel;
-  Integrator integrator(wf_in, interpolation_kernel);
 
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis
@@ -107,11 +70,16 @@ int main(void) {
   
   std::vector<scalar_t> signal_times, signal_values;
   std::cout << "Integrating \n";
-  for(scalar_t cur_t = 0; cur_t < 800; cur_t += 1) {
-    scalar_t cur_signal = integrator.integrate(cur_t, shower, 1);
+  Current0D current = shower.get_current(0.1);
+  for(scalar_t cur_t = 3400; cur_t < 4000; cur_t += 1) {
+    scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);
   }
-  ExportSignal(signal_times, signal_values, "./2e19HAD.csv");
+  // convert to normal units
+  for (int i; i < signal_values.size(); i++) {
+      signal_values[i] = signal_values[i] / 2.218e10 * constants::c;
+  }
+  ExportSignal(signal_times, signal_values, "./5e18EM.csv");
   return 0;
 }

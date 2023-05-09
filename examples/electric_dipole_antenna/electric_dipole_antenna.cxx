@@ -21,19 +21,24 @@ int main(int argc, char* argv[]) {
   stor::Serializer oser(ofs);
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-20.0, -10.0, -40.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(320.0, 500.0, 40.0);
+  // CoordVector start_coords = CU::MakeCoordVectorTRZ(-20.0, -10.0, -40.0);
+  // CoordVector end_coords = CU::MakeCoordVectorTRZ(320.0, 500.0, 40.0);
+
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(2500.0, 1550.0, -1709.0);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(4200.0, 2900.0, -1706);
 
   // Filter parameters
-  scalar_t tp = 5.0;
-  unsigned int N = 4;
+  scalar_t tp = 1.0;
+  unsigned int N = 6;
 
   // Sampling parameters
-  scalar_t os_factor = 7;
+  scalar_t os_factor = 2.;
   scalar_t r_min = 0.1;
+  
+  scalar_t index_of_refraction = 1.3;
 
   std::cout << "Building weighting field ..." << std::endl;
-  WeightingField wf_out = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor);
+  WeightingField wf_out = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor, index_of_refraction);
 
   std::cout << "Saving weighting field ..." << std::endl;
   oser.serialize(wf_out);

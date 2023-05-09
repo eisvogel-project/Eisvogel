@@ -1,5 +1,6 @@
 #include "shower_1D.h"
 #include <iostream>
+#include <fstream>
 #include <array>
 #include <math.h>
 #include "Eisvogel/CoordUtils.hh"
@@ -67,6 +68,9 @@ void showers::Shower1D::get_shower(
 	int grammage_i = 0;
 	double delta_ce;
 	double delta_grammage;
+        std::ofstream profile_out;
+        profile_out.open("ce_profile.csv");
+        
 	for (int i=1; i < n_points; i++) {
 		(*x)[i] = (*x)[i - 1] + delta_s * sin(zenith) * cos(azimuth);
 		(*y)[i] = (*y)[i - 1] + delta_s * sin(zenith) * sin(azimuth);
@@ -87,7 +91,9 @@ void showers::Shower1D::get_shower(
 			delta_grammage = (integrated_grammage - charge_excess_profile.grammage[grammage_i - 1]) / (charge_excess_profile.grammage[grammage_i] - charge_excess_profile.grammage[grammage_i - 1]);
 			(*ce)[i] = (charge_excess_profile.charge_excess[grammage_i - 1]+ delta_ce * delta_grammage) * charge_excess_profile_scaling;
 		}
+                profile_out << (*x)[i] << ", " << (*ce)[i] << "\n";
 	}
+        profile_out.close();
 }
 
 Current0D showers::Shower1D::get_current(

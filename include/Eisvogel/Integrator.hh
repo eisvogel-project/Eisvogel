@@ -6,14 +6,12 @@
 #include "WeightingField.hh"
 #include "Interpolator.hh"
 #include "Current0D.hh"
-#include "shower_1D.h"
 class Integrator {
 
 public:
 
   void SetGeometry(std::shared_ptr<WeightingField> wf, std::shared_ptr<Kernel> kernel);
   scalar_t integrate(scalar_t t, const Current0D& curr, scalar_t os_factor = 1.0) const;
-  scalar_t integrate(scalar_t t, showers::Shower1D& shower, double t_step);
 private:
 
   std::shared_ptr<Kernel> m_kernel;

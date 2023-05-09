@@ -79,12 +79,15 @@ namespace units {
     const double ton = 1e3 * kg;
     
     // charge & electrical units
-    const double coulomb = 0.624150974 * e_charge;
+    const double coulomb = 0.624150974e19 * e_charge;
     const double C = coulomb;
     const double ampere = coulomb / second;
     const double A = ampere;
     const double volt = joule / coulomb;
     const double V = volt;
+    
+    // angles
+    const double degree = 0.017453293;
 }
 
 #endif
