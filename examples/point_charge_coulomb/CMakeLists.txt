@@ -3,3 +3,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 add_executable(point_charge_coulomb point_charge_coulomb.cxx)
 target_link_libraries(point_charge_coulomb eisvogel)
+
+add_executable(point_charge_coulomb_segment point_charge_coulomb_segment.cxx) 
+target_link_libraries(point_charge_coulomb_segment eisvogel)
