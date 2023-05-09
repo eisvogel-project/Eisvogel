@@ -34,7 +34,6 @@ int main(int argc, char* argv[]) {
   std::cout << "Computing signal ..." << std::endl;
   std::vector<scalar_t> signal_times, signal_values;
   for(scalar_t cur_t = -15; cur_t < 30; cur_t += 1) {
-    // for(scalar_t cur_t = 0; cur_t < 1; cur_t += 1) {
     scalar_t cur_signal = calc.ComputeSignal(track, cur_t);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);
