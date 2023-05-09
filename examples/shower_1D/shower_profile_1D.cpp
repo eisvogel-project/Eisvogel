@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
           0
           );
 
+  
   // Show dimensions of the required weighting field
   std::vector<double> t;
   std::vector<double> x;
