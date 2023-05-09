@@ -1,10 +1,10 @@
 from cython.operator import dereference
-from pyeisvogel.libpyeisvogel cimport *
+from python.libeisvogel cimport *
 from libcpp.utility cimport move
 from libcpp.memory cimport unique_ptr, make_unique
 import os
 
-from pyeisvogel cimport ccoordutils
+from python cimport ccoordutils
 cdef class CoordVector:
     cdef unique_ptr[ccoordutils.CoordVector] c_vec
 
@@ -18,7 +18,7 @@ cdef class CoordVector:
     def FromTXYZ(t, x, y, z):
         return CoordVector.__c_FromTXYZ(t, x, y, z)
 
-from pyeisvogel cimport ccurrent
+from python cimport ccurrent
 cdef class Current0D:
     cdef unique_ptr[ccurrent.Current0D] c_current
 
@@ -39,7 +39,7 @@ cdef class Current0D:
         cur.c_current = make_unique[ccurrent.Current0D](move(vec_points), move(vec_charges))
         return cur
     
-from pyeisvogel cimport csignalcalculator
+from python cimport csignalcalculator
 cdef class SignalCalculator:
     cdef csignalcalculator.SignalCalculator* c_calc
 

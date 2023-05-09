@@ -1,5 +1,5 @@
-from pyeisvogel.libpyeisvogel cimport *
-from pyeisvogel.ccoordutils cimport *
+from python.libeisvogel cimport *
+from python.ccoordutils cimport *
 
 cdef extern from "Eisvogel/Current0D.hh":
      cdef cppclass Current0D:
