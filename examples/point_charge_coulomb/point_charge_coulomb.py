@@ -1,5 +1,5 @@
 import argparse
-from pyeisvogel import CoordVector, SignalCalculator, Current0D
+from eisvogel import CoordVector, SignalCalculator, Current0D
 
 def compute_signal(wf_path):
     
