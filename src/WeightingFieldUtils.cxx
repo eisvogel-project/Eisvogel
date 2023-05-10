@@ -26,6 +26,10 @@ namespace WeightingFieldUtils {
     
     std::cout << "---------------------------" << std::endl;
     std::cout << "Using oversampling factor = " << os_factor << std::endl;
+    std::cout << "os_factor = " << os_factor << std::endl;
+    std::cout << "N = " << N << std::endl;
+    std::cout << "refractive_index = " << refractive_index << std::endl;
+    std::cout << "fmax = " << fmax << std::endl;
     std::cout << "delta_t = " << delta_t << std::endl;
     std::cout << "delta_r = delta_z = " << delta_pos << std::endl;
     std::cout << "---------------------------" << std::endl;

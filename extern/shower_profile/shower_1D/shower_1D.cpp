@@ -118,15 +118,18 @@ Current0D showers::Shower1D::get_current(
             positions.push_back(
                     CoordUtils::MakeCoordVectorTXYZ(
                     t[i],
-                    x[i] / constants::c,
+                    x[i] / constants::c + 400,
                     y[i] / constants::c,
                     z[i] / constants::c
                     )
                 );
             if (i < t.size() -1) {
-                charge_excess.push_back(ce[i]);
+	      charge_excess.push_back(ce[i]);;
             }
         }
+	std::cout << "HHHHH" << std::endl;
+	std::cout << "c = " << constants::c << std::endl;
+	std::cout << "HHHHH" << std::endl;
         Current0D current(positions, charge_excess);
         return current;
 }

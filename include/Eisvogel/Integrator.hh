@@ -11,7 +11,7 @@ class Integrator {
 public:
 
   void SetGeometry(std::shared_ptr<WeightingField> wf, std::shared_ptr<Kernel> kernel);
-  scalar_t integrate(scalar_t t, const Current0D& curr, scalar_t os_factor = 1.0) const;
+  scalar_t integrate(scalar_t t, const Current0D& curr, scalar_t os_factor = 3.0) const;
 private:
 
   std::shared_ptr<Kernel> m_kernel;

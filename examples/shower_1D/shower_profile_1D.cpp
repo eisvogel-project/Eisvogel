@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
   std::array<float, 3> shower_vertex = {-346 * 2, .1, -256 * 2};
   std::cout << "Building Shower \n";
 
-  showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
+  showers::ShowerCreator shower_creator("/home/windischhofer/Eisvogel/Eisvogel/extern/shower_profile/shower_file");
   showers::Shower1D shower = shower_creator.create_shower(
           shower_vertex,
           5.0e+18,
@@ -72,7 +72,15 @@ int main(int argc, char* argv[]) {
   std::vector<scalar_t> signal_times, signal_values;
   std::cout << "Integrating \n";
   Current0D current = shower.get_current(0.1);
-  for(scalar_t cur_t = 3400; cur_t < 4000; cur_t += 1) {
+
+  // std::cout << "t" << ",\t" << "x" << ",\t" << "y" << ",\t" << "z" << ",\t" << "charge" << std::endl;
+  // for(std::size_t segment_ind = 0; segment_ind < current.number_segments(); segment_ind++) {
+  //   auto cur_pos = current.GetPoint(segment_ind);
+  //   scalar_t cur_charge = current.GetCharge(segment_ind);
+  //   std::cout << CU::getT(cur_pos) << ",\t" << CU::getX(cur_pos) << ",\t" << CU::getY(cur_pos) << ",\t" << CU::getZ(cur_pos) << ",\t" << cur_charge << std::endl;
+  // }
+
+  for(scalar_t cur_t = 3330; cur_t < 3360; cur_t += 0.5) {
     scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);
