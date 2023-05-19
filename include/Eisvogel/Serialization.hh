@@ -6,6 +6,7 @@
 #include <vector>
 #include <array>
 #include <arpa/inet.h>
+#include <cstring>
 
 // inspired by https://github.com/panta/seriously
 
@@ -64,7 +65,9 @@ namespace stor {
 
     static type deserialize(std::iostream& stream) {
       ser_type ser_val = Traits<ser_type>::deserialize(stream);
-      return reinterpret_cast<type&>(ser_val);
+      type retval = 0.0f;
+      std::memcpy(&retval, &ser_val, sizeof(ser_val));
+      return retval;
     }
   };
 
@@ -80,7 +83,9 @@ namespace stor {
 
     static type deserialize(std::iostream& stream) {
       ser_type ser_val = Traits<ser_type>::deserialize(stream);
-      return reinterpret_cast<type&>(ser_val);
+      type retval = 0.0;
+      std::memcpy(&retval, &ser_val, sizeof(ser_val));
+      return retval;
     }
   };
 

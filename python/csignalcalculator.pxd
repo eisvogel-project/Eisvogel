@@ -1,5 +1,6 @@
-from pyeisvogel.libpyeisvogel cimport *
-from pyeisvogel.ccurrent cimport Current0D
+from python.libeisvogel cimport *
+from python.ccurrent cimport Current0D
+from libcpp.string cimport string
 
 cdef extern from "Eisvogel/SignalCalculator.hh":
      cdef cppclass SignalCalculator:

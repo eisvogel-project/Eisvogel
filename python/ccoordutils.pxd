@@ -1,4 +1,5 @@
-from pyeisvogel.libpyeisvogel cimport *
+from python.libeisvogel cimport *
+from libcpp.vector cimport vector
 
 cdef extern from "Eisvogel/CoordUtils.hh":
      cdef cppclass CoordVector:
@@ -6,3 +7,4 @@ cdef extern from "Eisvogel/CoordUtils.hh":
 
 cdef extern from "Eisvogel/CoordUtils.hh" namespace "CoordUtils":
      cdef CoordVector MakeCoordVectorTXYZ(scalar_t t, scalar_t x, scalar_t y, scalar_t z)
+     cdef CoordVector MakeCoordVectorTRZ(scalar_t t, scalar_t r, scalar_t z)

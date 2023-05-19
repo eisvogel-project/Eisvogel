@@ -1,10 +1,12 @@
 from cython.operator import dereference
-from pyeisvogel.libpyeisvogel cimport *
+from python.libeisvogel cimport *
 from libcpp.utility cimport move
 from libcpp.memory cimport unique_ptr, make_unique
+from libcpp.vector cimport vector
+from libcpp.string cimport string
 import os
 
-from pyeisvogel cimport ccoordutils
+from python cimport ccoordutils
 cdef class CoordVector:
     cdef unique_ptr[ccoordutils.CoordVector] c_vec
 
@@ -15,10 +17,20 @@ cdef class CoordVector:
         return vec
 
     @staticmethod
+    cdef __c_FromTRZ(scalar_t t, scalar_t r, scalar_t z):
+        cdef CoordVector vec = CoordVector.__new__(CoordVector)
+        vec.c_vec = make_unique[ccoordutils.CoordVector](ccoordutils.MakeCoordVectorTRZ(t, r, z))
+        return vec
+
+    @staticmethod
     def FromTXYZ(t, x, y, z):
         return CoordVector.__c_FromTXYZ(t, x, y, z)
 
-from pyeisvogel cimport ccurrent
+    @staticmethod
+    def FromTRZ(t, r, z):
+        return CoordVector.__c_FromTRZ(t, r, z)
+
+from python cimport ccurrent
 cdef class Current0D:
     cdef unique_ptr[ccurrent.Current0D] c_current
 
@@ -39,7 +51,7 @@ cdef class Current0D:
         cur.c_current = make_unique[ccurrent.Current0D](move(vec_points), move(vec_charges))
         return cur
     
-from pyeisvogel cimport csignalcalculator
+from python cimport csignalcalculator
 cdef class SignalCalculator:
     cdef csignalcalculator.SignalCalculator* c_calc
 
@@ -50,3 +62,12 @@ cdef class SignalCalculator:
         cdef scalar_t signal
         signal = self.c_calc.ComputeSignal(dereference(track.c_current), t_sig)
         return signal
+
+from python cimport cweightingfieldutils
+cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 
+                                         scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor):
+    cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path.encode("utf-8"), 
+                                                            dereference(start_coords.c_vec), 
+                                                            dereference(end_coords.c_vec), 
+                                                            tp, N, r_min, os_factor)
+    
