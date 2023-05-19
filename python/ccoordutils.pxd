@@ -7,3 +7,4 @@ cdef extern from "Eisvogel/CoordUtils.hh":
 
 cdef extern from "Eisvogel/CoordUtils.hh" namespace "CoordUtils":
      cdef CoordVector MakeCoordVectorTXYZ(scalar_t t, scalar_t x, scalar_t y, scalar_t z)
+     cdef CoordVector MakeCoordVectorTRZ(scalar_t t, scalar_t r, scalar_t z)

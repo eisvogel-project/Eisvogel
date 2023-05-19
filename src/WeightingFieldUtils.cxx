@@ -48,6 +48,8 @@ namespace WeightingFieldUtils {
     std::cout << "Using oversampling factor = " << os_factor << std::endl;
     std::cout << "delta_t = " << delta_t << std::endl;
     std::cout << "delta_r = delta_z = " << delta_pos << std::endl;
+    std::cout << "start_coords: t = " << C::getT(start_coords) << ", r = " << C::getR(start_coords) << ", z = " << C::getZ(start_coords) << std::endl;
+    std::cout << "end_coords: t = " << C::getT(end_coords) << ", r = " << C::getR(end_coords) << ", z = " << C::getZ(end_coords) << std::endl;
     std::cout << "---------------------------" << std::endl;
 
     DeltaVector step_requested = C::MakeCoordVectorTRZ(delta_t, delta_pos, delta_pos);

@@ -17,8 +17,18 @@ cdef class CoordVector:
         return vec
 
     @staticmethod
+    cdef __c_FromTRZ(scalar_t t, scalar_t r, scalar_t z):
+        cdef CoordVector vec = CoordVector.__new__(CoordVector)
+        vec.c_vec = make_unique[ccoordutils.CoordVector](ccoordutils.MakeCoordVectorTRZ(t, r, z))
+        return vec
+
+    @staticmethod
     def FromTXYZ(t, x, y, z):
         return CoordVector.__c_FromTXYZ(t, x, y, z)
+
+    @staticmethod
+    def FromTRZ(t, r, z):
+        return CoordVector.__c_FromTRZ(t, r, z)
 
 from python cimport ccurrent
 cdef class Current0D:
@@ -54,8 +64,10 @@ cdef class SignalCalculator:
         return signal
 
 from python cimport cweightingfieldutils
-cpdef CreateElectricDipoleWeightingField(string wf_path, CoordVector start_coords, CoordVector end_coords, 
+cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 
                                          scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor):
-    cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path, 
-                                                            dereference(start_coords.c_vec), dereference(end_coords.c_vec), 
+    cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path.encode("utf-8"), 
+                                                            dereference(start_coords.c_vec), 
+                                                            dereference(end_coords.c_vec), 
                                                             tp, N, r_min, os_factor)
+    
