@@ -53,7 +53,9 @@ cdef class SignalCalculator:
         signal = self.c_calc.ComputeSignal(dereference(track.c_current), t_sig)
         return signal
 
-# from python cimport cweightingfieldutils
-# def CreateElectricDipoleWeightingField(string wf_path, CoordVector start_coords, CoordVector end_coords, scalar_t tp, 
-#                                        unsigned int N, scalar_t r_min, scalar_t os_factor):
-#     cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor)
+from python cimport cweightingfieldutils
+cpdef CreateElectricDipoleWeightingField(string wf_path, CoordVector start_coords, CoordVector end_coords, 
+                                         scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor):
+    cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path, 
+                                                            dereference(start_coords.c_vec), dereference(end_coords.c_vec), 
+                                                            tp, N, r_min, os_factor)

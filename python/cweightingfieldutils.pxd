@@ -1,5 +1,5 @@
 from python.libeisvogel cimport *
-from python.ccordutils cimport *
+from python.ccoordutils cimport *
 from libcpp.string cimport string
 
 cdef extern from "Eisvogel/WeightingFieldUtils.hh" namespace "WeightingFieldUtils":
