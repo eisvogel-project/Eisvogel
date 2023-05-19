@@ -2,6 +2,8 @@ from cython.operator import dereference
 from python.libeisvogel cimport *
 from libcpp.utility cimport move
 from libcpp.memory cimport unique_ptr, make_unique
+from libcpp.vector cimport vector
+from libcpp.string cimport string
 import os
 
 from python cimport ccoordutils
@@ -50,3 +52,8 @@ cdef class SignalCalculator:
         cdef scalar_t signal
         signal = self.c_calc.ComputeSignal(dereference(track.c_current), t_sig)
         return signal
+
+# from python cimport cweightingfieldutils
+# def CreateElectricDipoleWeightingField(string wf_path, CoordVector start_coords, CoordVector end_coords, scalar_t tp, 
+#                                        unsigned int N, scalar_t r_min, scalar_t os_factor):
+#     cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor)

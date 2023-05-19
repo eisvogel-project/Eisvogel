@@ -1,4 +1,5 @@
 from python.libeisvogel cimport *
+from libcpp.vector cimport vector
 
 cdef extern from "Eisvogel/CoordUtils.hh":
      cdef cppclass CoordVector:
