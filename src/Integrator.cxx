@@ -94,9 +94,6 @@ scalar_t Integrator::integrate(scalar_t t, const SparseCurrentDensity3D& current
 
   for(const auto& [cur_pos_txyz, cur_current_density_xyz] : current_distribution) {
 
-    std::cout << "cur_point: t = " << CU::getT(cur_pos_txyz) << ", x = " << CU::getX(cur_pos_txyz) << ", y = " << CU::getY(cur_pos_txyz) << ", z = " << CU::getZ(cur_pos_txyz) << std::endl;
-    std::cout << "cur_current: x = " << CU::getXComponent(cur_current_density_xyz) << ", y = " << CU::getYComponent(cur_current_density_xyz) << ", z = " << CU::getZComponent(cur_current_density_xyz) << std::endl;
-
     scalar_t cur_t = CU::getT(cur_pos_txyz);
 
     CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);

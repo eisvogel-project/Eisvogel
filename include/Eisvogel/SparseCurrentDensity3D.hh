@@ -7,8 +7,7 @@
 
 namespace CU = CoordUtils;
 
-using CurrentVector = FieldVector;
-using CurrentElement = std::pair<CoordVector, CurrentVector>;
+using CurrentElement = std::pair<CoordVector, FieldVector>;
 
 class SparseCurrentDensity3D {
 
@@ -18,9 +17,13 @@ public:
   SparseCurrentDensity3D(const DeltaVector& voxel_size, const std::vector<CurrentElement>&& elements) : 
     m_voxel_size(voxel_size), m_elements(elements) { };
 
+  void addCurrentElement(const CoordVector& point, const FieldVector& current_density) {
+    addCurrentElement({point, current_density});
+  }
+
   void addCurrentElement(const CurrentElement& element) {
     m_elements.push_back(element);
-  };
+  }
 
   scalar_t getVolumeElementTXYZ() const {
     return CU::getT(m_voxel_size) * getVolumeElementXYZ();
@@ -35,8 +38,8 @@ public:
 
 private:
 
-  std::vector<CurrentElement> m_elements;
   DeltaVector m_voxel_size;
+  std::vector<CurrentElement> m_elements;
 
 };
 
