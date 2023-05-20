@@ -27,3 +27,8 @@ scalar_t SignalCalculator::ComputeSignal(const Current0D& track, scalar_t t_sig)
   // Compute the signal
   return m_integrator.integrate(t_sig, track);
 }
+
+scalar_t SignalCalculator::ComputeSignal(const SparseCurrentDensity3D& current_distribution, scalar_t t_sig) {
+
+  return m_integrator.integrate(t_sig, current_distribution);
+}

@@ -4,5 +4,5 @@ project(eisvogel)
 
 add_subdirectory(cmake)
 add_subdirectory(src)
-add_subdirectory(python)
+add_subdirectory(cpython)
 add_subdirectory(examples)
