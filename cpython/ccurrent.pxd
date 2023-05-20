@@ -1,5 +1,5 @@
-from python.libeisvogel cimport *
-from python.ccoordutils cimport *
+from cpython.libeisvogel cimport *
+from cpython.ccoordutils cimport *
 from libcpp.vector cimport vector
 
 cdef extern from "Eisvogel/Current0D.hh":

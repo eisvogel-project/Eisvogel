@@ -1,4 +1,4 @@
-from python.libeisvogel cimport *
+from cpython.libeisvogel cimport *
 from libcpp.vector cimport vector
 
 cdef extern from "Eisvogel/CoordUtils.hh":

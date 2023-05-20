@@ -1,5 +1,5 @@
-from python.libeisvogel cimport *
-from python.ccurrent cimport Current0D, SparseCurrentDensity3D
+from cpython.libeisvogel cimport *
+from cpython.ccurrent cimport Current0D, SparseCurrentDensity3D
 from libcpp.string cimport string
 
 cdef extern from "Eisvogel/SignalCalculator.hh":

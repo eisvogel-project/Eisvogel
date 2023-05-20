@@ -1,12 +1,12 @@
 from cython.operator import dereference
-from python.libeisvogel cimport *
+from cpython.libeisvogel cimport *
 from libcpp.utility cimport move
 from libcpp.memory cimport unique_ptr, make_unique
 from libcpp.vector cimport vector
 from libcpp.string cimport string
 import os
 
-from python cimport ccoordutils
+from cpython cimport ccoordutils
 cdef class CoordVector:
     cdef unique_ptr[ccoordutils.CoordVector] c_vec
 
@@ -56,7 +56,7 @@ cdef class DeltaVector:
     def FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z):
         return DeltaVector.__c_FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z)
 
-from python cimport ccurrent
+from cpython cimport ccurrent
 cdef class Current0D:
     cdef unique_ptr[ccurrent.Current0D] c_current
 
@@ -86,7 +86,7 @@ cdef class SparseCurrentDensity3D:
     def addCurrentElement(self, CoordVector point, FieldVector current_density):
         self.c_current_density.addCurrentElement(dereference(point.c_vec), dereference(current_density.c_vec))
     
-from python cimport csignalcalculator
+from cpython cimport csignalcalculator
 cdef class SignalCalculator:
     cdef csignalcalculator.SignalCalculator* c_calc
 
@@ -105,7 +105,7 @@ cdef class SignalCalculator:
         else:
             raise RuntimeError("Unknown source type")
 
-from python cimport cweightingfieldutils
+from cpython cimport cweightingfieldutils
 cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 
                                          scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor):
     cweightingfieldutils.CreateElectricDipoleWeightingField(wf_path.encode("utf-8"), 
