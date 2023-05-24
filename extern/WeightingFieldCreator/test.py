@@ -1,18 +1,26 @@
 import meep as mp
+import numpy as np
 
-cell = mp.Vector3(16, 8, 0)
+cell = mp.Vector3(20, 20, 20)
 
 geometry = [
     mp.Block(
-        mp.Vector3(mp.inf, 1, mp.inf),
-        center=mp.Vector3(),
-        material=mp.Medium(epsilon=12),
+        mp.Vector3(mp.inf, mp.inf, 20),
+        center=mp.Vector3(0, 0, -10),
+        material=mp.Medium(epsilon=15),
     )
 ]
 
+delta_func = lambda t: np.exp(-50 * (t-10)**2)
+
 sources = [
     mp.Source(
-        mp.ContinuousSource(frequency=0.15), component=mp.Ez, center=mp.Vector3(-7, 0)
+        mp.CustomSource(src_func = delta_func,
+                        start_time = 1.0,
+                        end_time = 20.0,
+                        is_integrated = False),
+        component = mp.Ez,
+        center = mp.Vector3(0, 0, -1)
     )
 ]
 
@@ -28,20 +36,23 @@ sim = mp.Simulation(
     resolution=resolution,
 )
 
-sim.run(until=200)
-
+sim.run(until=20)
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-eps_data = sim.get_array(center=mp.Vector3(), size=cell, component=mp.Dielectric)
-fig, axes = plt.subplots(nrows = 1, ncols = 2, figsize = (11, 3))
-axes[0].imshow(eps_data.transpose(), interpolation="spline36", cmap="binary")
+ex_data = np.flip(sim.get_array(center = mp.Vector3(), size = mp.Vector3(20, 0, 20), component = mp.Ex), axis = 1)
+ey_data = np.flip(sim.get_array(center = mp.Vector3(), size = mp.Vector3(20, 0, 20), component = mp.Ey), axis = 1)
+ez_data = np.flip(sim.get_array(center = mp.Vector3(), size = mp.Vector3(20, 0, 20), component = mp.Ez), axis = 1)
 
-ez_data = sim.get_array(center=mp.Vector3(), size=cell, component=mp.Ez)
-axes[1].imshow(eps_data.transpose(), interpolation="spline36", cmap="binary")
-axes[1].imshow(ez_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
+fig, axes = plt.subplots(nrows = 1, ncols = 3, figsize = (15, 3))
+axes[0].imshow(ex_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
+axes[1].imshow(ey_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
+axes[2].imshow(ez_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
 
-fig.savefig("test.pdf")
+fig.savefig("Ex_Ey_Ez.pdf")
 
-print("done")
+fig, ax = plt.subplots(nrows = 1, ncols = 1, figsize = (3, 3))
+ax.imshow(ez_data.transpose(), interpolation="spline36", cmap="RdBu", alpha=0.9)
+
+fig.savefig("Ez.pdf")
