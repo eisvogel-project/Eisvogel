@@ -4,8 +4,8 @@ from distutils.extension import Extension
 from Cython.Build import cythonize
 
 extensions = [
-    Extension("pyeisvogel",
-              sources = [os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "pyeisvogel.pyx")],
+    Extension("eisvogel",
+              sources = [os.path.join("${CMAKE_CURRENT_SOURCE_DIR}", "eisvogel.pyx")],
               libraries = ["eisvogel"],
               library_dirs = ["${PROJECT_BINARY_DIR}/eisvogel/"],
               language = "c++",
@@ -23,6 +23,6 @@ extensions = cythonize(
 )
 
 setup(
-    name = "pyeisvogel",
+    name = "eisvogel",
     ext_modules = extensions
 )

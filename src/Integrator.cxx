@@ -81,3 +81,34 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 
   return signal;
 }
+
+scalar_t Integrator::integrate(scalar_t t, const SparseCurrentDensity3D& current_distribution) const {
+
+  scalar_t signal = 0;
+  scalar_t volume_element = current_distribution.getVolumeElementTXYZ();
+
+  for(const auto& [cur_pos_txyz, cur_current_density_xyz] : current_distribution) {
+
+    scalar_t cur_t = CU::getT(cur_pos_txyz);
+
+    CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
+    CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
+
+    CoordVector wf_eval_frac_inds = m_wf -> getFracInds(wf_eval_pos);
+    
+    FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
+						    m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
+						    m_itpl_E_phi -> Interpolate(wf_eval_frac_inds));
+    
+    FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
+
+    scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getXComponent(cur_current_density_xyz) +
+      CU::getYComponent(wf_xyz) * CU::getYComponent(cur_current_density_xyz) +
+      CU::getZComponent(wf_xyz) * CU::getZComponent(cur_current_density_xyz);
+
+    signal += -wf_val * volume_element;
+
+  }
+
+  return signal;
+}

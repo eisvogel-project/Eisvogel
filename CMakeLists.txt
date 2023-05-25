@@ -4,7 +4,7 @@ project(eisvogel)
 
 add_subdirectory(cmake)
 add_subdirectory(src)
-add_subdirectory(pyeisvogel)
+add_subdirectory(cpython)
 add_subdirectory(examples)
 add_subdirectory(extern/shower_profile)
 
