@@ -27,9 +27,6 @@ int main(int argc, char* argv[]) {
   scalar_t index_of_refraction = 1.3;
 
   std::cout << "Building weighting field ..." << std::endl;
-  WeightingField wf_out = WFU::CreateElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor, index_of_refraction);
 
-  std::cout << "Saving weighting field ..." << std::endl;
-  oser.serialize(wf_out);
-  ofs.close();
+  WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor);
 }
