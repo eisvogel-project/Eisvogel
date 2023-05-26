@@ -1,7 +1,7 @@
 # Build the container
 
 ```
-docker build -t meep .
+docker build --no-cache -t meep .
 ```
 
 # Run a simple test
