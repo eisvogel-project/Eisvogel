@@ -60,7 +60,7 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
   
   // prepare the list of field components to fetch at each grid point
   component components[] = {Ex, Ey, Ez};
-  chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
+  chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
   
   // loop over all grid points in chunk
   LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
