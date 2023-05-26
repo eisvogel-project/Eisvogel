@@ -1,10 +1,15 @@
 #include <meep.hpp>
+#include <cmath>
 using namespace meep;
 
 double eps(const vec &p) {
   if (p.x() < 2 && p.y() < 3)
     return 12.0;
   return 1.0;
+}
+
+std::complex<double> srcfunc(double t, void*) {
+  return std::exp(-50 * std::pow(t - 10, 2));
 }
 
 int main(int argc, char **argv) {
@@ -16,14 +21,13 @@ int main(int argc, char **argv) {
 
   f.output_hdf5(Dielectric, v.surroundings());
 
-  double freq = 0.3, fwidth = 0.1;
-  gaussian_src_time src(freq, fwidth);
-  f.add_point_source(Ey, src, vec(1.1, 2.3));
-  while (f.time() < f.last_source_time()) {
+  custom_src_time src(srcfunc, NULL);
+  f.add_point_source(Ez, src, vec(1.1, 2.3));
+  while (f.time() < 20) {
      f.step();
   }
 
-  f.output_hdf5(Hz, v.surroundings());
+  f.output_hdf5(Ez, v.surroundings());
 
   return 0;
 }
