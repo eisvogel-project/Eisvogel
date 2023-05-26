@@ -81,7 +81,6 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
     std::complex<double> Ex_val = data.values[0];
     std::complex<double> Ey_val = data.values[1];
     std::complex<double> Ez_val = data.values[2];
-    std::cout << Ez_val << std::endl;
 
     std::cout << "loop_i1 = " << loop_i1 << std::endl;
     std::cout << "loop_i2 = " << loop_i2 << std::endl;
@@ -89,6 +88,7 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
     
     ptrdiff_t idx2 = loop_i1 * stride[0] + loop_i2 * stride[2] + loop_i3 * stride[1];
     std::cout << "buff_idx (bufsz) = " << idx2 << " (" << bufsz << ")" << std::endl;
+    std::cout << Ez_val.real() << std::endl;
     buff[idx2] = Ez_val.real();
 
     std::cout << "- - -" << std::endl;
