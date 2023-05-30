@@ -1,20 +1,35 @@
 #include <meep.hpp>
 #include <cmath>
+#include <vector>
 #include <iostream>
+#include <fstream>
+#include "H5Cpp.h"
 using namespace meep;
 
 double eps(const vec &p) {
-  if (p.z() < 10)
-    return 2.0;
+  if (p.z() < 5)
+    return 4.0;
   return 1.0;
 }
 
-std::complex<double> srcfunc(double t, void*) {
-  if(t > 20) {
-    return 0.0;
+unsigned int fact(unsigned arg) {
+  unsigned int retval = 1;
+
+  for(unsigned int cur = 1; cur <= arg; cur++) {
+    retval *= cur;
   }
-  else {
-    return std::exp(-50 * std::pow(t - 10, 2));
+  
+  return retval;
+}
+
+std::complex<double> srcfunc(double t, void*) {
+
+  unsigned int order = 4;
+  double tp = 2.0;
+  
+  if(t > 0) {
+    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
+    return retval;
   }
   return 0.0;
 }
@@ -26,7 +41,11 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
 {
 
   std::cout << "creating file" << std::endl;
-  h5file* outfile = new h5file(("output_chunk_" + std::to_string(ichunk) + ".h5").c_str(), h5file::WRITE, false, true);
+
+  H5::H5File file("output_chunk_" + std::to_string(ichunk) + ".h5", H5F_ACC_TRUNC);
+
+  std::ofstream asciifile;
+  asciifile.open("output_chunk_" + std::to_string(ichunk) + ".txt");
   
   ivec isS = S.transform(is, sn) + shift;
   ivec ieS = S.transform(ie, sn) + shift;
@@ -50,10 +69,26 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
   std::cout << "stride[0] = " << stride[0] << std::endl;
   std::cout << "stride[1] = " << stride[1] << std::endl;
   std::cout << "stride[2] = " << stride[2] << std::endl;
-  
-  outfile->create_or_extend_data("Ez", rank, dims, false, false);
 
+  hsize_t dimsf[2];
+  dimsf[0] = dims[0];
+  dimsf[1] = dims[1];
+  H5::DataSpace dataspace(2, dimsf);
+
+  hsize_t metadims[1] = {2};
+  H5::DataSpace metadataspace(1, metadims);
+  
+  H5::FloatType datatype(H5::PredType::NATIVE_DOUBLE);
+  H5::IntType metadatatype(H5::PredType::NATIVE_INT);
+  
   double buff[bufsz];
+
+  int metabuff[2];
+  metabuff[0] = is.in_direction(R);
+  metabuff[1] = is.in_direction(Z);
+
+  H5::DataSet metadata = file.createDataSet("chunk_start", metadatatype, metadataspace);
+  H5::DataSet dataset = file.createDataSet("Ez", datatype, dataspace);  
   
   // some preliminary setup
   vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
@@ -92,18 +127,23 @@ void my_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec i
     buff[idx2] = Ez_val.real();
 
     std::cout << "- - -" << std::endl;
+
+    asciifile << Ez_val.real() << " " << std::endl;
   }
 
   std::cout << "writing chunk ...";
-  outfile->write("Ez", rank, dims, buff, false);
-  std::cout << " done!" << std::endl;
+
+  dataset.write(buff, H5::PredType::NATIVE_DOUBLE);
+  metadata.write(metabuff, H5::PredType::NATIVE_INT);
+  file.close();
   
-  delete outfile;
+  asciifile.close();
 }
 
 int main(int argc, char **argv) {
+  
   initialize mpi(argc, argv);
-  double resolution = 3;
+  double resolution = 2;
   grid_volume gv = volcyl(10, 10, resolution); // (r, z, resolution)
   
   structure s(gv, eps, pml(1.0), identity(), 0, 0.5);
@@ -112,15 +152,18 @@ int main(int argc, char **argv) {
   f.output_hdf5(Dielectric, gv.surroundings());
 
   custom_src_time src(srcfunc, NULL);
-  f.add_point_source(Ez, src, veccyl(0.0, 8.0));
-  
-  while (f.time() < 20) {
-     f.step();
-  }
+  f.add_point_source(Ez, src, veccyl(0.0, 3.0));
 
+  //for(double cur_t = 2.0; cur_t <= 40; cur_t += 2) {
+  double cur_t = 10;
+  while (f.time() < cur_t) {
+    f.step();
+  }
+    
   f.loop_in_chunks(my_chunkloop, NULL, f.total_volume());
   
   f.output_hdf5(Ez, gv.surroundings());
-
+    //}
+  
   return 0;
 }
