@@ -3,6 +3,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 add_library(Shower1D SHARED shower_1D/shower_1D.cpp)
+add_library(Shower2D SHARED shower_2D/shower_2D.cpp)
 add_library(Environment SHARED environment/ice_profile.cpp)
 add_library(ShowerCreator SHARED shower_creator/shower_creator.cpp)
 
@@ -25,3 +26,11 @@ target_include_directories(ShowerCreator PUBLIC
 target_include_directories(Environment PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
                           )
+
+target_include_directories(Shower2D PUBLIC
+                        "${PROJECT_SOURCE_DIR}/extern/shower_profile/environment"
+                        "${PROJECT_SOURCE_DIR}/extern/shower_profile/charge_excess_profile"
+                        "${PROJECT_SOURCE_DIR}/extern/utilities"
+                        "${PROJECT_SOURCE_DIR}/extern/constants"
+                        "${PROJECT_SOURCE_DIR}/include/"
+                        )
