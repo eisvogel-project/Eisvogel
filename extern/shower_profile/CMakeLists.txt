@@ -8,8 +8,10 @@ add_library(Environment SHARED environment/ice_profile.cpp)
 add_library(ShowerCreator SHARED shower_creator/shower_creator.cpp)
 
 target_link_libraries(ShowerCreator Shower1D)
+target_link_libraries(ShowerCreator Shower2D)
 target_link_libraries(ShowerCreator Environment)
 target_link_libraries(Shower1D PUBLIC Environment)
+target_link_libraries(Shower2D PUBLIC Environment)
 
 target_include_directories(Shower1D PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/environment"
@@ -21,6 +23,7 @@ target_include_directories(Shower1D PUBLIC
 
 target_include_directories(ShowerCreator PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_1D"
+                          "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_2D"
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
                           )
 target_include_directories(Environment PUBLIC

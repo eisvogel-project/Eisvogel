@@ -24,12 +24,14 @@ namespace showers {
                 scalar_t delta_t
             );
 
+            void dump_profile();
+
             Shower2D(
                 std::array<scalar_t, 3> pos,
                 scalar_t en,
                 scalar_t ze,
                 scalar_t az,
-                ChargeExcessProfile ce,
+                ChargeExcessProfile2D ce,
                 scalar_t ce_scaling,
                 environment::IceProfile & ice
             );
@@ -38,7 +40,7 @@ namespace showers {
             scalar_t energy;
             scalar_t zenith;
             scalar_t azimuth;
-            ChargeExcessProfile charge_excess_profile;
+            ChargeExcessProfile2D charge_excess_profile;
             scalar_t charge_excess_profile_scaling;
             environment::IceProfile ice_profile;
     };

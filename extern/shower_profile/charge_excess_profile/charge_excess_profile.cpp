@@ -18,9 +18,9 @@ class ChargeExcessProfile2D {
 	public:
 	ChargeExcessProfile2D(std::array<std::size_t, 2> size, scalar_t initial_val = 0):charge_excess(size, initial_val){
 	}
-	DenseNDArray<scalar_t, 2> charge_excess;
-	std::vector<scalar_t> grammage;
-	std::vector<scalar_t> radius;
+	DenseNDArray<double, 2> charge_excess;
+	std::vector<double> grammage;
+	std::vector<double> radius;
 	int hadronic;
 	int N;
 	double energy;

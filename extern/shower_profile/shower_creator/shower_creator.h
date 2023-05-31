@@ -1,6 +1,7 @@
 #ifndef SHOWERCREATOR_CLASS
 #define SHOWERCREATOR_CLASS
 #include "shower_1D.h"
+#include "shower_2D.h"
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
 #include "Eisvogel/NDArray.hh"
@@ -12,7 +13,7 @@
 namespace showers {
 class ShowerCreator {
 public:
-	ShowerCreator(std::string file_path, bool is_2 = false);
+	ShowerCreator(std::string file_path);
 	Shower1D create_shower(
 			std::array<float,3> pos,
 			double en,
@@ -28,18 +29,35 @@ public:
 		std::vector<double> *grammage,
 		std::vector<double> *q
 		);
-	ChargeExcessProfile2D read_shower(
-		FILE *f,
-		unsigned int &N
-		);
 private:
 	std::string shower_file;
 	environment::IceProfile density_profile;
 	std::map<int, std::map<double, std::vector<showers::ChargeExcessProfile>>>ce_profiles;
-	std::map<int, std::map<double, std::vector<showers::ChargeExcessProfile2D>>>ce_profiles_2D;
 	std::map<int, std::vector<double>> stored_energies;
-	bool is_2d_shower;
 };
+
+class ShowerCreator2D {
+public:
+	ShowerCreator2D(std::string file_path);
+	Shower2D create_shower(
+			std::array<float,3> pos,
+			double en,
+			double zen,
+			double az,
+			int had
+	);
+	ChargeExcessProfile2D read_shower(
+		FILE *f,
+		int *N
+		);
+private:
+	std::string shower_file;
+	environment::IceProfile density_profile;
+	std::map<int, std::map<double, std::vector<showers::ChargeExcessProfile2D>>>ce_profiles;
+	std::map<int, std::vector<double>> stored_energies;
+};
+
+
 }
 
 #endif

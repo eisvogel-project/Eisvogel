@@ -14,10 +14,10 @@
 namespace CU = CoordUtils;
 
 int main(int argc, char* argv[]) {
-    
+
   std::string wf_path = argv[1];
   SignalCalculator signal_calc(wf_path);
-
+			
 
   std::array<float, 3> shower_vertex = {-346 * 2, .1, -256 * 2};
   std::cout << "Building Shower \n";
