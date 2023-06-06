@@ -3,10 +3,11 @@
 
 #include <utility>
 #include <iostream>
+#include <vector>
 
 #include "Eisvogel/Trajectory.hh"
 #include "Eisvogel/SignalExport.hh"
-
+#include "Eisvogel/Current0D.hh"
 namespace CU = CoordUtils;
 
 void Integrator::SetGeometry(std::shared_ptr<WeightingField> wf, 
@@ -33,19 +34,16 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
   // Main signal integration loop
   scalar_t signal = 0;
   for(std::size_t segment_ind = 0; segment_ind < deltas.size(); segment_ind++) {
-
     CoordVector& segment_velocity = velocities(segment_ind);
     scalar_t segment_charge = curr.GetCharge(segment_ind);
-    
     scalar_t t_step = 1.0 / (1.0 / CU::getT(wf_sampling_intervals) + 
 			     std::sqrt(std::pow(CU::getX(segment_velocity), 2) + std::pow(CU::getY(segment_velocity), 2)) / CU::getR(wf_sampling_intervals) + 
 			     std::fabs(CU::getZ(segment_velocity)) / CU::getZ(wf_sampling_intervals)
 			     );
     t_step /= os_factor;
-
+    
     scalar_t t_start = CU::getT(curr.GetPoint(segment_ind));
     scalar_t t_end = std::min(t, CU::getT(curr.GetPoint(segment_ind + 1)));
-
     if(t_end <= t_start) {
       continue;
     }
@@ -58,17 +56,14 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
     scalar_t segment_signal = 0;
     scalar_t cur_t = t_start - t_step * m_kernel -> Support();
     for(int step_ind = -m_kernel -> Support(); step_ind <= (int)(number_points + m_kernel -> Support()); step_ind++) {
-
       CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
       CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
-      
       CoordVector wf_eval_frac_inds = m_wf -> getFracInds(wf_eval_pos);
 
       FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_phi -> Interpolate(wf_eval_frac_inds));
-
       FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
 
       scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +

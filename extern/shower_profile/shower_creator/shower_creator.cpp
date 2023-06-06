@@ -1,9 +1,11 @@
 #include "shower_creator.h"
 #include "shower_1D.h"
 #include "charge_excess_profile.cpp"
+#include "units.h"
 #include <iostream>
 #include <array>
 #include <stdio.h>
+#include <time.h>
 #include <stdexcept>
 #include <random>
 
@@ -52,15 +54,16 @@ showers::Shower1D showers::ShowerCreator::create_shower(
 			energy_diff = std::abs(en - stored_energies[had][i]);
 		}
 	}
-	std::default_random_engine generator;
+	std::default_random_engine generator{static_cast<long unsigned int>(time(NULL))};;
 	std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
-
+        int i_shower = 0;
+        std::cout << "Pick shower " << i_shower << " out of " << ce_profiles[had][closest_energy].size() << " showers. \n";
 	return showers::Shower1D(
 			pos,
 			en,
 			zen,
 			az,
-			ce_profiles[had][closest_energy][dist(generator)],
+			ce_profiles[had][closest_energy][i_shower],
 			en / closest_energy,
 			density_profile
 	);
@@ -74,7 +77,12 @@ int showers::ShowerCreator::read_shower(FILE *f, int *N, int *hadronic, double *
 	grammage -> resize(*N);
 	q -> resize(*N);
 	fread(&((*grammage)[0]), sizeof(double),*N,f);
-	fread(&((*q)[0]), sizeof(double), *N, f);
+        for (int i=0; i < (*grammage).size(); i++) {
+            (*grammage)[i] = (*grammage)[i] * units::kilogram / units::square_meter;
+            
+        }
+        fread(&((*q)[0]), sizeof(double), *N, f);
+        
 	return 0;
 }
 

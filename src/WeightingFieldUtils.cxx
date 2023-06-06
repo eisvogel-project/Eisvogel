@@ -34,13 +34,12 @@ namespace WeightingFieldUtils {
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;  // vacuum dielectric constant
-    scalar_t n = 1.0;  // refractive index of medium
     scalar_t ds = 1.0;
     scalar_t c = 1.0;  // speed of light in vacuum
 
     // compute required step size for sampling of weighting field
     scalar_t fmax = (scalar_t)N / (2 * M_PI * tp) * std::sqrt(std::pow(2.0, 1.0 / (N + 1)) - 1);
-    scalar_t lambda_min = c / (fmax * n);
+    scalar_t lambda_min = c / (fmax * refractive_index);
     scalar_t delta_t = 1.0 / (2 * fmax * os_factor);
     scalar_t delta_pos = lambda_min / (2.0 * os_factor);
     
@@ -82,7 +81,7 @@ namespace WeightingFieldUtils {
       if(r < r_min) {
 	return std::nan("");
       }
-      scalar_t t_prop = r * n / c, t_del = t - t_prop;
+      scalar_t t_prop = r * refractive_index / c, t_del = t - t_prop;
       scalar_t cos_theta = z / r;
 
       return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + 
@@ -95,7 +94,7 @@ namespace WeightingFieldUtils {
       if(r < r_min) {
 	return std::nan("");
       }
-      scalar_t t_prop = r * n / c, t_del = t - t_prop;
+      scalar_t t_prop = r * refractive_index / c, t_del = t - t_prop;
       scalar_t sin_theta = r_xy / r;
       return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + t_prop * filtered_delta(t_del, tp, N)
 									  + std::pow(t_prop, 2) * filtered_delta_prime(t_del, tp, N));
