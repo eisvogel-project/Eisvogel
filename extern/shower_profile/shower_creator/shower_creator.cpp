@@ -51,6 +51,29 @@ showers::Shower1D showers::ShowerCreator::create_shower(
 		double az,
 		int had
 		) {
+		double closest_energy = stored_energies[had][0];
+		double energy_diff = std::abs(en - stored_energies[had][0]);
+		for (int i=1; i < stored_energies[had].size(); i++) {
+			if (std::abs(en - stored_energies[had][i]) < energy_diff) {
+				closest_energy = stored_energies[had][i];
+				energy_diff = std::abs(en - stored_energies[had][i]);
+			}
+		}
+		std::random_device rand_dev;
+		std::default_random_engine generator(rand_dev());
+		std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
+		int i_shower = dist(generator);
+		return create_shower(pos, en, zen, az, had, i_shower);
+		}
+
+showers::Shower1D showers::ShowerCreator::create_shower(
+		std::array<float, 3> pos,
+		double en,
+		double zen,
+		double az,
+		int had,
+		int i_shower
+		) {
 	double closest_energy = stored_energies[had][0];
 	double energy_diff = std::abs(en - stored_energies[had][0]);
 	for (int i=1; i < stored_energies[had].size(); i++) {
@@ -59,9 +82,6 @@ showers::Shower1D showers::ShowerCreator::create_shower(
 			energy_diff = std::abs(en - stored_energies[had][i]);
 		}
 	}
-	std::default_random_engine generator{static_cast<long unsigned int>(time(NULL))};;
-	std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
-        int i_shower = 4;
         std::cout << "Pick shower " << i_shower << " out of " << ce_profiles[had][closest_energy].size() << " showers. \n";
 	return showers::Shower1D(
 			pos,

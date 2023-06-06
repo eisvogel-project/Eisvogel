@@ -15,6 +15,14 @@ namespace CU = CoordUtils;
 
 int main(int argc, char* argv[]) {
 
+    scalar_t shower_energy = 5.e18;                  // energy of the shower, in eV
+    scalar_t shower_zenith = 90 * units::degree;     // zenith angle of the shower. I recommend leaving this as is
+    scalar_t shower_azimuth = 0;                     // azimuth of the shower. I also recommend leaving this
+    int is_hadronic = 1;                             // sets the type of the shower. Choose 1 for hardonic or 0 for electromagnetic shower
+    int i_shower = -1;                             // index of the shower profile to be chosen from the library. Choose a value between 0 and 9 or set to -1 to have a shower selected at random
+    std::array<float, 3> shower_vertex = {-112  , .1, -165};    // position of the shower vertex. If you change this, make sure to also adjust the weighting field accordingly
+
+
     std::string wf_path;
     std::string output_path;
     if (argc < 2) {
@@ -30,19 +38,16 @@ int main(int argc, char* argv[]) {
     SignalCalculator signal_calc(wf_path);
                 
 
-    std::array<float, 3> shower_vertex = {-112  , .1, -165};
     
     showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
-    showers::Shower1D shower = shower_creator.create_shower(
-            shower_vertex,
-            5.0e+18,
-            90 * units::degree,
-            0,
-            0
-            );
-
+    showers::Shower1D *shower;
+    if (i_shower < 0) {
+         *shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic);
+    } else {
+         *shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);
+    }
     // Show dimensions of the required weighting field
-     shower.print_dimenstions();
+     shower->print_dimenstions();
 
     // test trajectory: a point charge moving parallel to the x-axis 
     // with a constant impact parameter of 'b' along the z-axis
@@ -50,7 +55,7 @@ int main(int argc, char* argv[]) {
     scalar_t sampling_rate = 2.;
 
     std::vector<scalar_t> signal_times, signal_values;
-    Current0D current = shower.get_current(0.1);
+    Current0D current = shower->get_current(0.1);
     for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += 1. / sampling_rate) {
         scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
         signal_times.push_back(cur_t);
