@@ -1,6 +1,6 @@
 import os, glob
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup
+from setuptools.extension import Extension
 from Cython.Build import cythonize
 
 extensions = [
@@ -10,7 +10,7 @@ extensions = [
               library_dirs = ["${PROJECT_BINARY_DIR}/eisvogel/"],
               language = "c++",
               extra_compile_args = ["-I${PROJECT_SOURCE_DIR}/include/", "-O3", "-std=gnu++2a",
-                                    "-ftree-vectorize", "-ffast-math", "-msse2", 
+                                    "-ftree-vectorize", "-ffast-math",
                                     "-ftree-vectorizer-verbose=2", "-funroll-loops", "-march=native"],
           )
 ]
