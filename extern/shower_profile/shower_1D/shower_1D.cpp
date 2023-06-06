@@ -131,6 +131,34 @@ Current0D showers::Shower1D::get_current(
         return current;
 }
 
+void showers::Shower1D::print_dimenstions() {
+	std::vector<double> t;
+  	std::vector<double> x;
+  	std::vector<double> y;
+  	std::vector<double> z;
+  	std::vector<double> ce;
+	get_shower(1., &t, &x, &y, &z, &ce);
+	double r_max = sqrt(x[0] * x[0] + y[0] * y[0] + z[0] * z[0]);
+	double r_min = sqrt(x[0] * x[0] + y[0] * y[0] + z[0] * z[0]);
+	double z_max = z[0];
+	double z_min = z[0];
+	double r;
+	for (int i=0; i<t.size(); i++) {
+		r = sqrt(x[i] * x[i] + y[i] * y[i]);
+		r_min = std::min(r_min, r);
+		r_max = std::max(r_max, r);
+		z_min = std::min(z_min, z[i]);
+		z_max = std::max(z_max, z[i]);
+	}
+	r_max /= constants::c;
+	r_min /= constants::c;
+	z_max /= constants::c;
+	z_min /= constants::c;
 
+	std::cout << "Required weighting field size:\n";
+	std::cout << r_min << "< r < " << r_max << "\n";
+	std::cout << z_min << "< z < " << z_max << "\n";
+
+}
 
 

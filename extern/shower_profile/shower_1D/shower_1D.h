@@ -28,6 +28,7 @@ namespace showers {
 				double ce_scaling,
 				environment::IceProfile &ice
 				);
+		void print_dimenstions();
 	private:
 		std::array<float, 3> start_position;
 		double energy;
