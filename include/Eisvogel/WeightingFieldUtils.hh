@@ -8,10 +8,10 @@ namespace WeightingFieldUtils {
 
   void CreateElectricDipoleWeightingField(std::string wf_path,
 					  const CoordVector& start_coords, const CoordVector& end_coords,
-					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor = 1.5);
+					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor = 1.5, scalar_t n=1);
 
   WeightingField SampleElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
-						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor);
+						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n=1);
 
 }
 
