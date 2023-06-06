@@ -61,7 +61,7 @@ showers::Shower1D showers::ShowerCreator::create_shower(
 	}
 	std::default_random_engine generator{static_cast<long unsigned int>(time(NULL))};;
 	std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
-        int i_shower = 0;
+        int i_shower = 4;
         std::cout << "Pick shower " << i_shower << " out of " << ce_profiles[had][closest_energy].size() << " showers. \n";
 	return showers::Shower1D(
 			pos,
@@ -133,7 +133,7 @@ showers::ChargeExcessProfile2D showers::ShowerCreator2D::read_shower(
     profile.radius.resize(10);  // Resize the radius vector based on the read size
 
     for (int i = 1; i < profile.radius.size(); i++) {
-        profile.radius[i] = profile.radius[i - 1] + 1 * units::cm;
+        profile.radius[i] = profile.radius[i - 1] + 2 * units::cm;
     }
 
 
@@ -176,7 +176,7 @@ showers::Shower2D showers::ShowerCreator2D::create_shower(
 	}
 	std::default_random_engine generator{static_cast<long unsigned int>(time(NULL))};;
 	std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
-        int i_shower = 0;
+        int i_shower = 4;
         std::cout << "Pick shower " << i_shower << " out of " << ce_profiles[had][closest_energy].size() << " showers. \n";
 	return showers::Shower2D(
 			pos,

@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
   SignalCalculator signal_calc(wf_path);
 			
 
-  std::array<float, 3> shower_vertex = {-346 * 2, .1, -256 * 2};
+  std::array<float, 3> shower_vertex = {-112  , .1, -165};
   std::cout << "Building Shower \n";
 
   showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   std::vector<scalar_t> signal_times, signal_values;
   std::cout << "Integrating \n";
   Current0D current = shower.get_current(0.1);
-  for(scalar_t cur_t = 3400; cur_t < 4000; cur_t += 1) {
+  for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += .1) {
     scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
     signal_times.push_back(cur_t);
     signal_values.push_back(cur_signal);

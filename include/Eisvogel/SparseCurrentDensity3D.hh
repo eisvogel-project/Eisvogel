@@ -12,7 +12,6 @@ using CurrentElement = std::pair<CoordVector, FieldVector>;
 class SparseCurrentDensity3D {
 
 public:
-  
   SparseCurrentDensity3D(const DeltaVector& voxel_size) : m_voxel_size(voxel_size), m_elements({}) { };
   SparseCurrentDensity3D(const DeltaVector& voxel_size, const std::vector<CurrentElement>&& elements) : 
     m_voxel_size(voxel_size), m_elements(elements) { };
@@ -32,6 +31,8 @@ public:
   scalar_t getVolumeElementXYZ() const {
     return CU::getX(m_voxel_size) * CU::getY(m_voxel_size) * CU::getZ(m_voxel_size);
   }
+
+  int getNumberofElements() {return m_elements.size();}
 
   auto begin() const {return m_elements.cbegin();}
   auto end() const {return m_elements.cend();}
