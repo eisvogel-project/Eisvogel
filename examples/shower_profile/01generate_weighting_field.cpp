@@ -19,8 +19,8 @@ int main(int argc, char* argv[]) {
   }
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-1000.0, -10.0, -551.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(1500.0, 700.0, -549.0);
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(-500.0, -10.0, -551.0);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(1350.0, 700.0, -549.0);
 
   // Filter parameters
   scalar_t tp = 1.0;

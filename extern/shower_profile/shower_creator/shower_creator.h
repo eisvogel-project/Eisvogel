@@ -19,15 +19,8 @@ public:
 			double en,
 			double zen,
 			double az,
-			int had
-	);
-	Shower1D create_shower(
-			std::array<float,3> pos,
-			double en,
-			double zen,
-			double az,
 			int had,
-			int i_shower
+			int i_shower=-1
 	);
 	int read_shower(
 		FILE *f,

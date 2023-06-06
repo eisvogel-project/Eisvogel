@@ -7,9 +7,9 @@ import scipy.signal
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--eisvogel_output', type=str, default='shower_radio_emission.csv', help='name of the file containing the Eisvogel result')
-parser.add_argument('--shower_energy', type=float, default=5.e18, help='energy of the shower, in eV')
+parser.add_argument('--shower_energy', type=float, default=1.e18, help='energy of the shower, in eV')
 parser.add_argument('--shower_type', type=str, default='EM', help='Options are "EM" to simulate an electromagnetic and "HAD" to simulate a hadronic shower.')
-parser.add_argument('--i_shower', type=int, default=4, help='Index of the shower profile in the library. Can be between 0 and 9 for the NuRadioMC library.')
+parser.add_argument('--i_shower', type=int, default=9, help='Index of the shower profile in the library. Can be between 0 and 9 for the NuRadioMC library.')
 args = parser.parse_args()
 
 shower_position = [-112., -162.]
@@ -54,7 +54,7 @@ ax1_1.plot(
     label='Eisvogel'
 )
 ax1_1.plot(
-    times,
+    times[:arz_trace.shape[0]],
     arz_trace / np.max(arz_trace),
     label='ARZ',
     alpha=.7
