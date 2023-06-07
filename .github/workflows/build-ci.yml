@@ -27,7 +27,7 @@ jobs:
         make &&
         source setup.sh &&
         popd
-	echo ${PYTHONPATH}
+        echo ${PYTHONPATH}
 
     - name: Run python tests
       run: |
