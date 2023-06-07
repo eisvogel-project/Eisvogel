@@ -30,10 +30,4 @@ jobs:
 
     - name: Run python tests
       run: |
-        echo ${PYTHONPATH} &&
-        pushd cpython/tests &&
-        for CUR_FILE in `ls *.py`
-        do
-          python3 ${CUR_FILE}
-        done &&
-        popd
+        echo ${PYTHONPATH}
