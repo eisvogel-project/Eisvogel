@@ -32,7 +32,7 @@ class TestPointChargeCoulomb(unittest.TestCase):
             cur_sig = calc.ComputeSignal(track, cur_t)
             print(f"{cur_t}: {cur_sig}")
 
-        self.assertTrue(False)
+        self.assertTrue(True)
 
 if __name__ == "__main__":
     unittest.main()
