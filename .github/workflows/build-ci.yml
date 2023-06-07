@@ -25,11 +25,15 @@ jobs:
         pushd build &&
         cmake ../ &&
         make &&
-        source setup.sh &&
         popd
-        echo ${PYTHONPATH}
 
     - name: Run python tests
       run: |
         source build/setup.sh &&
-        echo ${PYTHONPATH}
+        pushd cpython/tests &&
+        for CUR_FILE in `ls *.py`
+        do
+          python3 ${CUR_FILE}
+        done &&
+        popd
+
