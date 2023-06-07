@@ -25,6 +25,7 @@ data_eisvogel = np.genfromtxt(
     args.eisvogel_output,
     delimiter=','
 )
+data_eisvogel[:, 1] / units.V
 times = data_eisvogel[:, 0]
 sampling_rate = 1. / (times[1] - times[0])
 arz_sampling_rate = 20.
@@ -43,40 +44,42 @@ arz_trace = scipy.signal.resample(arz_trace, times.shape[0])
 freqs = np.fft.rfftfreq(times.shape[0], 1. / sampling_rate)
 arz_spec = fft.time2freq(arz_trace, sampling_rate) * filter_func(freqs)
 arz_trace = fft.freq2time(arz_spec, sampling_rate)
-spec_eisvogel = fft.time2freq(data_eisvogel[:, 1], 1)
+spec_eisvogel = fft.time2freq(data_eisvogel[:, 1], sampling_rate)
 
 fig1 = plt.figure(figsize=(8, 6))
 ax1_1 = fig1.add_subplot(211)
 ax1_2 = fig1.add_subplot(212)
 ax1_1.plot(
     times,
-    data_eisvogel[:, 1] / np.max(data_eisvogel[:, 1]),
+    data_eisvogel[:, 1],
     label='Eisvogel'
 )
 ax1_1.plot(
     times[:arz_trace.shape[0]],
-    arz_trace / np.max(arz_trace),
+    arz_trace,
     label='ARZ',
     alpha=.7
 )
 ax1_2.plot(
-    freqs,
-    np.abs(spec_eisvogel) / np.max(np.abs(spec_eisvogel)),
+    freqs[1:],
+    np.abs(spec_eisvogel[1:]),
     label='Eisvogel'
 )
 ax1_2.plot(
-    freqs,
-    np.abs(arz_spec) / np.max(np.abs(arz_spec)),
+    freqs[1:],
+    np.abs(arz_spec[1:]),
     label='ARZ'
 )
+e1 = np.sum(arz_trace**2)
+e2 = np.sum(data_eisvogel[:, 1]**2)
 ax1_1.set_xlim([1150, 1300])
 ax1_1.set_xlabel('t [ns]')
-ax1_1.set_ylabel('U [a.u.]')
+ax1_1.set_ylabel('U [V]')
 ax1_1.grid()
 ax1_1.legend()
 ax1_2.grid()
 ax1_2.legend()
 ax1_2.set_xlim([0, 1])
 ax1_2.set_xlabel('f [GHz]')
-ax1_2.set_ylabel('U [a.u.]')
+ax1_2.set_ylabel('U [V]')
 plt.show()

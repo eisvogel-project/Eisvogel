@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
 
     std::vector<scalar_t> signal_times, signal_values;
-    Current0D current = shower.get_current(0.1);
+    Current0D current = shower.get_current(0.2);
     for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += 1. / sampling_rate) {
         scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
         signal_times.push_back(cur_t);
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
     }
     // convert to normal units
     for (int i; i < signal_values.size(); i++) {
-        signal_values[i] = signal_values[i] / 2.218e10 * constants::c;
+        signal_values[i] = signal_values[i] * (1. / constants::epsilon_0 / constants::c / constants::c);
     }
     ExportSignal(signal_times, signal_values, output_path);
     return 0;
