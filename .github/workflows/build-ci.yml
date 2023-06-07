@@ -22,3 +22,5 @@ jobs:
     - name: Compile Eisvogel
       run: |
         mkdir -p build
+	pushd build
+	popd
