@@ -30,6 +30,7 @@ jobs:
 
     - name: Run python tests
       run: |
+        echo ${PYTHONPATH} &&
         pushd cpython/tests &&
         for CUR_FILE in `ls *.py`
         do
