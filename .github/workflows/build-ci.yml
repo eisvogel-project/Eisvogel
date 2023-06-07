@@ -27,3 +27,12 @@ jobs:
         make &&
         source setup.sh &&
         popd
+
+    - name: Run python tests
+      run: |
+        pushd cpython/tests &&
+        for CUR_FILE in `ls *.py`
+        do
+          python3 ${CUR_FILE}
+        done &&
+        popd
