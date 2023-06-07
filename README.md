@@ -1,3 +1,5 @@
+[![CI](https://github.com/philippwindischhofer/Eisvogel/actions/workflows/build-ci.yml/badge.svg)](https://github.com/philippwindischhofer/Eisvogel/actions/workflows/build-ci.yml)
+
 # Eisvogel
 
 ```

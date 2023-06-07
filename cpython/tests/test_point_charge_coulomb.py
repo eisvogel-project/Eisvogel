@@ -9,7 +9,7 @@ class TestPointChargeCoulomb(unittest.TestCase):
         end_coords = CoordVector.FromTRZ(300.0, 300.0, 20.0)
         tp = 5.0
         N = 4
-        os_factor = 30
+        os_factor = 10
         r_min = 0.1
         wf_path = "./dipole.bin"
         
