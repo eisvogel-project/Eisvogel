@@ -21,8 +21,9 @@ jobs:
 
     - name: Compile Eisvogel
       run: |
-        mkdir -p build
-	cd build
-        cmake ..
-	make
-	source setup.sh
+        mkdir -p build &&
+        pushd build &&
+        cmake ../ &&
+        make &&
+        source setup.sh &&
+        popd
