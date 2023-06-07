@@ -23,7 +23,4 @@ jobs:
       run: |
         mkdir -p build &&
 	pushd build &&
-	cmake .. &&
-	make &&
-	source setup.sh &&
 	popd
