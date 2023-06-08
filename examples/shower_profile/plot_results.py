@@ -40,7 +40,7 @@ arz_trace = NuRadioMC.SignalGen.askaryan.get_time_trace(
     "ARZ2020",
     iN=args.i_shower
 )
-arz_trace = scipy.signal.resample(arz_trace, times.shape[0])
+arz_trace = scipy.signal.resample(arz_trace, times.shape[0]) * np.cos(viewing_angle)
 freqs = np.fft.rfftfreq(times.shape[0], 1. / sampling_rate)
 arz_spec = fft.time2freq(arz_trace, sampling_rate) * filter_func(freqs)
 arz_trace = fft.freq2time(arz_spec, sampling_rate)
@@ -72,7 +72,7 @@ ax1_2.plot(
 )
 e1 = np.sum(arz_trace**2)
 e2 = np.sum(data_eisvogel[:, 1]**2)
-ax1_1.set_xlim([1150, 1300])
+ax1_1.set_xlim([1150, 1250])
 ax1_1.set_xlabel('t [ns]')
 ax1_1.set_ylabel('U [V]')
 ax1_1.grid()
