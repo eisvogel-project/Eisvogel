@@ -42,7 +42,7 @@ for key_1 in shower_library.keys():
 				key_2,
 				key_1,
 				shower_library[key_1][key_2]['depth'],
-				list(shower_library[key_1][key_2]['charge_excess'][i])
+				list(shower_library[key_1][key_2]['charge_excess'][i] / units.coulomb)
 			)
 		output_dict[key_1][key_2] = {
 			'depth': list(shower_library[key_1][key_2]['depth']),

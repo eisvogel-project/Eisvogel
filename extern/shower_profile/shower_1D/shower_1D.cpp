@@ -99,11 +99,12 @@ void showers::Shower1D::get_shower(
 Current0D showers::Shower1D::get_current(
 		double delta_t
 ){
-        std::vector<double> t;
-        std::vector<double> x;
-        std::vector<double> y;
-        std::vector<double> z;
+	std::vector<double> t;
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
 	std::vector<double> ce;
+	
 	get_shower(
 			delta_t,
 			&t,
@@ -160,5 +161,4 @@ void showers::Shower1D::print_dimenstions() {
 	std::cout << z_min << "< z < " << z_max << "\n";
 
 }
-
 

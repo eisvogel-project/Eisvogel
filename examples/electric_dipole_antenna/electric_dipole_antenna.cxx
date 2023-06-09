@@ -17,16 +17,13 @@ int main(int argc, char* argv[]) {
   CoordVector end_coords = CU::MakeCoordVectorTRZ(50.0, 10.0, 10.0);
 
   // Filter parameters
-  scalar_t tp = 1.0;
-  unsigned int N = 6;
+  scalar_t tp = 5.0;
+  unsigned int N = 4;
 
   // Sampling parameters
   scalar_t os_factor = 30;
   scalar_t r_min = 0.1;
-  
-  scalar_t index_of_refraction = 1.3;
 
-  std::cout << "Building weighting field ..." << std::endl;
 
   WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor);
 }
