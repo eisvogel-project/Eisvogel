@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
     scalar_t shower_azimuth = 0;                     // azimuth of the shower. I also recommend leaving this
     int is_hadronic = 0;                             // sets the type of the shower. Choose 1 for hardonic or 0 for electromagnetic shower
     int i_shower = 9;                                // index of the shower profile to be chosen from the library. Choose a value between 0 and 9 or set to NULL to have a shower selected at random
-    std::array<float, 3> shower_vertex = {-112  , .1, -165};    // position of the shower vertex. If you change this, make sure to also adjust the weighting field accordingly
+    std::array<float, 3> shower_vertex = {-106  , .1, -165};    // position of the shower vertex. If you change this, make sure to also adjust the weighting field accordingly
     scalar_t sampling_rate = 5.;                     // sampling rate that is used when calculating the radio signal
 
     std::string wf_path;

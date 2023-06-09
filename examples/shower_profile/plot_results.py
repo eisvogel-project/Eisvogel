@@ -12,7 +12,7 @@ parser.add_argument('--shower_type', type=str, default='EM', help='Options are "
 parser.add_argument('--i_shower', type=int, default=9, help='Index of the shower profile in the library. Can be between 0 and 9 for the NuRadioMC library.')
 args = parser.parse_args()
 
-shower_position = [-112., -162.]
+shower_position = [-106., -162.]
 index_of_refraction = 1.78
 
 cherenkov_angle = np.arccos(1. / index_of_refraction)
@@ -46,40 +46,40 @@ arz_spec = fft.time2freq(arz_trace, sampling_rate) * filter_func(freqs)
 arz_trace = fft.freq2time(arz_spec, sampling_rate)
 spec_eisvogel = fft.time2freq(data_eisvogel[:, 1], sampling_rate)
 
-fig1 = plt.figure(figsize=(8, 6))
+fig1 = plt.figure(figsize=(8, 8))
 ax1_1 = fig1.add_subplot(211)
 ax1_2 = fig1.add_subplot(212)
 ax1_1.plot(
     times,
-    data_eisvogel[:, 1],
+    data_eisvogel[:, 1] / np.max(data_eisvogel[:, 1]),
     label='Eisvogel'
 )
 ax1_1.plot(
-    times[:arz_trace.shape[0]],
-    arz_trace,
+    times[:arz_trace.shape[0]] - 10,
+    arz_trace / np.max(arz_trace),
     label='ARZ',
     alpha=.7
 )
 ax1_2.plot(
-    freqs[1:],
-    np.abs(spec_eisvogel[1:]),
+    freqs,
+    np.abs(spec_eisvogel) / np.max(np.abs(spec_eisvogel)),
     label='Eisvogel'
 )
 ax1_2.plot(
-    freqs[1:],
-    np.abs(arz_spec[1:]),
+    freqs,
+    np.abs(arz_spec) / np.max(np.abs(arz_spec)),
     label='ARZ'
 )
-e1 = np.sum(arz_trace**2)
-e2 = np.sum(data_eisvogel[:, 1]**2)
 ax1_1.set_xlim([1150, 1250])
 ax1_1.set_xlabel('t [ns]')
-ax1_1.set_ylabel('U [V]')
+ax1_1.set_ylabel('U [a.u.]')
 ax1_1.grid()
 ax1_1.legend()
 ax1_2.grid()
 ax1_2.legend()
-ax1_2.set_xlim([0, 1])
+ax1_2.set_xlim([0, .5])
 ax1_2.set_xlabel('f [GHz]')
-ax1_2.set_ylabel('U [V]')
-plt.show()
+ax1_2.set_ylabel('U [a.u.]')
+ax1_1.set_title(r'E={:.1E}eV, $\varphi - \varphi_C$={:.1f}$^\circ$'.format(args.shower_energy, (viewing_angle - cherenkov_angle) / units.deg))
+fig1.tight_layout()
+fig1.savefig('eisvogel_arz_comparison.png')
