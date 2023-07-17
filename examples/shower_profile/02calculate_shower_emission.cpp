@@ -36,20 +36,14 @@ int main(int argc, char* argv[]) {
         output_path = argv[2];
     }
     SignalCalculator signal_calc(wf_path);
-                
-
-    
-    showers::ShowerCreator shower_creator("/home/welling/RadioNeutrino/scripts/Eisvogel/extern/shower_profile/shower_file");
-   
+                    
+    showers::ShowerCreator shower_creator(std::string(std::getenv("EISVOGELDIR")) + "/extern/shower_profile/shower_file");   
     showers::Shower1D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);
-   
-   
-    
-     shower.print_dimenstions();
+         
+    shower.print_dimenstions();
 
     // test trajectory: a point charge moving parallel to the x-axis 
     // with a constant impact parameter of 'b' along the z-axis
-
 
     std::vector<scalar_t> signal_times, signal_values;
     Current0D current = shower.get_current(0.2);
