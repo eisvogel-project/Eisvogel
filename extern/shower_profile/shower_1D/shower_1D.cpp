@@ -128,7 +128,7 @@ Current0D showers::Shower1D::get_current(
                 charge_excess.push_back(ce[i]);
             }
         }
-        Current0D current(positions, charge_excess);
+        Current0D current(std::move(positions), std::move(charge_excess));
         return current;
 }
 
