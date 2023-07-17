@@ -132,7 +132,7 @@ Current0D showers::Shower1D::get_current(
         return current;
 }
 
-void showers::Shower1D::print_dimenstions() {
+void showers::Shower1D::print_dimensions() {
 	std::vector<double> t;
   	std::vector<double> x;
   	std::vector<double> y;

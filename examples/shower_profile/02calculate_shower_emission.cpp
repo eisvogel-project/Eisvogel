@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     showers::ShowerCreator shower_creator(std::string(std::getenv("EISVOGELDIR")) + "/extern/shower_profile/shower_file");   
     showers::Shower1D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);
          
-    shower.print_dimenstions();
+    shower.print_dimensions();
 
     // test trajectory: a point charge moving parallel to the x-axis 
     // with a constant impact parameter of 'b' along the z-axis
