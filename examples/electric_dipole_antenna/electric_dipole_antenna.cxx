@@ -24,6 +24,5 @@ int main(int argc, char* argv[]) {
   scalar_t os_factor = 30;
   scalar_t r_min = 0.1;
 
-
   WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor);
 }
