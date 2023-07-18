@@ -43,20 +43,34 @@ class TestPointChargeCoulomb(unittest.TestCase):
     
     def test_field(self):
 
-        vvec = np.array([0.9, 0.0, 0.0])
-        bvec = np.array([0.0, 0.0, 10.0])
+        threshold = 4e-2
+        
+        test_interval = [-2, 20]
+        beta = 0.9
+        b = 10
         q = 1
-
-        delta_t = 0.01
-        t_min = -20
-        t_max = 20
+        
         tp = 5
         N = 6
         
-        tvals, sigvals = compute_filtered_signal_analytic(vvec, bvec, q, tp, N, t_min, t_max, delta_t)
+        vvec = np.array([beta, 0.0, 0.0])
+        bvec = np.array([0.0, 0.0, b])
 
-        for cur_t, cur_sig in zip(tvals, sigvals):
-            print(f"{cur_t}: {cur_sig}")
+        delta_t = tp / 100
+        t_min_analytic = test_interval[0] - 5 * tp
+        t_max_analytic = test_interval[1]
+        
+        tvals, sigvals = compute_filtered_signal_analytic(vvec, bvec, q, tp, N, t_min_analytic, t_max_analytic, delta_t)
+        for_test = np.logical_and(tvals > test_interval[0], tvals < test_interval[1])
+
+        tvals_test = tvals[for_test]
+        sigvals_test = sigvals[for_test]
+
+        v = np.linalg.norm(vvec)
+        b = np.linalg.norm(bvec)
+        t_valid_sig = test_interval[0] - 5 * tp
+        t_min_ev = 1.0 / (1 - v ** 2) * (t_valid_sig - np.sqrt(b**2 + (t_valid_sig ** 2 - b ** 2) * v ** 2))
+        t_max_ev = test_interval[1]
             
         start_coords = CoordVector.FromTRZ(-300.0, -10.0, -20.0)
         end_coords = CoordVector.FromTRZ(300.0, 300.0, 20.0)
@@ -65,25 +79,17 @@ class TestPointChargeCoulomb(unittest.TestCase):
         wf_path = "./dipole.bin"
         
         CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor)
-
-        b = 10
-        tstart = -250.0
-        tend = 250.0
-        charge = 1
-        beta = 0.9
         
-        points = [CoordVector.FromTXYZ(tstart, beta * tstart, 0, b),
-                  CoordVector.FromTXYZ(tend, beta * tend, 0, b)]
-        charges = [charge]
+        points = [CoordVector.FromTXYZ(t_min_ev, beta * t_min_ev, 0, b),
+                  CoordVector.FromTXYZ(t_max_ev, beta * t_max_ev, 0, b)]
+        charges = [q]
         track = Current0D.FromSegments(points, charges)
         
         calc = SignalCalculator(wf_path)
         
-        for cur_t, cur_sig in zip(tvals[::100], sigvals[::100]):
+        for cur_t, cur_sig in zip(tvals_test, sigvals_test):
             cur_sig_ev = calc.ComputeSignal(track, cur_t)
-            print(f"{cur_t}: {cur_sig_ev} <-> {cur_sig}")
-
-        self.assertTrue(True)
+            assert abs(cur_sig_ev / cur_sig - 1) < threshold
 
 if __name__ == "__main__":
     unittest.main()
