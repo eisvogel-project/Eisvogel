@@ -4,7 +4,7 @@ on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build_and_test:
-    name: "Test compilation"
+    name: "Run build and tests"
     runs-on: ubuntu-latest
     steps:
     
