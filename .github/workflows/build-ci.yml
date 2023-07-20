@@ -1,9 +1,9 @@
-name: build
+name: tests
 
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  build:
+  build_and_test:
     name: "Test compilation"
     runs-on: ubuntu-latest
     steps:
