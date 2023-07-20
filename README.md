@@ -26,6 +26,6 @@ source setup.sh
 
 ## More information
 
-- P. Windischhofer, C. Welling, C. Deaconu, ``Eisvogel: Exact and efficient calculations of radio emissions from in-ice neutrino showers'', PoS(ICRC2023)
-- P. Windischhofer, W. Riegler, ``Electrical signals induced in detectors by cosmic rays: a reciprocal look at electrodynamics'', PoS(ICRC2021), 184 (2021)
-- W. Riegler, P. Windischhofer, ``Signals induced on electrodes by moving charges, a general theorem for Maxwell’s equations based on Lorentz-reciprocity'', Nucl. Instrum. Meth. A, 980, 164471 (2020)
+- P. Windischhofer, C. Welling, C. Deaconu, "Eisvogel: Exact and efficient calculations of radio emissions from in-ice neutrino showers", PoS(ICRC2023)
+- P. Windischhofer, W. Riegler, "Electrical signals induced in detectors by cosmic rays: a reciprocal look at electrodynamics", PoS(ICRC2021), 184 (2021)
+- W. Riegler, P. Windischhofer, "Signals induced on electrodes by moving charges, a general theorem for Maxwell’s equations based on Lorentz-reciprocity", Nucl. Instrum. Meth. A, 980, 164471 (2020)
