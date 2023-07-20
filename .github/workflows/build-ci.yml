@@ -30,10 +30,5 @@ jobs:
     - name: Run python tests
       run: |
         source build/setup.sh &&
-        pushd cpython/tests &&
-        for CUR_FILE in `ls *.py`
-        do
-          python3 ${CUR_FILE}
-        done &&
-        popd
+        python3 -m unittest discover -s cpython/tests/
 
