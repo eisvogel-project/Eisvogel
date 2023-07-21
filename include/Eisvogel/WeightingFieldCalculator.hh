@@ -3,16 +3,18 @@
 
 #include "Antenna.hh"
 #include "Geometry.hh"
+#include <meep.hpp>
 
 class WeightingFieldCalculator {
 
 public:
-  WeightingFieldCalculator(const Geometry& geom, const Antenna& antenna,
-			   double courant_factor = 0.5, double resolution = 20);
+  WeightingFieldCalculator(const CylinderGeometry& geom, const Antenna& antenna,
+			   double courant_factor = 0.5, double resolution = 20, double pml_width = 1.0);
   void Calculate();
 
 private:
-  double resolution, courant_factor;
+  std::shared_ptr<meep::grid_volume> gv;
+  std::shared_ptr<meep::structure> s;
 };
 
 #endif
