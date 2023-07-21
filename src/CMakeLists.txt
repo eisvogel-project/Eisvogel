@@ -1,12 +1,20 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
-
-# set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -msse2 -ftree-vectorizer-verbose=2 -funroll-loops -march=native -g -fno-omit-frame-pointer -fno-inline -fno-default-inline -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls")
 set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=2 -funroll-loops -march=native")
 
 add_library(eisvogel SHARED WeightingFieldUtils.cxx Kernels.cxx Interpolator.cxx Integrator.cxx Trajectory.cxx MathUtils.cxx SignalExport.cxx SignalCalculator.cxx)
-
 target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include)
-
 set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
+		      
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(MEEP REQUIRED IMPORTED_TARGET meep)
+pkg_check_modules(HDF REQUIRED IMPORTED_TARGET hdf5)
+
+add_library(eisvogel_wfc SHARED WeightingFieldCalculator.cxx)
+target_link_libraries(eisvogel_wfc PUBLIC eisvogel PkgConfig::MEEP PkgConfig::HDF hdf5_cpp)
+target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS} ${HDF_INCLUDE_DIRS})
+target_compile_options(eisvogel_wfc PUBLIC ${MEEP_CFLAGS_OTHER} ${HDF_CFLAGS_OTHER})
+
+set_target_properties(eisvogel_wfc PROPERTIES
+                      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel_wfc)

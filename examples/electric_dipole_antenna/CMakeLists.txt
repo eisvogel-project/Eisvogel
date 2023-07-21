@@ -1,5 +1,0 @@
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED YES)
-
-add_executable(electric_dipole_antenna electric_dipole_antenna.cxx)
-target_link_libraries(electric_dipole_antenna eisvogel)

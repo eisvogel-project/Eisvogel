@@ -1,4 +1,6 @@
-add_subdirectory(electric_dipole_antenna)
+add_subdirectory(dipole_free_space)
+add_subdirectory(dipole_ice)
+
 add_subdirectory(coulomb)
 add_subdirectory(point_charge_coulomb)
 add_subdirectory(point_charge_cherenkov)
