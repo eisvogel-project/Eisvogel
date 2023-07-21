@@ -20,7 +20,9 @@ pkg_check_modules(MEEP REQUIRED IMPORTED_TARGET meep)
 pkg_check_modules(HDF REQUIRED IMPORTED_TARGET hdf5)
 
 add_library(eisvogel_wfc SHARED
-            WeightingFieldCalculator.cxx)
+            WeightingFieldCalculator.cxx
+            Geometry.cxx
+            Antenna.cxx)
 target_link_libraries(eisvogel_wfc PUBLIC eisvogel PkgConfig::MEEP PkgConfig::HDF hdf5_cpp)
 target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS} ${HDF_INCLUDE_DIRS})
 target_compile_options(eisvogel_wfc PUBLIC ${MEEP_CFLAGS_OTHER} ${HDF_CFLAGS_OTHER})
