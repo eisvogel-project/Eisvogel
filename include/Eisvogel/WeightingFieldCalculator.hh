@@ -1,6 +1,7 @@
 #ifndef __WEIGHTING_FIELD_CALCULATOR__HH
 #define __WEIGHTING_FIELD_CALCULATOR__HH
 
+#include <memory>
 #include "Antenna.hh"
 #include "Geometry.hh"
 #include <meep.hpp>
