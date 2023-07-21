@@ -2,9 +2,9 @@
 #define __WEIGHTING_FIELD_CALCULATOR__HH
 
 #include <memory>
+#include <meep.hpp>
 #include "Antenna.hh"
 #include "Geometry.hh"
-#include <meep.hpp>
 
 class WeightingFieldCalculator {
 
@@ -16,6 +16,7 @@ public:
 private:
   std::shared_ptr<meep::grid_volume> gv;
   std::shared_ptr<meep::structure> s;
+  std::shared_ptr<meep::fields> f;
 };
 
 #endif

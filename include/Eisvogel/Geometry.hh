@@ -6,15 +6,18 @@
 #include "Common.hh"
 #include "CoordUtils.hh"
 
-// class CartesianGeometry {
+class Geometry : public meep::material_function {
 
-// };
+public:
+  virtual double eps(const meep::vec& pos) = 0;
+  virtual meep::vec toMeepCoords(const CoordVector& coords) = 0;
+  virtual double chi1p1(meep::field_type ft, const meep::vec &r) {
+    (void)ft;
+    return eps(r);
+  }
+};
 
-// class CartesianAnisotropicGeometry {
-
-// };
-
-class CylinderGeometry : public meep::material_function {
+class CylinderGeometry : public Geometry {
 
 public:
 
@@ -25,9 +28,11 @@ public:
   scalar_t GetZMin() {return z_min;};
   scalar_t GetZMax() {return z_max;};
 
+  meep::vec toMeepCoords(const CoordVector& coords) {
+    return meep::veccyl(CoordUtils::getR(coords), CoordUtils::getZ(coords) - z_min);
+  };
+  
 public:
-
-  // Here are functions that meep calls
   virtual double eps(const meep::vec& pos);
   
 private:
@@ -37,5 +42,13 @@ public:
   std::function<scalar_t(scalar_t r, scalar_t z)> eps_func;
   
 };
+
+// class CartesianGeometry {
+
+// };
+
+// class CartesianAnisotropicGeometry {
+
+// };
 
 #endif
