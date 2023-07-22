@@ -9,7 +9,10 @@
 class Antenna : public meep::src_time {
 
 public:
-  Antenna(scalar_t z_pos, std::function<scalar_t(scalar_t)> impulse_response_func);
+  Antenna(scalar_t start_time, scalar_t end_time, scalar_t z_pos,
+	  std::function<scalar_t(scalar_t)> impulse_response_func);
+  virtual ~Antenna() { };
+  
   virtual void AddToGeometry(meep::fields& f, Geometry& geom) const = 0;
 
 public:
@@ -18,9 +21,7 @@ public:
   };
 
   virtual std::complex<double> dipole(double time) const {
-    std::cout << "callback" << std::endl;
-    
-    if(time > 0.0) {
+    if(time >= start_time && time <= end_time) {
       return impulse_response_func(time);
     } else {
       return 0.0;
@@ -28,23 +29,27 @@ public:
   };
 
   virtual double last_time() const {
-    std::cout << "last_time" << std::endl;
-    return 10.0;
+    return end_time;
   };
+
+protected:
+  scalar_t start_time, end_time, z_pos;
   
 private:
   std::function<scalar_t(scalar_t)> impulse_response_func;
-
-protected:
-    scalar_t z_pos;
   
 };
 
 class InfEDipoleAntenna : public Antenna {
   
 public:
-  InfEDipoleAntenna(scalar_t z_pos,  std::function<scalar_t(scalar_t)> impulse_response_func);
+  InfEDipoleAntenna(scalar_t start_time, scalar_t end_time, scalar_t z_pos,
+		    std::function<scalar_t(scalar_t)> impulse_response_func);
+  virtual ~InfEDipoleAntenna() { };
+  
   virtual void AddToGeometry(meep::fields& f, Geometry& geom) const;
+
+  virtual InfEDipoleAntenna* clone() const { return new InfEDipoleAntenna(*this); }
   
 };
 

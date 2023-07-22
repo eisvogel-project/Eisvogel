@@ -25,15 +25,19 @@ int main(int argc, char* argv[]) {
 
   auto impulse_response = [](scalar_t t) {
     unsigned int order = 6;
-    double tp = 1.0;
+    double tp = 2.0;
 
     std::cout << "asking for imp resp at t = " << t << std::endl;
     
-    return 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
+    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
+
+    std::cout << retval << std::endl;
+    
+    return retval;
   };
   
   CylinderGeometry geom(20, -20, 20, eps);
-  InfEDipoleAntenna dipole(-2.0, impulse_response);
+  InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
   
   WeightingFieldCalculator wfc(geom, dipole);
   
