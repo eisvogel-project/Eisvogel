@@ -16,21 +16,10 @@ public:
   virtual void AddToGeometry(meep::fields& f, Geometry& geom) const = 0;
 
 public:
-  virtual std::complex<double> current(double time, double dt) const {
-    return dipole(time);
-  };
-
-  virtual std::complex<double> dipole(double time) const {
-    if(time >= start_time && time <= end_time) {
-      return impulse_response_func(time);
-    } else {
-      return 0.0;
-    }
-  };
-
-  virtual double last_time() const {
-    return end_time;
-  };
+  virtual std::complex<double> current(double time, double dt) const;
+  virtual std::complex<double> dipole(double time) const;
+  
+  virtual double last_time() const {return end_time;}
 
 protected:
   scalar_t start_time, end_time, z_pos;
@@ -49,8 +38,9 @@ public:
   
   virtual void AddToGeometry(meep::fields& f, Geometry& geom) const;
 
-  virtual InfEDipoleAntenna* clone() const { return new InfEDipoleAntenna(*this); }
-  
+  virtual meep::src_time* clone() const {
+    return new InfEDipoleAntenna(*this);
+  }
 };
 
 #endif
