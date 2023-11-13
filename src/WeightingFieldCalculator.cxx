@@ -11,10 +11,12 @@ WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const
   antenna.AddToGeometry(*f, geom);
 }
 
-void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid, meep::ivec is, meep::ivec ie,
-		      meep::vec s0, meep::vec s1, meep::vec e0, meep::vec e1, double dV0, double dV1,
-		      meep::ivec shift, std::complex<double> shift_phase,
-		      const meep::symmetry &S, int sn, void *chunkloop_data)
+namespace meep {
+
+void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec ie,
+		      vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
+		      ivec shift, std::complex<double> shift_phase,
+		      const symmetry &S, int sn, void *chunkloop_data)
 {
 
   // make sure to give enough flexibility to store different fields / field combinations  
@@ -23,8 +25,8 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
   std::cout << "out_dir = " << out_dir << std::endl; 
 
   // index vectors for start and end of chunk
-  meep::ivec isS = S.transform(is, sn) + shift;
-  meep::ivec ieS = S.transform(ie, sn) + shift;
+  ivec isS = S.transform(is, sn) + shift;
+  ivec ieS = S.transform(ie, sn) + shift;
   
   size_t bufsz = 1;
   size_t dims[2];
@@ -49,15 +51,15 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
   double buff[bufsz];
 
   int metabuff[2];
-  metabuff[0] = is.in_direction(meep::R);
-  metabuff[1] = is.in_direction(meep::Z);
+  metabuff[0] = is.in_direction(R);
+  metabuff[1] = is.in_direction(Z);
   
   // some preliminary setup
-  meep::vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
+  vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
   
   // prepare the list of field components to fetch at each grid point
-  meep::component components[] = {meep::Ex, meep::Ey, meep::Ez};
-  meep::chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
+  component components[] = {Ex, Ey, Ez};
+  chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
   
   // loop over all grid points in chunk
   LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
@@ -66,8 +68,8 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
     IVEC_LOOP_LOC(fc->gv, rparent);   // cartesian coordinates
     
     // apply symmetry transform to get grid indices and coordinates of child point
-    meep::ivec ichild = S.transform(iparent, sn) + shift;
-    meep::vec rchild = S.transform(rparent, sn) + rshift;
+    ivec ichild = S.transform(iparent, sn) + shift;
+    vec rchild = S.transform(rparent, sn) + rshift;
     
     // fetch field components at child point
     data.update_values(idx);
@@ -82,6 +84,8 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
   std::cout << "writing chunk ...";
 }
 
+}
+  
 void WeightingFieldCalculator::Calculate(double t_end) {
 
   std::string data = "testdata";
@@ -92,7 +96,7 @@ void WeightingFieldCalculator::Calculate(double t_end) {
       std::cout << "Simulation time: " << f -> time() << std::endl;
     }
     f -> step();
-    f -> loop_in_chunks(saving_chunkloop, (void*)data.c_str(), f -> total_volume());
+    f -> loop_in_chunks(meep::saving_chunkloop, (void*)data.c_str(), f -> total_volume());
     f -> output_hdf5(meep::Ez, gv -> surroundings());
   }
 }
