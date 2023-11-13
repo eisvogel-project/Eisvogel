@@ -14,18 +14,21 @@ add_library(eisvogel SHARED
 target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include)
 set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
-		      
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(MEEP REQUIRED IMPORTED_TARGET meep)
-pkg_check_modules(HDF REQUIRED IMPORTED_TARGET hdf5)
 
-add_library(eisvogel_wfc SHARED
-            WeightingFieldCalculator.cxx
-            Geometry.cxx
-            Antenna.cxx)
-target_link_libraries(eisvogel_wfc PUBLIC eisvogel PkgConfig::MEEP PkgConfig::HDF hdf5_cpp)
-target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS} ${HDF_INCLUDE_DIRS})
-target_compile_options(eisvogel_wfc PUBLIC ${MEEP_CFLAGS_OTHER} ${HDF_CFLAGS_OTHER})
+if(BUILD_WFC)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(MEEP REQUIRED meep)
+    find_package(HDF5 REQUIRED)
 
-set_target_properties(eisvogel_wfc PROPERTIES
-                      LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel_wfc)
+    add_library(eisvogel_wfc SHARED
+                WeightingFieldCalculator.cxx
+                Geometry.cxx
+                Antenna.cxx)
+    target_link_directories(eisvogel_wfc PUBLIC ${MEEP_LIBRARY_DIRS} ${HDF_LIBRARY_DIRS})
+    target_link_libraries(eisvogel_wfc PUBLIC eisvogel ${MEEP_LIBRARIES} ${HDF_LIBRARIES})
+    target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS} ${HDF_INCLUDE_DIRS})
+    target_compile_options(eisvogel_wfc PUBLIC ${MEEP_CFLAGS_OTHER} ${HDF_CFLAGS_OTHER})
+
+    set_target_properties(eisvogel_wfc PROPERTIES
+                          LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel_wfc)
+endif(BUILD_WFC)

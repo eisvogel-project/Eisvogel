@@ -1,5 +1,7 @@
-add_subdirectory(dipole_free_space)
-add_subdirectory(dipole_ice)
+if(BUILD_WFC)
+    add_subdirectory(dipole_free_space)
+    add_subdirectory(dipole_ice)
+endif(BUILD_WFC)
 
 add_subdirectory(coulomb)
 add_subdirectory(point_charge_coulomb)
