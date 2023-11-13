@@ -24,6 +24,18 @@ make -j5
 source setup.sh
 ```
 
+To build with `python` support, do
+
+```
+cmake -DBUILD_PYTHON=ON ..
+```
+
+and to also build the components for the calculation of the Green's function do
+
+```
+cmake -DBUILD_WFC=ON ..
+```
+
 ## More information
 
 - P. Windischhofer, C. Welling, C. Deaconu, "Eisvogel: Exact and efficient calculations of radio emissions from in-ice neutrino showers", PoS(ICRC2023)
