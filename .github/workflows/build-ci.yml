@@ -23,7 +23,7 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake ../ &&
+        cmake -DBUILD_PYTHON=ON ../ &&
         make &&
         popd
 
