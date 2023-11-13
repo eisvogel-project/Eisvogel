@@ -11,7 +11,7 @@ class WeightingFieldCalculator {
 public:
   WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna,
 			   double courant_factor = 0.5, double resolution = 20, double pml_width = 1.0);
-  void Calculate();
+  void Calculate(double t_end);
 
 private:
   std::shared_ptr<meep::grid_volume> gv;

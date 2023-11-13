@@ -25,14 +25,8 @@ int main(int argc, char* argv[]) {
 
   auto impulse_response = [](scalar_t t) {
     unsigned int order = 6;
-    double tp = 2.0;
-
-    std::cout << "asking for imp resp at t = " << t << std::endl;
-    
-    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
-
-    std::cout << retval << std::endl;
-    
+    double tp = 2.0;   
+    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);    
     return retval;
   };
   
@@ -40,6 +34,7 @@ int main(int argc, char* argv[]) {
   InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
   
   WeightingFieldCalculator wfc(geom, dipole);
+  wfc.Calculate(10);
   
   return 0;
 }
