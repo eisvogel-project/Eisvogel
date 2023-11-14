@@ -13,21 +13,19 @@ WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const
   antenna.AddToGeometry(*f, geom);
 }
 
-namespace meep {
-
-  // TODO: later pass buffers to field values that can repeatedly be overwritten as part of chunkloop_data
-  // (which is a pointer to some custrom struct)
-void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, ivec ie,
-		      vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
-		      ivec shift, std::complex<double> shift_phase,
-		      const symmetry &S, int sn, void *chunkloop_data)
+// TODO: later pass buffers to field values that can repeatedly be overwritten as part of chunkloop_data
+// (which is a pointer to some custrom struct)
+void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid, meep::ivec is, meep::ivec ie,
+		      meep::vec s0, meep::vec s1, meep::vec e0, meep::vec e1, double dV0, double dV1,
+		      meep::ivec shift, std::complex<double> shift_phase,
+		      const meep::symmetry &S, int sn, void *chunkloop_data)
 {   
   // index vectors for start and end of chunk
-  ivec isS = S.transform(is, sn) + shift;
-  ivec ieS = S.transform(ie, sn) + shift;
+  meep::ivec isS = S.transform(is, sn) + shift;
+  meep::ivec ieS = S.transform(ie, sn) + shift;
   
   // determine rank and shape of this chunk
-  int rank = number_of_directions(fc -> gv.dim);
+  int rank = meep::number_of_directions(fc -> gv.dim);
   size_t shape[rank];
   
   int index = 0;
@@ -54,11 +52,11 @@ void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, iv
   float Ez_buffer[buflen];
   
   // some preliminary setup
-  vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
+  meep::vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
   
   // prepare the list of field components to fetch at each grid point
-  component components[] = {Ex, Ey, Ez};
-  chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
+  meep::component components[] = {meep::Ex, meep::Ey, meep::Ez};
+  meep::chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
   
   // loop over all grid points in chunk
   LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
@@ -68,8 +66,8 @@ void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, iv
     IVEC_LOOP_LOC(fc->gv, rparent);   // cartesian coordinates
     
     // apply symmetry transform to get grid indices and coordinates of child point
-    ivec ichild = S.transform(iparent, sn) + shift;
-    vec rchild = S.transform(rparent, sn) + rshift;
+    meep::ivec ichild = S.transform(iparent, sn) + shift;
+    meep::vec rchild = S.transform(rparent, sn) + rshift;
     
     // fetch field components at child point
     data.update_values(idx);
@@ -98,14 +96,14 @@ void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, iv
   std::string out_dir((char*)chunkloop_data);
   std::string chunk_file("output_chunk_" + std::to_string(ichunk) + ".h5");
   std::string filepath = out_dir + chunk_file;
+
+  std::cout << "writing to " << filepath << std::endl;
   
   hid_t file_id = H5Utils::open_or_create_file(filepath); 
   H5Utils::make_and_write_dataset(file_id, "Ex", rank, shape, H5T_NATIVE_FLOAT, Ex_buffer);
   H5Utils::make_and_write_dataset(file_id, "Ey", rank, shape, H5T_NATIVE_FLOAT, Ey_buffer);
   H5Utils::make_and_write_dataset(file_id, "Ez", rank, shape, H5T_NATIVE_FLOAT, Ez_buffer);
   H5Utils::close_file(file_id);
-}
-
 }
   
 void WeightingFieldCalculator::Calculate(double t_end) {
@@ -119,7 +117,8 @@ void WeightingFieldCalculator::Calculate(double t_end) {
     }
     f -> step();
     std::string data = std::string(std::getenv("TMPDIR")) + "/step_" + std::to_string(stepcnt++) + "_";
-    f -> loop_in_chunks(meep::saving_chunkloop, (void*)data.c_str(), f -> total_volume());
+    // std::string data = "/scratch/midway3/windischhofer/step_" + std::to_string(stepcnt++) + "_";
+    f -> loop_in_chunks(saving_chunkloop, (void*)data.c_str(), f -> total_volume());
     // f -> output_hdf5(meep::Ez, gv -> surroundings());
   }
 }
