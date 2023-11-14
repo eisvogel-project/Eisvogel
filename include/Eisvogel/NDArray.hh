@@ -221,13 +221,32 @@ namespace h5stor {
 
     static void serialize(hid_t m_file_id, const type& val, std::string name) {
       std::cout << "serializing now" << std::endl;
-
-      
+      const hsize_t* shape = val.shape().data();
+      hid_t dataspace_id = H5Screate_simple(dims, shape, NULL);
+      hid_t dataset_id = H5Dcreate2(m_file_id, name.c_str(), H5T_NATIVE_FLOAT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);     
+      herr_t status = H5Dwrite(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, val.m_data.data());
+      status = H5Sclose(dataspace_id);
+      status = H5Dclose(dataset_id);
     }
 
-    // static type deserialize(hid_t m_file_id, std::string name) {
-      
-    // }
+    static type deserialize(hid_t m_file_id, std::string name) {
+      std::cout << "deserializing now" << std::endl;
+      hid_t dataset_id = H5Dopen2(m_file_id, name.c_str(), H5P_DEFAULT);
+      hid_t dataspace_id = H5Dget_space(dataset_id);
+      const int ndims = H5Sget_simple_extent_ndims(dataspace_id);
+      std::cout << "found dataspace with " << ndims << " dimensions" << std::endl;
+      hsize_t read_shape[ndims];
+      H5Sget_simple_extent_dims(dataspace_id, read_shape, NULL);
+      std::cout << "have dataspace with the following shape" << std::endl;
+      std::cout << read_shape[0] << std::endl;
+      std::cout << read_shape[1] << std::endl;
+      // herr_t status = H5Dread(dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, rdata);
+      // status = H5Sclose(dataspace_id);
+      // status = H5Dclose(dataset_id);
+    }
+
+  private:
+    
   };
 }
 
