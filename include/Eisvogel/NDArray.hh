@@ -8,6 +8,7 @@
 #include <iostream>
 
 #include "Serialization.hh"
+#include "H5Serialization.hh"
 
 // ======================================================
 // General n-dimensional array
@@ -54,6 +55,7 @@ private:
 
 private:
   friend struct stor::Traits<DenseNDArray<T, dims>>;
+  friend struct h5stor::Traits<DenseNDArray<T, dims>>;
   template <typename T1> friend class DenseNDArray<T, dims>;
 
 public:
@@ -208,6 +210,26 @@ private:
     return result;
   }
 };
+
+namespace h5stor {
+
+  template<typename T, std::size_t dims>
+  struct Traits<DenseNDArray<T, dims>> {
+    using type = DenseNDArray<T, dims>;
+    using shape_t = typename type::shape_t;
+    using data_t = typename type::data_t;
+
+    static void serialize(hid_t m_file_id, const type& val, std::string name) {
+      std::cout << "serializing now" << std::endl;
+
+      
+    }
+
+    // static type deserialize(hid_t m_file_id, std::string name) {
+      
+    // }
+  };
+}
 
 namespace stor {
 
