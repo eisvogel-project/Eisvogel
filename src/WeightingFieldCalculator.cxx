@@ -92,14 +92,14 @@ void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, iv
     Ez_buffer[cur_flat_index] = Ez_val.real();        
   }
   
-  std::cout << "writing chunk ...";
+  // std::cout << "writing chunk ...";
 
   // make sure to give enough flexibility to store different fields / field combinations  
-  std::filesystem::path out_dir((char*)chunkloop_data);
-  std::filesystem::path chunk_file("output_chunk_" + std::to_string(ichunk) + ".h5");
-  std::filesystem::path filepath = out_dir / chunk_file;
+  std::string out_dir((char*)chunkloop_data);
+  std::string chunk_file("output_chunk_" + std::to_string(ichunk) + ".h5");
+  std::string filepath = out_dir + chunk_file;
   
-  hid_t file_id = H5Utils::open_or_create_file(filepath);
+  hid_t file_id = H5Utils::open_or_create_file(filepath); 
   H5Utils::make_and_write_dataset(file_id, "Ex", rank, shape, H5T_NATIVE_FLOAT, Ex_buffer);
   H5Utils::make_and_write_dataset(file_id, "Ey", rank, shape, H5T_NATIVE_FLOAT, Ey_buffer);
   H5Utils::make_and_write_dataset(file_id, "Ez", rank, shape, H5T_NATIVE_FLOAT, Ez_buffer);
@@ -110,16 +110,16 @@ void saving_chunkloop(fields_chunk *fc, int ichunk, component cgrid, ivec is, iv
   
 void WeightingFieldCalculator::Calculate(double t_end) {
 
-  std::string data = "testdata";
   f -> output_hdf5(meep::Dielectric, gv -> surroundings());
-    
+
+  int stepcnt = 0;
   while (f -> time() < t_end) {
     if(meep::am_master()) {
       std::cout << "Simulation time: " << f -> time() << std::endl;
     }
     f -> step();
+    std::string data = std::string(std::getenv("TMPDIR")) + "/step_" + std::to_string(stepcnt++) + "_";
     f -> loop_in_chunks(meep::saving_chunkloop, (void*)data.c_str(), f -> total_volume());
-    break;
     // f -> output_hdf5(meep::Ez, gv -> surroundings());
   }
 }
