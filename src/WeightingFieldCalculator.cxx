@@ -97,6 +97,6 @@ void WeightingFieldCalculator::Calculate(double t_end) {
     }
     f -> step();
     f -> loop_in_chunks(meep::saving_chunkloop, (void*)data.c_str(), f -> total_volume());
-    f -> output_hdf5(meep::Ez, gv -> surroundings());
+    // f -> output_hdf5(meep::Ez, gv -> surroundings());
   }
 }

@@ -36,6 +36,12 @@ and to also build the components for the calculation of the Green's function do
 cmake -DBUILD_WFC=ON ..
 ```
 
+If you want to build the C++ unit tests, add
+
+```
+cmake -DBUILD_TESTS=ON ..
+```
+
 ## More information
 
 - P. Windischhofer, C. Welling, C. Deaconu, "Eisvogel: Exact and efficient calculations of radio emissions from in-ice neutrino showers", PoS(ICRC2023)

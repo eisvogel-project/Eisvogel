@@ -9,6 +9,10 @@
 
 #include "Serialization.hh"
 
+// ======================================================
+// General n-dimensional array
+// ======================================================
+
 template <class T, std::size_t dims>
 class NDArray {
 
@@ -34,7 +38,9 @@ protected:
 template <class T, std::size_t dims>
 inline NDArray<T, dims>::~NDArray() { }
 
-// ======
+// ======================================================
+// Dense n-dimensional array
+// ======================================================
 
 template <class T, std::size_t dims>
 class DenseNDArray : public NDArray<T, dims> {
@@ -232,5 +238,11 @@ using IndexVector = DenseVector<std::size_t>;
 
 template <class T>
 using ScalarField3D = DenseNDArray<T, 3>;
+
+// ======================================================
+// Sparse n-dimensional array
+// ======================================================
+
+
 
 #endif
