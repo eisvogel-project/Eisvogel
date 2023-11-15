@@ -22,7 +22,7 @@ add_library(eisvogel SHARED
             MathUtils.cxx
             SignalExport.cxx
             SignalCalculator.cxx)
-target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
 set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
 
