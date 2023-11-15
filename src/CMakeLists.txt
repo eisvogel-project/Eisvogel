@@ -6,7 +6,7 @@ find_package(HDF5 REQUIRED)
 
 add_library(greenstor SHARED
             H5Utils.cxx)
-target_include_directories(greenstor PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(greenstor PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF_INCLUDE_DIRS})
 target_link_libraries(greenstor PUBLIC ${HDF_LIBRARIES})
 target_compile_options(greenstor PUBLIC ${HDF_CFLAGS_OTHER})
 set_target_properties(greenstor PROPERTIES
