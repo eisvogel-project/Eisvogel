@@ -27,7 +27,7 @@ namespace meep {
     
     // determine rank and shape of this chunk
     int rank = number_of_directions(fc -> gv.dim);
-    size_t shape[rank];
+    hsize_t shape[rank];
     
     int index = 0;
     LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
