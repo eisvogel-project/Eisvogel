@@ -22,7 +22,8 @@ add_library(eisvogel SHARED
             MathUtils.cxx
             SignalExport.cxx
             SignalCalculator.cxx)
-target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
+target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS} ${MPI_INCLUDE_PATH})
+target_link_libraries(eisvogel PUBLIC ${HDF5_LIBRARIES} MPI::MPI_CXX)
 set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
 
