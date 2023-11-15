@@ -24,7 +24,7 @@ jobs:
         mkdir -p build &&
         pushd build &&
         cmake -DBUILD_PYTHON=ON -DBUILD_WFC=ON -DBUILD_TESTS=ON ../ &&
-        make &&
+        VERBOSE=1 make &&
         popd
 
     - name: Run python tests
