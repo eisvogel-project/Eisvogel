@@ -41,10 +41,6 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
     strides[i + 1] = strides[i] * shape[i];
   }
   size_t buflen = strides[rank];
-
-  // std::cout << "==========================" << std::endl;
-  // std::cout << "Chunk " << ichunk << std::endl;
-  // std::cout << "have buflen = " << buflen << std::endl;
   
   // prepare buffers
   float Ex_buffer[buflen];
@@ -75,29 +71,22 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
     std::complex<double> Ey_val = data.values[1];
     std::complex<double> Ez_val = data.values[2];
        
-    // std::cout << "- - - - - - - - - -" << std::endl;
     int cur_flat_index = 0;
     index = 0;
     LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
       int cur_index = (ichild.in_direction(d) - isS.in_direction(d)) / 2;
       cur_flat_index += cur_index * strides[index];
-      //std::cout << "direction = " << d << ", index = " << cur_index << " of " << shape[index++] << std::endl;
     }
-    //std::cout << "- - - - - - - - - -" << std::endl;
 
     Ex_buffer[cur_flat_index] = Ex_val.real();
     Ey_buffer[cur_flat_index] = Ey_val.real();
     Ez_buffer[cur_flat_index] = Ez_val.real();        
-  }
-  
-  // std::cout << "writing chunk ...";
+  } 
 
   // make sure to give enough flexibility to store different fields / field combinations  
   std::string out_dir((char*)chunkloop_data);
   std::string chunk_file("output_chunk_" + std::to_string(ichunk) + ".h5");
   std::string filepath = out_dir + chunk_file;
-
-  std::cout << "writing to " << filepath << std::endl;
   
   hid_t file_id = H5Utils::open_or_create_file(filepath); 
   H5Utils::make_and_write_dataset(file_id, "Ex", rank, shape, H5T_NATIVE_FLOAT, Ex_buffer);
@@ -106,8 +95,13 @@ void saving_chunkloop(meep::fields_chunk *fc, int ichunk, meep::component cgrid,
   H5Utils::close_file(file_id);
 }
   
-void WeightingFieldCalculator::Calculate(double t_end) {
+void WeightingFieldCalculator::Calculate(double t_end, std::string tmpdir) {
 
+  if(tmpdir.empty()) {
+    tmpdir = std::getenv("TMPDIR");
+  }
+  
+  // This is only for cross-checking the geometry for now
   f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
   int stepcnt = 0;
@@ -116,7 +110,7 @@ void WeightingFieldCalculator::Calculate(double t_end) {
       std::cout << "Simulation time: " << f -> time() << std::endl;
     }
     f -> step();
-    std::string data = std::string(std::getenv("TMPDIR")) + "/step_" + std::to_string(stepcnt++) + "_";
+    std::string data = tmpdir + "/step_" + std::to_string(stepcnt++) + "_";
     // std::string data = "/scratch/midway3/windischhofer/step_" + std::to_string(stepcnt++) + "_";
     f -> loop_in_chunks(saving_chunkloop, (void*)data.c_str(), f -> total_volume());
     // f -> output_hdf5(meep::Ez, gv -> surroundings());
