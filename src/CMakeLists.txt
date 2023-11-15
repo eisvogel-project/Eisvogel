@@ -2,12 +2,13 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=2 -funroll-loops -march=native")
 
+find_package(MPI REQUIRED)
 find_package(HDF5 REQUIRED)
 
 add_library(greenstor SHARED
             H5Utils.cxx)
-target_include_directories(greenstor PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS})
-target_link_libraries(greenstor PUBLIC ${HDF5_LIBRARIES})
+target_include_directories(greenstor PUBLIC ${PROJECT_SOURCE_DIR}/include ${HDF5_INCLUDE_DIRS} ${MPI_INCLUDE_PATH})
+target_link_libraries(greenstor PUBLIC ${HDF5_LIBRARIES} MPI::MPI_CXX)
 target_compile_options(greenstor PUBLIC ${HDF5_CFLAGS_OTHER})
 set_target_properties(greenstor PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/greenstor)
@@ -26,7 +27,6 @@ set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
 
 if(BUILD_WFC)
-    find_package(MPI REQUIRED)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(MEEP REQUIRED meep)
 
