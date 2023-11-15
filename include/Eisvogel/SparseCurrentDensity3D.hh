@@ -32,7 +32,7 @@ public:
     return CU::getX(m_voxel_size) * CU::getY(m_voxel_size) * CU::getZ(m_voxel_size);
   }
 
-  int getNumberofElements() {return m_elements.size();}
+  int getNumberOfElements() {return m_elements.size();}
 
   auto begin() const {return m_elements.cbegin();}
   auto end() const {return m_elements.cend();}
