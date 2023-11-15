@@ -33,6 +33,7 @@ SparseCurrentDensity3D showers::Shower2D::get_current(DeltaVector voxel_size) {
     scalar_t delta_t = getT(voxel_size);
     double max_grammage = charge_excess_profile.grammage[charge_excess_profile.grammage.size() - 1];
     double max_radius = charge_excess_profile.radius[charge_excess_profile.radius.size() - 1];
+    std::cout << "Max Radius: " << max_radius << "\n";
     double integrated_grammage = 0;
     double delta_s = delta_t * constants::c;
     double shower_t = 0;
@@ -45,10 +46,9 @@ SparseCurrentDensity3D showers::Shower2D::get_current(DeltaVector voxel_size) {
         cos(zenith) * sin(azimuth),
         sin(zenith) * cos(azimuth) * cos(azimuth) - sin(zenith) * sin(azimuth) * sin(azimuth)
         };
-    std::cout << "vertical: " << axis_normal_ver[0] << ", " << axis_normal_ver[1] << ", " << axis_normal_ver[2] << "\n";
     double current_radius;
     double current_ce;
-    while (integrated_grammage < max_grammage) {
+    while (integrated_grammage < max_grammage / 2) {
         integrated_grammage = integrated_grammage + ice_profile.get_density(
             shower_pos[0], shower_pos[1], shower_pos[2]
             ) * delta_s;
@@ -59,6 +59,7 @@ SparseCurrentDensity3D showers::Shower2D::get_current(DeltaVector voxel_size) {
         for (float hor_offset = -max_radius; hor_offset < max_radius; hor_offset = hor_offset + delta_s) {
             for (float ver_offset = -max_radius; ver_offset < max_radius; ver_offset = ver_offset + delta_s) {
                 current_radius = sqrt(hor_offset * hor_offset + ver_offset * ver_offset);
+
                 if (current_radius < max_radius) {
                     current_ce = charge_excess_profile.get_charge_excess(integrated_grammage, current_radius);
                     if (current_ce > 0) {

@@ -51,7 +51,7 @@ for key_1 in shower_library.keys():
 		group_2 = group.create_group(str(key_2))
 		group_2.create_dataset('charge_excess', data=profiles)
 		group_2.create_dataset('depth', data=list(shower_library[key_1][key_2]['depth']))
-
+		print(np.max(shower_library[key_1][key_2]['depth']))
 	group.create_dataset('energies', data=list(np.log10(energies)))
 hf.close()
 json.dump(output_dict, open('ARZ_library_v1.2.json', 'w'))

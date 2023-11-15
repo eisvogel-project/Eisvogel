@@ -1,5 +1,6 @@
 cmake_minimum_required( VERSION 3.20 FATAL_ERROR )
 add_subdirectory(shower_profile)
+add_subdirectory(shower_profile_2d)
 add_subdirectory(electric_dipole_antenna)
 add_subdirectory(coulomb)
 add_subdirectory(point_charge_coulomb)

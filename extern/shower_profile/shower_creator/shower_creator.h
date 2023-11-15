@@ -9,6 +9,8 @@
 #include <string>
 #include <map>
 #include <random>
+#include "H5Cpp.h"
+
 
 namespace showers {
 class ShowerCreator {
@@ -48,14 +50,15 @@ public:
 			int had
 	);
 	ChargeExcessProfile2D read_shower(
-		FILE *f,
-		int *N
+		std::string file_path
 		);
 private:
 	std::string shower_file;
 	environment::IceProfile density_profile;
-	std::map<int, std::map<double, std::vector<showers::ChargeExcessProfile2D>>>ce_profiles;
-	std::map<int, std::vector<double>> stored_energies;
+	std::vector<showers::ChargeExcessProfile2D> ce_profiles;
+	std::vector<double> readDataSet(
+		H5::DataSet *dataset
+	);
 };
 
 

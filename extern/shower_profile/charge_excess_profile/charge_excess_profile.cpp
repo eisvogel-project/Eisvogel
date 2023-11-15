@@ -27,16 +27,17 @@ class ChargeExcessProfile2D {
 
 	double get_charge_excess(double gram, double rad) {
 		int radius_index = 0;
+		//std::cout << "---> " << gram << ", " << grammage[2] << "\n";
 		for (int i_radius=1;i_radius < radius.size(); i_radius++) {
 			radius_index = i_radius - 1;
-			if (rad > radius[i_radius]) {
+			if (rad < radius[i_radius]) {
 				break;
 			}
 		}
 		int grammage_index = 0;
 		for (int i_grammage = 1; i_grammage < grammage.size() - 1; i_grammage++) {
 			grammage_index = i_grammage - 1;
-			if (gram > grammage[i_grammage]) {
+			if (gram < grammage[i_grammage]) {
 				break;
 			}
 		}
@@ -46,8 +47,8 @@ class ChargeExcessProfile2D {
 
 		double delta_ce_2 = charge_excess(grammage_index + 1, radius_index + 1) - charge_excess(grammage_index, radius_index + 1);
 		double grammage_interpolation_2 = charge_excess(grammage_index, radius_index + 1) + delta_ce_2 / delta_grammage * (gram - grammage[grammage_index]);
-
 		double delta_r = radius[radius_index + 1] - radius[radius_index];
+
 		return grammage_interpolation_1 + (grammage_interpolation_2 - grammage_interpolation_1) / delta_r * (rad - radius[radius_index]);
 	}
 };

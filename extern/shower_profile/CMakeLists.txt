@@ -7,12 +7,10 @@ add_library(Shower2D SHARED shower_2D/shower_2D.cpp)
 add_library(Environment SHARED environment/ice_profile.cpp)
 add_library(ShowerCreator SHARED shower_creator/shower_creator.cpp)
 
-target_link_libraries(ShowerCreator Shower1D)
-target_link_libraries(ShowerCreator Shower2D)
-target_link_libraries(ShowerCreator Environment)
+find_package(HDF5 REQUIRED)
+target_link_libraries(ShowerCreator PUBLIC Shower1D Shower2D Environment ${HDF5_LIBRARY_DIRS} hdf5_serial_cpp)
 target_link_libraries(Shower1D PUBLIC Environment)
 target_link_libraries(Shower2D PUBLIC Environment)
-
 target_include_directories(Shower1D PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/environment"
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/charge_excess_profile"
@@ -25,6 +23,7 @@ target_include_directories(ShowerCreator PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_1D"
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_2D"
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
+                          "${HDF5_INCLUDE_DIRS}"
                           )
 target_include_directories(Environment PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/utilities"

@@ -19,15 +19,15 @@ int main(int argc, char* argv[]) {
   }
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-500.0, -10.0, -551.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(1350.0, 700.0, -549.0);
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(-500.0, -10.0, -554.);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(1350.0, 700.0, -546.);
 
   // Filter parameters
   scalar_t tp = 1.0;
   unsigned int N = 6;
 
   // Sampling parameters
-  scalar_t os_factor = 5;
+  scalar_t os_factor = 3;
   scalar_t r_min = 0.1;
   
   scalar_t index_of_refraction = 1.78;
