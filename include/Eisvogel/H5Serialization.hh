@@ -2,7 +2,6 @@
 #define __H5SERIALIZATION_HH
 
 #include <string>
-#include "hdf5.h"
 #include "Eisvogel/H5Utils.hh"
 
 namespace h5stor {
