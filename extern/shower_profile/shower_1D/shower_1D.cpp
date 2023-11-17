@@ -1,7 +1,13 @@
 #include "shower_1D.h"
 #include <iostream>
+#include <fstream>
 #include <array>
 #include <math.h>
+#include "Eisvogel/CoordUtils.hh"
+#include "Eisvogel/Current0D.hh"
+#include "constants.h"
+#include "units.h"
+#include <vector>
 
 
 showers::Shower1D::Shower1D(
@@ -31,7 +37,7 @@ void showers::Shower1D::get_shower(
 	std::vector<double> *ce
 ) {
 	int n_points = 0;
-	double delta_s = delta_t * 3.e8 / ice_profile.get_maximum_index_of_refraction();
+	double delta_s = delta_t * constants::c;
 	double max_grammage = charge_excess_profile.grammage[charge_excess_profile.grammage.size() - 1];
 	double integrated_grammage = 0;
 	double xx = start_position[0];
@@ -62,6 +68,7 @@ void showers::Shower1D::get_shower(
 	int grammage_i = 0;
 	double delta_ce;
 	double delta_grammage;
+        
 	for (int i=1; i < n_points; i++) {
 		(*x)[i] = (*x)[i - 1] + delta_s * sin(zenith) * cos(azimuth);
 		(*y)[i] = (*y)[i - 1] + delta_s * sin(zenith) * sin(azimuth);
@@ -85,38 +92,69 @@ void showers::Shower1D::get_shower(
 	}
 }
 
-void showers::Shower1D::get_current(
-		double delta_t,
-		std::vector<double> *t,
-		std::vector<double> *x,
-		std::vector<double> *y,
-		std::vector<double> *z,
-		std::vector<double> *current_x,
-		std::vector<double> *current_y,
-		std::vector<double> *current_z
+Current0D showers::Shower1D::get_current(
+		double delta_t
 ){
+	std::vector<double> t;
+	std::vector<double> x;
+	std::vector<double> y;
+	std::vector<double> z;
 	std::vector<double> ce;
+	
 	get_shower(
 			delta_t,
-			t,
-			x,
-			y,
-			z,
+			&t,
+			&x,
+			&y,
+			&z,
 			&ce
 	);
-	int n_points = t -> size();
-	double delta_s = delta_t * 3.e8 / ice_profile.get_maximum_index_of_refraction();
-	double area = delta_s * delta_s;
-	current_x -> resize(n_points);
-	current_y -> resize(n_points);
-	current_z -> resize(n_points);
-	for (int i=0; i < n_points; i++) {
-		(*current_x)[i] = (ce)[i] * sin(zenith) * cos(azimuth) / area / delta_t;
-		(*current_y)[i] = (ce)[i] * sin(zenith) * sin(azimuth) / area / delta_t;
-		(*current_z)[i] = (ce)[i] * cos(zenith) / area / delta_t;
-	}
+        std::vector<CoordVector> positions;
+        std::vector<scalar_t> charge_excess;
+        for (int i = 0; i < t.size(); i++) {
+            positions.push_back(
+                    CoordUtils::MakeCoordVectorTXYZ(
+                    t[i],
+                    x[i] / constants::c,
+                    y[i] / constants::c,
+                    z[i] / constants::c
+                    )
+                );
+            if (i < t.size() -1) {
+                charge_excess.push_back(ce[i]);
+            }
+        }
+        Current0D current(std::move(positions), std::move(charge_excess));
+        return current;
 }
 
+void showers::Shower1D::print_dimensions() {
+	std::vector<double> t;
+  	std::vector<double> x;
+  	std::vector<double> y;
+  	std::vector<double> z;
+  	std::vector<double> ce;
+	get_shower(1., &t, &x, &y, &z, &ce);
+	double r_max = sqrt(x[0] * x[0] + y[0] * y[0] + z[0] * z[0]);
+	double r_min = sqrt(x[0] * x[0] + y[0] * y[0] + z[0] * z[0]);
+	double z_max = z[0];
+	double z_min = z[0];
+	double r;
+	for (int i=0; i<t.size(); i++) {
+		r = sqrt(x[i] * x[i] + y[i] * y[i]);
+		r_min = std::min(r_min, r);
+		r_max = std::max(r_max, r);
+		z_min = std::min(z_min, z[i]);
+		z_max = std::max(z_max, z[i]);
+	}
+	r_max /= constants::c;
+	r_min /= constants::c;
+	z_max /= constants::c;
+	z_min /= constants::c;
 
+	std::cout << "Required weighting field size:\n";
+	std::cout << r_min << "< r < " << r_max << "\n";
+	std::cout << z_min << "< z < " << z_max << "\n";
 
+}
 

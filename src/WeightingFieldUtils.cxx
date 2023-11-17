@@ -14,7 +14,7 @@ namespace WeightingFieldUtils {
 
   void CreateElectricDipoleWeightingField(std::string wf_path,
 					  const CoordVector& start_coords, const CoordVector& end_coords,
-					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor) {
+					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n) {
 
     std::fstream ofs;
     ofs.open(wf_path, std::ios::out | std::ios::binary);  
@@ -22,7 +22,7 @@ namespace WeightingFieldUtils {
 
     // TODO: later, this will also break up the weighting field into multiple chunks just like for meep
     std::cout << "Building weighting field ..." << std::endl;
-    WeightingField wf_out = SampleElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor);
+    WeightingField wf_out = SampleElectricDipoleWeightingField(start_coords, end_coords, tp, N, r_min, os_factor, n);
     
     std::cout << "Saving weighting field ..." << std::endl;
     oser.serialize(wf_out);
@@ -30,11 +30,10 @@ namespace WeightingFieldUtils {
   }
 
   WeightingField SampleElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
-						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor) {
+						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n) {
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;  // vacuum dielectric constant
-    scalar_t n = 1.0;  // refractive index of medium
     scalar_t ds = 1.0;
     scalar_t c = 1.0;  // speed of light in vacuum
 

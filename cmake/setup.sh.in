@@ -1,3 +1,4 @@
 # set up a minimal environment
 export LD_LIBRARY_PATH=@PROJECT_BINARY_DIR@/eisvogel:$LD_LIBRARY_PATH
 export PYTHONPATH=@PROJECT_BINARY_DIR@/cpython:$PYTHONPATH
+export EISVOGELDIR=@PROJECT_SOURCE_DIR@
