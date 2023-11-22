@@ -23,6 +23,9 @@ namespace showers {
             SparseCurrentDensity3D get_current(
                 DeltaVector voxel_size
             );
+            SparseCurrentDensity3D get_current_1d(
+                DeltaVector voxel_size
+            );
 
             void dump_profile();
 

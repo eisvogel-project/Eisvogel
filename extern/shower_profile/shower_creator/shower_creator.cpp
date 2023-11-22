@@ -130,19 +130,16 @@ showers::ChargeExcessProfile2D showers::ShowerCreator2D::read_shower(
 	double data_out[dimensions_out[0]][dimensions_out[1]] = {0};
 	this_dataset.read( data_out, H5::PredType::NATIVE_DOUBLE, memspace, dataspace );	
 	showers::ChargeExcessProfile2D profile({dimensions_out[0], dimensions_out[1]});
-	for(int i=0; i < dimensions_out[0]; i++) {
-		for (int j=0; j < dimensions_out[1]; j++) {
-			profile.charge_excess(i, j) = data_out[i][j];
-		}
-	}
 	H5::DataSet grammage_dataset = this_file.openDataSet("depth");
 	H5::DataSet radius_dataset = this_file.openDataSet("radius");
 	profile.grammage = readDataSet(&grammage_dataset);
-	// for (int i=0;i<profile.grammage.size();i++) {
-	// 	profile.grammage[i] = profile.grammage[i] * units::kilogram / units::square_meter;
-	// }
 	profile.radius = readDataSet(&radius_dataset);
-    return profile;
+    for(int i=0; i < dimensions_out[0]; i++) {
+		for (int j=0; j < dimensions_out[1]; j++) {
+			profile.set_charge_excess(i, j, data_out[i][j]);
+		}
+	}
+	return profile;
 }
 
 std::vector<double> showers::ShowerCreator2D::readDataSet(
@@ -170,18 +167,7 @@ showers::Shower2D showers::ShowerCreator2D::create_shower(
 		double az,
 		int had
 ) {
-	// double closest_energy = stored_energies[had][0];
-	// double energy_diff = std::abs(en - stored_energies[had][0]);
-	// for (int i=1; i < stored_energies[had].size(); i++) {
-	// 	if (std::abs(en - stored_energies[had][i]) < energy_diff) {
-	// 		closest_energy = stored_energies[had][i];
-	// 		energy_diff = std::abs(en - stored_energies[had][i]);
-	// 	}
-	// }
-	// std::default_random_engine generator{static_cast<long unsigned int>(time(NULL))};;
-	// std::uniform_int_distribution<int> dist(0, ce_profiles[had][closest_energy].size());
-    //     int i_shower = 4;
-    //     std::cout << "Pick shower " << i_shower << " out of " << ce_profiles[had][closest_energy].size() << " showers. \n";
+
 	return showers::Shower2D(
 			pos,
 			en,
