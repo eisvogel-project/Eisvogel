@@ -41,7 +41,7 @@ private:
 
 class ShowerCreator2D {
 public:
-	ShowerCreator2D(std::string file_path);
+	ShowerCreator2D(std::string folder);
 	Shower2D create_shower(
 			std::array<float,3> pos,
 			double en,
@@ -53,12 +53,13 @@ public:
 		std::string file_path
 		);
 private:
-	std::string shower_file;
 	environment::IceProfile density_profile;
 	std::vector<showers::ChargeExcessProfile2D> ce_profiles;
+	std::vector<double> energies;
 	std::vector<double> readDataSet(
 		H5::DataSet *dataset
 	);
+
 };
 
 

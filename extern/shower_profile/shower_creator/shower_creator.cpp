@@ -11,6 +11,7 @@
 #include <time.h>
 #include <stdexcept>
 #include <random>
+#include <filesystem>
 #include "H5Cpp.h"
 
 
@@ -103,13 +104,18 @@ int showers::ShowerCreator::read_shower(FILE *f, int *N, int *hadronic, double *
 
 
 showers::ShowerCreator2D::ShowerCreator2D(
-	std::string file_path
+	std::string folder
 ) {
-	shower_file = file_path;
 	density_profile = environment::IceProfile();
-	ce_profiles.push_back(
-		read_shower(file_path)
-	);
+	for (const auto &entry: std::filesystem::directory_iterator(folder)) {
+		ChargeExcessProfile2D new_ce = read_shower(entry.path());
+		ce_profiles.push_back(
+			new_ce
+		);
+		energies.push_back(new_ce.energy);
+
+
+	}
 
 }
 
@@ -139,6 +145,10 @@ showers::ChargeExcessProfile2D showers::ShowerCreator2D::read_shower(
 			profile.set_charge_excess(i, j, data_out[i][j]);
 		}
 	}
+	H5::Attribute attr = this_file.openAttribute("energy");
+	H5::DataType dtype = this_file.openAttribute("energy").getDataType();
+	double test = 0.1;
+	attr.read(dtype, &profile.energy);
 	return profile;
 }
 

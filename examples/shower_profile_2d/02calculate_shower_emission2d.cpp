@@ -45,7 +45,7 @@ int main (int argc, char* argv[]) {
     SignalCalculator signal_calc(wf_path);
     std::cout << "Done reading weighting field \n";
     
-    showers::ShowerCreator2D shower_creator("/home/welling/RadioNeutrino/scripts/corsika/plot_examples/charge_excess_profile.hdf5");
+    showers::ShowerCreator2D shower_creator("/home/welling/RadioNeutrino/scripts/corsika/plot_examples/profiles/");
     showers::Shower2D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic);
     scalar_t cur_signal;
     DeltaVector delta_vec =  CoordUtils::MakeDeltaVectorTXYZ(.2, .2, .2, .2);
