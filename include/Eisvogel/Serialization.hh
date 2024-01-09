@@ -95,6 +95,7 @@ namespace stor {
     
     static void serialize(std::iostream& stream, const type& val) {
       Traits<std::size_t>::serialize(stream, val.size());
+      // TODO: speed this up by serializing the entire array instead of values one by one
       for(const T& cur : val) {
 	Traits<T>::serialize(stream, cur);
       }
@@ -103,6 +104,7 @@ namespace stor {
     static type deserialize(std::iostream& stream) {
       type val;
       std::size_t size = Traits<std::size_t>::deserialize(stream);
+      // TODO: speed this up by deserializing the entire array instead of values one by one
       for(std::size_t ind = 0; ind < size; ind++) {
 	val.push_back(Traits<T>::deserialize(stream));
       }
@@ -115,6 +117,7 @@ namespace stor {
     using type = std::array<T, n>;
 
     static void serialize(std::iostream& stream, const type& val) {
+      // TODO: speed this up by serializing the entire array instead of values one by one
       for(const T& cur : val) {
 	Traits<T>::serialize(stream, cur);
       }
@@ -122,6 +125,7 @@ namespace stor {
 
     static type deserialize(std::iostream& stream) {
       type val;
+      // TODO: speed this up by serializing the entire array instead of values one by one
       for(std::size_t ind = 0; ind < n; ind++) {
 	val[ind] = Traits<T>::deserialize(stream);
       }
@@ -129,6 +133,24 @@ namespace stor {
     }
   };
 
+  template <>
+  struct Traits<std::string> {
+    using type = std::string;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      std::size_t num_chars = val.size();
+      Traits<std::size_t>::serialize(stream, num_chars);
+      stream.write(val.data(), num_chars);
+    }
+    
+    static type deserialize(std::iostream& stream) {
+      std::size_t num_chars = Traits<std::size_t>::deserialize(stream);
+      std::vector<char> string_data(num_chars);
+      stream.read(string_data.data(), num_chars);
+      return std::string(string_data.begin(), string_data.end());
+    }
+  };
+  
   class Serializer {
 
   public:

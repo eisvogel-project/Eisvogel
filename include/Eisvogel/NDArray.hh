@@ -139,6 +139,14 @@ public:
   bool operator==(const DenseNDArray<T, dims>& rhs) {
     return rhs.m_data == m_data;
   }
+
+  // printing
+  void print() {
+    for(T& cur: m_data) {
+      std::cout << cur << " ";
+    }
+    std::cout << std::endl;
+  }
   
   auto begin() {return m_data.begin();}
   auto cbegin() {return m_data.cbegin();}
