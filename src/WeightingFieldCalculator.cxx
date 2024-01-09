@@ -1,7 +1,6 @@
 #include <iostream>
 #include <filesystem>
 #include "Eisvogel/WeightingFieldCalculator.hh"
-#include "Eisvogel/H5Utils.hh"
 
 WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna,
 						   double courant_factor, double resolution, double pml_width) {
@@ -27,11 +26,11 @@ namespace meep {
     
     // determine rank and shape of this chunk
     int rank = number_of_directions(fc -> gv.dim);
-    hsize_t shape[rank];
+    size_t shape[rank];
     
     int index = 0;
     LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
-      hsize_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
+      size_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
       shape[index++] = cur_len;
     }
     
@@ -89,11 +88,6 @@ namespace meep {
     std::string chunk_file("output_chunk_" + std::to_string(ichunk) + ".h5");
     std::string filepath = out_dir + chunk_file;
     
-    hid_t file_id = H5Utils::open_or_create_file(filepath); 
-    H5Utils::make_and_write_dataset(file_id, "Ex", rank, shape, H5T_NATIVE_FLOAT, Ex_buffer);
-    H5Utils::make_and_write_dataset(file_id, "Ey", rank, shape, H5T_NATIVE_FLOAT, Ey_buffer);
-    H5Utils::make_and_write_dataset(file_id, "Ez", rank, shape, H5T_NATIVE_FLOAT, Ez_buffer);
-    H5Utils::close_file(file_id);
   }
 } // end namespace meep
   
