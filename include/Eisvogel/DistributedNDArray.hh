@@ -6,6 +6,8 @@
 #include <string>
 #include <memory>
 #include <map>
+#include <filesystem>
+#include <fstream>
 
 #include "Eisvogel/NDArray.hh"
 #include "Eisvogel/Serialization.hh"
@@ -19,8 +21,6 @@ struct ChunkMetadata {
   IndexVector start_ind;
   IndexVector stop_ind;  
 };
-
-// ----
 
 namespace stor {
   template <>
@@ -42,50 +42,91 @@ namespace stor {
   };
 }
 
+// ----
+
 template <class T, std::size_t dims>
 class DistributedNDArray {
 
 public:
   
   DistributedNDArray(std::string dirpath, std::size_t max_cache_size);
+  ~DistributedNDArray();
 
-  using chunk_t = NDArray<T, dims>;
+  using chunk_t = DenseNDArray<T, dims>;
 
   // For assembling a distributed array
   void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind);
+  void Flush();
   
   // For accessing a distributed array
   T& operator()(DenseVector<T>& inds);
 
 private:
 
-  std::string m_dirpath;
-  std::size_t m_max_cache_size;
+  const std::string m_dirpath;
+  const std::string m_indexpath;
+  const std::size_t m_max_cache_size;
 
-  std::vector<ChunkMetadata> m_chunk_index;
+  using index_t = std::vector<ChunkMetadata>;
+  index_t m_chunk_index;
 
-  using chunk_cache_t = DenseNDArray<T, dims>;
-  std::map<std::size_t, chunk_cache_t> m_chunk_cache; // key is index of chunk in m_chunk_index    
+  std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index    
 };
 
 // ---
 
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size) :
-  m_dirpath(dirpath), m_max_cache_size(max_cache_size) {
+  m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size) {
 
-  // create directory if it does not exist
+  // Create directory if it does not already exist
+  if(!std::filesystem::exists(m_dirpath)) {
+    std::filesystem::create_directory(m_dirpath);
+  }
+
+  // Load index if there is one
+  if(std::filesystem::exists(m_indexpath)) {
+    // Load index
+    std::fstream ifs; 
+    ifs.open(m_indexpath, std::ios::in | std::ios::binary);
+    stor::Serializer iser(ifs);
+    m_chunk_index = iser.deserialize<index_t>();
+    ifs.close();    
+  }
 }
 
 template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::RegisterChunk(const NDArray<T, dims>& chunk, const IndexVector start_ind) {
+DistributedNDArray<T, dims>::~DistributedNDArray() {
+  Flush();
+}
 
-  // make sure this chunk does not overlap with any that we already have
+template <class T, std::size_t dims>
+void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind) {
 
-  // add chunk metadata to index
+  // TODO: make sure this chunk does not overlap with any that we already have and crash if it does
 
-  // write chunk data
-  
+  // build chunk metadata and add to index
+  std::string chunk_filename = m_dirpath + "/chunk_" + std::to_string(m_chunk_index.size()) + ".bin";
+  IndexVector stop_ind = start_ind + chunk.shape();
+  ChunkMetadata meta(chunk_filename, start_ind, stop_ind);
+  m_chunk_index.push_back(meta);
+
+  // write chunk data to disk
+  std::fstream ofs;
+  ofs.open(chunk_filename, std::ios::out | std::ios::binary);  
+  stor::Serializer oser(ofs);
+  oser.serialize<chunk_t>(chunk);
+  ofs.close();  
+}
+
+template <class T, std::size_t dims>
+void DistributedNDArray<T, dims>::Flush() {
+  // Update index on disk
+  std::fstream ofs;
+  ofs.open(m_indexpath, std::ios::out | std::ios::binary);  
+  stor::Serializer oser(ofs);
+  oser.serialize<index_t>(m_chunk_index);
+  ofs.close();
 }
 
 template <class T, std::size_t dims>
