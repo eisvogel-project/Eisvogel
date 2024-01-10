@@ -65,7 +65,8 @@ public:
 
 private:
 
-  std::size_t getChunkIndex(IndexVector& inds);
+  bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
+  std::size_t getChunkIndex(const IndexVector& inds);
   chunk_t& retrieveChunk(std::size_t chunk_ind);
   
 private:
@@ -111,11 +112,16 @@ DistributedNDArray<T, dims>::~DistributedNDArray() {
 template <class T, std::size_t dims>
 void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind) {
 
-  // TODO: make sure this chunk does not overlap with any that we already have and crash if it does
+  // make sure this chunk does not overlap with any that we already have and crash if it does
+  IndexVector stop_ind = start_ind + chunk.shape();
+  for(auto& chunk_meta : m_chunk_index) {
+    if(chunkContainsInds(chunk_meta, start_ind) || chunkContainsInds(chunk_meta, stop_ind)) {
+      throw std::runtime_error("Trying to add a chunk that overlaps with an already existing one!");
+    }
+  }
 
   // build chunk metadata and add to index
   std::string chunk_filename = "chunk_" + std::to_string(m_chunk_index.size()) + ".bin";
-  IndexVector stop_ind = start_ind + chunk.shape();
   ChunkMetadata meta(chunk_filename, start_ind, stop_ind);
   m_chunk_index.push_back(meta);
 
@@ -154,14 +160,15 @@ T& DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
 }
 
 template <class T, std::size_t dims>
-std::size_t DistributedNDArray<T, dims>::getChunkIndex(IndexVector& inds) {
+bool DistributedNDArray<T, dims>::chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds) {
+  return isInIndexRange(inds, chunk_meta.start_ind, chunk_meta.stop_ind);
+}
 
+template <class T, std::size_t dims>
+std::size_t DistributedNDArray<T, dims>::getChunkIndex(const IndexVector& inds) {
   std::size_t chunk_ind = 0;
   for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
-    IndexVector& chunk_start_ind = m_chunk_index[chunk_ind].start_ind;
-    IndexVector& chunk_stop_ind = m_chunk_index[chunk_ind].stop_ind;
-
-    if(isInIndexRange(inds, chunk_start_ind, chunk_stop_ind)) {
+    if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
       return chunk_ind;
     }
   }

@@ -1,6 +1,6 @@
 #include "Eisvogel/IteratorUtils.hh"
 
-bool isInIndexRange(IndexVector& inds, IndexVector& start_inds, IndexVector& stop_inds) {
+bool isInIndexRange(const IndexVector& inds, const IndexVector& start_inds, const IndexVector& stop_inds) {
 
   if((inds.size() != start_inds.size()) || (inds.size() != stop_inds.size())) {
     throw;

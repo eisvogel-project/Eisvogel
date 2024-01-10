@@ -30,7 +30,11 @@ int main(int argc, char* argv[]) {
 
   DistributedNDArray<float, 2> darr_load("./distarr/", 10);
 
-  IndexVector acc_ind = {1,1};
-  std::cout << darr_load(acc_ind) << std::endl;
-  std::cout << darr_load(acc_ind) << std::endl;
+  IndexVector acc_ind1 = {1,1};
+  std::cout << darr_load(acc_ind1) << std::endl;
+  std::cout << darr_load(acc_ind1) << std::endl;
+
+  IndexVector acc_ind2 = {10,10};
+  std::cout << darr_load(acc_ind2) << std::endl;
+  std::cout << darr_load(acc_ind2) << std::endl;  
 }

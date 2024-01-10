@@ -41,6 +41,6 @@ public:
 };
 
 // some additional utility functions
-bool isInIndexRange(IndexVector& inds, IndexVector& start_inds, IndexVector& stop_inds);
+bool isInIndexRange(const IndexVector& inds, const IndexVector& start_inds, const IndexVector& stop_inds);
 
 #endif
