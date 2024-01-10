@@ -150,8 +150,6 @@ T& DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
   // check to which chunk this index belongs
   std::size_t chunk_ind = getChunkIndex(inds);
 
-  // check if chunk is in cache
-
   // retrieve chunk from cache or load from file
   chunk_t& found_chunk = retrieveChunk(chunk_ind);
 
