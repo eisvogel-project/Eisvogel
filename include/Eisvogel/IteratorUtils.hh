@@ -40,4 +40,7 @@ public:
   inline IndexVector& index() {return m_cur;}
 };
 
+// some additional utility functions
+bool isInIndexRange(IndexVector& inds, IndexVector& start_inds, IndexVector& stop_inds);
+
 #endif
