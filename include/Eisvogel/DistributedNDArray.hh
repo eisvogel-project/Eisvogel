@@ -55,6 +55,7 @@ public:
   ~DistributedNDArray();
 
   using chunk_t = DenseNDArray<T, dims>;
+  using shape_t = std::array<std::size_t, dims>;
 
   // For assembling a distributed array
   void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind);
@@ -62,12 +63,18 @@ public:
   
   // For accessing a distributed array
   T& operator()(IndexVector& inds);
+  const shape_t& shape();
 
 private:
 
   bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
   std::size_t getChunkIndex(const IndexVector& inds);
   chunk_t& retrieveChunk(std::size_t chunk_ind);
+  void calculateShape();
+  bool isContiguous();
+
+protected:
+  const shape_t m_shape{};
   
 private:
 
@@ -124,7 +131,7 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   std::string chunk_filename = "chunk_" + std::to_string(m_chunk_index.size()) + ".bin";
   ChunkMetadata meta(chunk_filename, start_ind, stop_ind);
   m_chunk_index.push_back(meta);
-
+  
   // write chunk data to disk --> this is where fancy sparsification and compression would happen
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
   std::fstream ofs;
@@ -153,6 +160,8 @@ T& DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
   // retrieve chunk from cache or load from file
   chunk_t& found_chunk = retrieveChunk(chunk_ind);
 
+  std::cout << "found element in chunk " << std::to_string(chunk_ind) << std::endl;
+  
   // index and return element
   return found_chunk(inds);
 }
@@ -201,6 +210,26 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
   }
   
   return m_chunk_cache.find(chunk_ind) -> second;
+}
+
+template <class T, std::size_t dims>
+const DistributedNDArray<T, dims>::shape_t& DistributedNDArray<T, dims>::shape() {
+  return m_shape;
+}
+
+template <class T, std::size_t dims>
+void DistributedNDArray<T, dims>::calculateShape() {
+
+  // go through chunks and determine global start and end inds
+  
+}
+
+template <class T, std::size_t dims>
+bool DistributedNDArray<T, dims>::isContiguous() {
+
+  // determine global (distributed-array wide) start and stop inds
+  // determine total number of elements
+  // check if sum of elements of chunks give teh same value  
 }
 
 #endif

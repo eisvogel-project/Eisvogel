@@ -11,6 +11,12 @@ int main(int argc, char* argv[]) {
   chunk1(1, 1) = 4.0;
   chunk1.print();
 
+  DenseNDArray<float, 2> chunk1_1({2, 2}, 0.0);
+  chunk1_1.print();
+
+  DenseNDArray<bool, 2> comp = chunk1_1 < chunk1;
+  comp.print();
+  
   IndexVector start_ind1({0, 0});
   start_ind1.print();
 
@@ -34,7 +40,12 @@ int main(int argc, char* argv[]) {
   std::cout << darr_load(acc_ind1) << std::endl;
   std::cout << darr_load(acc_ind1) << std::endl;
 
-  IndexVector acc_ind2 = {10,10};
+  IndexVector acc_ind2 = {2,1};
   std::cout << darr_load(acc_ind2) << std::endl;
-  std::cout << darr_load(acc_ind2) << std::endl;  
+  std::cout << darr_load(acc_ind2) << std::endl;
+
+  std::cout << "shape:" << std::endl;  
+  for(auto cur : darr_load.shape()) {
+    std::cout << cur << std::endl;
+  }
 }
