@@ -203,6 +203,21 @@ public:
     auto elementwise_lt = [&](const T& el_lhs, const T& el_rhs){return el_lhs < el_rhs;};
     return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_lt);
   }
+
+  friend DenseNDArray<bool, dims> operator<=(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_leq = [&](const T& el_lhs, const T& el_rhs){return el_lhs <= el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_leq);
+  }
+
+  friend DenseNDArray<bool, dims> operator>(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_gt = [&](const T& el_lhs, const T& el_rhs){return el_lhs > el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_gt);
+  }
+
+  friend DenseNDArray<bool, dims> operator>=(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_geq = [&](const T& el_lhs, const T& el_rhs){return el_lhs >= el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_geq);
+  }
   
 private:
 
@@ -223,6 +238,16 @@ inline DenseNDArray<T0, dims0> operator_unary(const DenseNDArray<T1, dims0>& arg
   DenseNDArray<T0, dims0> result(arg.m_shape, T0());
   std::transform(arg.m_data.begin(), arg.m_data.end(), result.m_data.begin(), unary_op);
   return result;
+}
+
+template <std::size_t dims>
+bool all(const DenseNDArray<bool, dims>& mask) {
+  for(bool cur : mask) {
+    if(cur == false) {
+      return false;
+    }
+  }
+  return true;
 }
 
 namespace stor {

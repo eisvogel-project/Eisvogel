@@ -71,10 +71,14 @@ private:
   std::size_t getChunkIndex(const IndexVector& inds);
   chunk_t& retrieveChunk(std::size_t chunk_ind);
   void calculateShape();
-  bool isContiguous();
+  bool isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds);
+
+  IndexVector& getGlobalStartInd();
+  IndexVector& getGlobalStopInd();
+  std::size_t getVolume(IndexVector& start_inds, IndexVector& stop_inds);
 
 protected:
-  const shape_t m_shape{};
+  shape_t m_shape{};
   
 private:
 
@@ -82,9 +86,11 @@ private:
   const std::string m_indexpath;
   const std::size_t m_max_cache_size;
 
+  // Keeps track of the chunks this DistributedNDArray is composed of
   using index_t = std::vector<ChunkMetadata>;
   index_t m_chunk_index;
 
+  // Data strutures for caching of frequently-accessed elements of the array
   std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
   std::queue<std::size_t> m_cache_queue; // to keep track of the age of cached chunks
 };
@@ -109,6 +115,9 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
     m_chunk_index = iser.deserialize<index_t>();
     ifs.close();    
   }
+
+  // Calculate global shape of this array
+  calculateShape();
 }
 
 template <class T, std::size_t dims>
@@ -138,7 +147,10 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
   stor::Serializer oser(ofs);
   oser.serialize<chunk_t>(chunk);
-  ofs.close();  
+  ofs.close();
+
+  // update global shape of this array (if possible)
+  calculateShape();
 }
 
 template <class T, std::size_t dims>
@@ -220,16 +232,70 @@ const DistributedNDArray<T, dims>::shape_t& DistributedNDArray<T, dims>::shape()
 template <class T, std::size_t dims>
 void DistributedNDArray<T, dims>::calculateShape() {
 
-  // go through chunks and determine global start and end inds
+  if(m_chunk_index.empty()) {
+    // Nothing to do if everything is empty
+    return;
+  }
   
+  IndexVector& global_start_ind = getGlobalStartInd();
+  IndexVector& global_stop_ind = getGlobalStopInd();
+
+  if(isGloballyContiguous(global_start_ind, global_stop_ind)) {
+    // Chunks fill a contiguous array, makes sense to define a global shape
+    for(std::size_t cur_dim = 0; cur_dim < dims; cur_dim++) {
+      m_shape[cur_dim] = global_stop_ind(cur_dim) - global_start_ind(cur_dim);
+    }
+  }
 }
 
 template <class T, std::size_t dims>
-bool DistributedNDArray<T, dims>::isContiguous() {
+bool DistributedNDArray<T, dims>::isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds) {
+  
+  std::size_t global_volume = getVolume(global_start_inds, global_stop_inds);
+  
+  std::size_t total_chunk_volume = 0;
+  for(auto& chunk : m_chunk_index) {
+    total_chunk_volume += getVolume(chunk.start_ind, chunk.stop_ind);
+  }
 
-  // determine global (distributed-array wide) start and stop inds
-  // determine total number of elements
-  // check if sum of elements of chunks give teh same value  
+  return global_volume == total_chunk_volume;
+}
+
+template <class T, std::size_t dims>
+std::size_t DistributedNDArray<T, dims>::getVolume(IndexVector& start_inds, IndexVector& stop_inds) {
+  std::size_t volume = 1;
+  for(std::size_t cur_dim = 0; cur_dim < dims; cur_dim++) {
+    volume *= (stop_inds(cur_dim) - start_inds(cur_dim));
+  }
+  return volume;
+}
+
+template <class T, std::size_t dims>
+IndexVector& DistributedNDArray<T, dims>::getGlobalStartInd() {
+  if(m_chunk_index.empty()) {
+    throw std::runtime_error("Trying to compute start index of an empty array!");
+  }
+  IndexVector* global_start_ind = &m_chunk_index[0].start_ind;
+  for(auto& chunk : m_chunk_index) {
+    if(all(chunk.start_ind <= *global_start_ind)) {
+      global_start_ind = &chunk.start_ind;
+    }
+  }
+  return *global_start_ind;
+}
+
+template <class T, std::size_t dims>
+IndexVector& DistributedNDArray<T, dims>::getGlobalStopInd() {
+  if(m_chunk_index.empty()) {
+    throw std::runtime_error("Trying to compute stop index of an empty array!");
+  }
+  IndexVector* global_stop_ind = &m_chunk_index[0].stop_ind;
+  for(auto& chunk : m_chunk_index) {
+    if(all(chunk.stop_ind >= *global_stop_ind)) {
+      global_stop_ind = &chunk.stop_ind;
+    }
+  }
+  return *global_stop_ind;
 }
 
 #endif

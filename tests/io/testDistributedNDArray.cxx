@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
   IndexVector start_ind1({0, 0});
   start_ind1.print();
 
-  DenseNDArray<float, 2> chunk2({20, 20}, 0.0);
+  DenseNDArray<float, 2> chunk2({2, 2}, 0.0);
   chunk2(0, 0) = -1.0;
   chunk2(0, 1) = -2.0;
   chunk2(1, 1) = -4.0;
