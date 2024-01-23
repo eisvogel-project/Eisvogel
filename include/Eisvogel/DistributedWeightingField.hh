@@ -12,8 +12,7 @@ class DistributedWeightingField {
 
 public:
   using storage_t = DistributedNDArray<scalar_t, 3>;
-
-public:
+  using chunk_t = DenseNDArray<scalar_t, 3>;
 
   using index_t = std::size_t;
   using shape_t = typename storage_t::shape_t;
@@ -23,6 +22,9 @@ public:
   ~DistributedWeightingField();
 
   void Flush();
+
+  void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
+		     const IndexVector start_ind);
   
   const storage_t& E_r() const {return *m_E_r;};
   const storage_t& E_z() const {return *m_E_z;};

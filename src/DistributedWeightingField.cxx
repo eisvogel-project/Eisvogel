@@ -46,6 +46,14 @@ DistributedWeightingField::~DistributedWeightingField() {
   Flush();
 }
 
+void DistributedWeightingField::RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
+					      const IndexVector start_ind) {
+
+  m_E_r -> RegisterChunk(chunk_E_r, start_ind);
+  m_E_z -> RegisterChunk(chunk_E_z, start_ind);
+  m_E_phi -> RegisterChunk(chunk_E_phi, start_ind);
+}
+
 void DistributedWeightingField::Flush() {
 
   // Flush weighting field metadata
