@@ -29,6 +29,80 @@ namespace WeightingFieldUtils {
     ofs.close();
   }
 
+  scalar_t filtered_theta(scalar_t t, scalar_t tp, unsigned int N) {
+    if(t <= 0) {
+      return 0.0;
+    }
+    return 1.0 - MathUtils::incomplete_gamma(1 + N, N * t / tp) / std::exp(std::lgamma(N + 1));
+  };
+  
+  scalar_t filtered_delta(scalar_t t, scalar_t tp, unsigned int N) {
+    if(t <= 0) {
+      return 0.0;
+    }
+    return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
+  };
+  
+  scalar_t filtered_delta_prime(scalar_t t, scalar_t tp, unsigned int N) {
+    if(t <= 0) {
+      return 0.0;
+    }
+    return filtered_delta(t, tp, N) * (tp - t) * N / (tp * t);
+  };  
+
+  // Weighting field in spherical coordinates
+  scalar_t E_r(scalar_t t, scalar_t r_xy, scalar_t z, scalar_t ior, scalar_t c, scalar_t r_min, scalar_t Qw, scalar_t ds, scalar_t eps0, scalar_t N, scalar_t tp) {
+    
+    r_xy = std::fabs(r_xy);
+    scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+    if(r < r_min) {
+      return std::nan("");
+    }
+    scalar_t t_prop = r * ior / c, t_del = t - t_prop;
+    scalar_t cos_theta = z / r;
+    
+    return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + 
+									      t_prop * filtered_delta(t_del, tp, N));
+  };
+
+  scalar_t E_theta(scalar_t t, scalar_t r_xy, scalar_t z, scalar_t ior, scalar_t c, scalar_t r_min, scalar_t Qw, scalar_t ds, scalar_t eps0, scalar_t N, scalar_t tp) {
+
+    r_xy = std::fabs(r_xy);
+    scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+    if(r < r_min) {
+      return std::nan("");
+    }
+    scalar_t t_prop = r * ior / c, t_del = t - t_prop;
+    scalar_t sin_theta = r_xy / r;
+    return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + t_prop * filtered_delta(t_del, tp, N)
+									+ std::pow(t_prop, 2) * filtered_delta_prime(t_del, tp, N));
+  };
+
+  // Weighting field in cylindrical coordinates
+  scalar_t E_rxy(scalar_t t, scalar_t r_xy, scalar_t z, scalar_t ior, scalar_t c, scalar_t r_min, scalar_t Qw, scalar_t ds, scalar_t eps0, scalar_t N, scalar_t tp) {
+    r_xy = std::fabs(r_xy);
+    scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+    scalar_t cos_theta = z / r, sin_theta = r_xy / r;
+    return E_r(t, r_xy, z, ior, c, r_min, Qw, ds, eps0, N, tp) * sin_theta + E_theta(t, r_xy, z, ior, c, r_min, Qw, ds, eps0, N, tp) * cos_theta;
+  };
+  
+  scalar_t E_z(scalar_t t, scalar_t r_xy, scalar_t z, scalar_t ior, scalar_t c, scalar_t r_min, scalar_t Qw, scalar_t ds, scalar_t eps0, scalar_t N, scalar_t tp) {
+    r_xy = std::fabs(r_xy);
+    scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+    scalar_t cos_theta = z / r, sin_theta = r_xy / r;
+    return E_r(t, r_xy, z, ior, c, r_min, Qw, ds, eps0, N, tp) * cos_theta - E_theta(t, r_xy, z, ior, c, r_min, Qw, ds, eps0, N, tp) * sin_theta;
+  };
+  
+  scalar_t E_phi(scalar_t t, scalar_t r_xy, scalar_t z) {
+    return 0.0;
+  };
+  
+  ScalarField3D<scalar_t> SampleElectricDipoleWeightingField_E_r(const CoordVector& start_coords, const CoordVector& end_coords,
+								 scalar_t tp, unsigned int N, scalar_t delta_t, scalar_t delta_pos,
+								 scalar_t os_factor, scalar_t ior) {
+    
+  }
+  
   WeightingField SampleElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
 						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n) {
 
@@ -52,72 +126,6 @@ namespace WeightingFieldUtils {
     std::cout << "---------------------------" << std::endl;
 
     DeltaVector step_requested = C::MakeCoordVectorTRZ(delta_t, delta_pos, delta_pos);
-
-    auto filtered_theta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
-      if(t <= 0) {
-	return 0.0;
-      }
-      return 1.0 - MathUtils::incomplete_gamma(1 + N, N * t / tp) / std::exp(std::lgamma(N + 1));
-    };
-
-    auto filtered_delta = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
-      if(t <= 0) {
-	return 0.0;
-      }
-      return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
-    };
-
-    auto filtered_delta_prime = [&](scalar_t t, scalar_t tp, unsigned int N) -> scalar_t {
-      if(t <= 0) {
-	return 0.0;
-      }
-      return filtered_delta(t, tp, N) * (tp - t) * N / (tp * t);
-    };  
-
-    // Weighting field in spherical coordinates
-    auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
-      r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
-      if(r < r_min) {
-	return std::nan("");
-      }
-      scalar_t t_prop = r * n / c, t_del = t - t_prop;
-      scalar_t cos_theta = z / r;
-
-      return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + 
-										t_prop * filtered_delta(t_del, tp, N));
-    };
-
-    auto E_theta = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
-      r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
-      if(r < r_min) {
-	return std::nan("");
-      }
-      scalar_t t_prop = r * n / c, t_del = t - t_prop;
-      scalar_t sin_theta = r_xy / r;
-      return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del, tp, N) + t_prop * filtered_delta(t_del, tp, N)
-									  + std::pow(t_prop, 2) * filtered_delta_prime(t_del, tp, N));
-    };
-
-    // Weighting field in cylindrical coordinates
-    auto E_rxy = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
-      r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
-      scalar_t cos_theta = z / r, sin_theta = r_xy / r;
-      return E_r(t, r_xy, z) * sin_theta + E_theta(t, r_xy, z) * cos_theta;
-    };
-    
-    auto E_z = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
-      r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
-      scalar_t cos_theta = z / r, sin_theta = r_xy / r;
-      return E_r(t, r_xy, z) * cos_theta - E_theta(t, r_xy, z) * sin_theta;
-    };
-    
-    auto E_phi = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
-      return 0.0;
-    };
     
     // ==============
 
@@ -143,8 +151,8 @@ namespace WeightingFieldUtils {
       scalar_t r = C::getR(coords);
       scalar_t z = C::getZ(coords);
 
-      scalar_t cur_E_rxy = E_rxy(t, r, z);
-      scalar_t cur_E_z = E_z(t, r, z);
+      scalar_t cur_E_rxy = E_rxy(t, r, z, n, c, r_min, Qw, ds, eps0, N, tp);
+      scalar_t cur_E_z = E_z(t, r, z, n, c, r_min, Qw, ds, eps0, N, tp);
       scalar_t cur_E_phi = E_phi(t, r, z);
 
       E_r_sampled(ind) = cur_E_rxy;
