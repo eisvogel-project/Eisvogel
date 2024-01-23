@@ -16,6 +16,7 @@ public:
   using shape_t = std::array<std::size_t, dims>;
 
 public:
+  NDArray() { }
   NDArray(const shape_t& shape) : m_shape(shape) { }
   virtual ~NDArray() = 0;
 
@@ -28,7 +29,7 @@ public:
   }
 
 protected:
-  const shape_t m_shape = {};
+  shape_t m_shape = {};
 };
 
 template <class T, std::size_t dims>

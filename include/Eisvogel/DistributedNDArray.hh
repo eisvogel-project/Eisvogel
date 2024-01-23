@@ -47,7 +47,7 @@ namespace stor {
 // ----
 
 template <class T, std::size_t dims>
-class DistributedNDArray {
+class DistributedNDArray : public NDArray<T, dims> {
 
 public:
   
@@ -55,7 +55,6 @@ public:
   ~DistributedNDArray();
 
   using chunk_t = DenseNDArray<T, dims>;
-  using shape_t = std::array<std::size_t, dims>;
 
   // For assembling a distributed array
   void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind);
@@ -63,7 +62,6 @@ public:
   
   // For accessing a distributed array
   T& operator()(IndexVector& inds);
-  const shape_t& shape();
 
 private:
 
@@ -76,9 +74,6 @@ private:
   IndexVector& getGlobalStartInd();
   IndexVector& getGlobalStopInd();
   std::size_t getVolume(IndexVector& start_inds, IndexVector& stop_inds);
-
-protected:
-  shape_t m_shape{};
   
 private:
 
@@ -99,7 +94,7 @@ private:
 
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size) :
-  m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size) {
+  NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size) {
 
   // Create directory if it does not already exist
   if(!std::filesystem::exists(m_dirpath)) {
@@ -225,11 +220,6 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
 }
 
 template <class T, std::size_t dims>
-const DistributedNDArray<T, dims>::shape_t& DistributedNDArray<T, dims>::shape() {
-  return m_shape;
-}
-
-template <class T, std::size_t dims>
 void DistributedNDArray<T, dims>::calculateShape() {
 
   if(m_chunk_index.empty()) {
@@ -243,7 +233,7 @@ void DistributedNDArray<T, dims>::calculateShape() {
   if(isGloballyContiguous(global_start_ind, global_stop_ind)) {
     // Chunks fill a contiguous array, makes sense to define a global shape
     for(std::size_t cur_dim = 0; cur_dim < dims; cur_dim++) {
-      m_shape[cur_dim] = global_stop_ind(cur_dim) - global_start_ind(cur_dim);
+      this -> m_shape[cur_dim] = global_stop_ind(cur_dim) - global_start_ind(cur_dim);
     }
   }
 }
