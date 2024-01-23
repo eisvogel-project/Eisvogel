@@ -8,8 +8,6 @@
 #include "Common.hh"
 #include "CoordUtils.hh"
 
-#include "Serialization.hh"
-
 class DistributedWeightingField {
 
 public:
@@ -20,40 +18,11 @@ public:
   using index_t = std::size_t;
   using shape_t = typename storage_t::shape_t;
 
-  DistributedWeightingField(std::string wf_path, CoordVector start_coords, CoordVector end_coords) : m_wf_path(wf_path) {
+  DistributedWeightingField(std::string wf_path, CoordVector start_coords, CoordVector end_coords);
+  DistributedWeightingField(std::string wf_path);
+  ~DistributedWeightingField();
 
-    // Assumes that weighting field does not yet exist and directory structure needs to be built up from scratch
-    
-    // we might have to create the directory structure if this is an empty weighting field
-    if(!std::filesystem::exists(m_wf_path)) {
-      std::filesystem::create_directory(m_wf_path);
-    }
-
-    std::string wf_path_E_r = m_wf_path + "/E_r";
-    std::string wf_path_E_z = m_wf_path + "/E_z";
-    std::string wf_path_E_phi = m_wf_path + "/E_phi";
-
-    m_E_r = std::make_shared<storage_t>(wf_path_E_r, 10);
-    m_E_z = std::make_shared<storage_t>(wf_path_E_z, 10);
-    m_E_phi = std::make_shared<storage_t>(wf_path_E_phi, 10);
-
-    m_start_coords = std::make_shared<CoordVector>(start_coords);
-    m_end_coords = std::make_shared<CoordVector>(end_coords);
-  }
-
-  DistributedWeightingField(std::string wf_path) : m_wf_path(wf_path) {
-
-    // Assumes that weighting field already exists
-    std::string wf_path_E_r = m_wf_path + "/E_r";
-    std::string wf_path_E_z = m_wf_path + "/E_z";
-    std::string wf_path_E_phi = m_wf_path + "/E_phi";
-
-    m_E_r = std::make_shared<storage_t>(wf_path_E_r, 10);
-    m_E_z = std::make_shared<storage_t>(wf_path_E_z, 10);
-    m_E_phi = std::make_shared<storage_t>(wf_path_E_phi, 10);    
-    
-    
-  }
+  void Flush();
   
   const storage_t& E_r() const {return *m_E_r;};
   const storage_t& E_z() const {return *m_E_z;};
