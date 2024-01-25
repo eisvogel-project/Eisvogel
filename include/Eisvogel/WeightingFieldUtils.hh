@@ -10,8 +10,9 @@ namespace WeightingFieldUtils {
 					  const CoordVector& start_coords, const CoordVector& end_coords,
 					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor = 1.5, scalar_t n = 1);
 
-  WeightingField SampleElectricDipoleWeightingField(const CoordVector& start_coords, const CoordVector& end_coords,
-						    scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n = 1);
+  void SampleElectricDipoleWeightingFieldChunk(ScalarField3D<scalar_t>& E_r_buffer, ScalarField3D<scalar_t>& E_z_buffer, ScalarField3D<scalar_t>& E_phi_buffer,
+					       const CoordVector& start_coords, const CoordVector& end_coords, 
+					       scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n);
 
 }
 
