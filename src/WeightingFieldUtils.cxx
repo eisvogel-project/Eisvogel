@@ -7,7 +7,7 @@
 #include "Eisvogel/DistributedWeightingField.hh"
 #include <cmath>
 #include <iostream>
-#include <fstream>
+#include <filesystem>
 
 namespace C = CoordUtils;
 
@@ -16,6 +16,9 @@ namespace WeightingFieldUtils {
   void CreateElectricDipoleWeightingField(std::string wf_path,
 					  const CoordVector& start_coords, const CoordVector& end_coords,
 					  scalar_t tp, unsigned int N, scalar_t r_min, scalar_t os_factor, scalar_t n) {
+
+    // make sure to start from scratch
+    std::filesystem::remove_all(wf_path);
     
     DistributedWeightingField dwf(wf_path, start_coords, end_coords);
 

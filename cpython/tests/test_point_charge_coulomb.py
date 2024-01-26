@@ -77,16 +77,16 @@ def compare_eisvogel_to_analytic(bvec, vvec, charge, tp, N, time_test_interval, 
                                      max(z(pos_start_vec), z(pos_end_vec)) + padding)
     os_factor = 10
     r_min = 0.1
-    wf_path = "./dipole.bin"
+    wf_dirpath = "./dipole_wf"
     
-    CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor)        
+    CreateElectricDipoleWeightingField(wf_dirpath, start_coords, end_coords, tp, N, r_min, os_factor)
     
     points = [CoordVector.FromTXYZ(t_min_ev, *pos_start_vec),
               CoordVector.FromTXYZ(t_max_ev, *pos_end_vec)]
     charges = [charge]
     track = Current0D.FromSegments(points, charges)
     
-    calc = SignalCalculator(wf_path)
+    calc = SignalCalculator(wf_dirpath)
     
     for cur_t, cur_sig in zip(tvals_test, sigvals_test):
         cur_sig_ev = calc.ComputeSignal(track, cur_t)
