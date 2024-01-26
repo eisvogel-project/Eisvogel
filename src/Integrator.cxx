@@ -9,14 +9,14 @@
 
 namespace CU = CoordUtils;
 
-void Integrator::SetGeometry(std::shared_ptr<WeightingField> wf, 
+void Integrator::SetGeometry(std::shared_ptr<DistributedWeightingField> dwf, 
 			     std::shared_ptr<Kernel> kernel) {
   m_kernel = kernel;
-  m_wf = wf;
+  m_dwf = dwf;
 
-  m_itpl_E_r = std::make_unique<interpolator_t>(m_wf -> E_r(), *m_kernel);
-  m_itpl_E_z = std::make_unique<interpolator_t>(m_wf -> E_z(), *m_kernel);
-  m_itpl_E_phi = std::make_unique<interpolator_t>(m_wf -> E_phi(), *m_kernel);
+  m_itpl_E_r = std::make_unique<interpolator_t>(m_dwf -> E_r(), *m_kernel);
+  m_itpl_E_z = std::make_unique<interpolator_t>(m_dwf -> E_z(), *m_kernel);
+  m_itpl_E_phi = std::make_unique<interpolator_t>(m_dwf -> E_phi(), *m_kernel);
 }
 
 scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_factor) const {
@@ -28,7 +28,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
     velocities.AddPoint(deltas(pt_ind) / CU::getT(deltas(pt_ind)));
   }
 
-  DeltaVector wf_sampling_intervals = m_wf -> getSamplingIntervals(); 
+  DeltaVector wf_sampling_intervals = m_dwf -> getSamplingIntervals(); 
 
   // Main signal integration loop
   scalar_t signal = 0;
@@ -63,7 +63,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
       CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
       
-      CoordVector wf_eval_frac_inds = m_wf -> getFracInds(wf_eval_pos);
+      CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
 
       FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
 						      m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
@@ -99,7 +99,7 @@ scalar_t Integrator::integrate(scalar_t t, const SparseCurrentDensity3D& current
     CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
     CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
 
-    CoordVector wf_eval_frac_inds = m_wf -> getFracInds(wf_eval_pos);
+    CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
     
     FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
 						    m_itpl_E_z -> Interpolate(wf_eval_frac_inds),

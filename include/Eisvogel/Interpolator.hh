@@ -14,7 +14,7 @@ class Interpolator {
 
 public:
 
-  Interpolator(const ArrayT<ValueT, dims>& data, const Kernel& kernel) : 
+  Interpolator(ArrayT<ValueT, dims>& data, const Kernel& kernel) : 
     m_data(data), m_kernel(kernel) { };
 
   template <typename... FracInds>
@@ -64,7 +64,7 @@ public:
 
 private:
 
-  const ArrayT<ValueT, dims>& m_data;
+  ArrayT<ValueT, dims>& m_data;
   const Kernel& m_kernel;  
 };
 

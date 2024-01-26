@@ -26,9 +26,9 @@ public:
   void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
 		     const IndexVector start_ind);
   
-  const storage_t& E_r() const {return *m_E_r;};
-  const storage_t& E_z() const {return *m_E_z;};
-  const storage_t& E_phi() const {return *m_E_phi;};
+  storage_t& E_r() const {return *m_E_r;};
+  storage_t& E_z() const {return *m_E_z;};
+  storage_t& E_phi() const {return *m_E_phi;};
 
   static inline CoordVector FracIndsToCoord(const CoordVector& frac_inds, const CoordVector& start_coords, const CoordVector& end_coords, 
 					    const CoordVector& shape) {
