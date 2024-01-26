@@ -167,7 +167,7 @@ T& DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
   // retrieve chunk from cache or load from file
   chunk_t& found_chunk = retrieveChunk(chunk_ind);
 
-  std::cout << "found element in chunk " << std::to_string(chunk_ind) << std::endl;
+  // std::cout << "found element in chunk " << std::to_string(chunk_ind) << std::endl;
   
   // index and return element
   return found_chunk(inds);
