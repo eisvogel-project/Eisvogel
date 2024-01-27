@@ -61,7 +61,7 @@ public:
   void Flush();
   
   // For accessing a distributed array
-  T& operator()(IndexVector& inds);
+  T operator()(IndexVector& inds);
 
 private:
 
@@ -159,18 +159,17 @@ void DistributedNDArray<T, dims>::Flush() {
 }
 
 template <class T, std::size_t dims>
-T& DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
+T DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
 
   // check to which chunk this index belongs
   std::size_t chunk_ind = getChunkIndex(inds);
 
   // retrieve chunk from cache or load from file
   chunk_t& found_chunk = retrieveChunk(chunk_ind);
-
-  // std::cout << "found element in chunk " << std::to_string(chunk_ind) << std::endl;
   
   // index and return element
-  return found_chunk(inds);
+  IndexVector inds_within_chunk = inds - m_chunk_index[chunk_ind].start_ind;  
+  return found_chunk(inds_within_chunk);
 }
 
 template <class T, std::size_t dims>
@@ -192,7 +191,7 @@ std::size_t DistributedNDArray<T, dims>::getChunkIndex(const IndexVector& inds) 
 
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk(std::size_t chunk_ind) {
-
+  
   ChunkMetadata& chunk_meta = m_chunk_index[chunk_ind];
 
   if(!m_chunk_cache.contains(chunk_ind)) {
@@ -208,12 +207,13 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
     // load chunk from file --> this is where fancy re-densification and decompression would happen
     std::fstream ifs;
     std::string chunk_path = m_dirpath + "/" + chunk_meta.filename;
-    std::cout << "Loading chunk from " + chunk_path << std::endl;
+    std::cout << "Loading chunk from " + chunk_path + " ... ";
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
     stor::Serializer iser(ifs);
     m_chunk_cache.insert({chunk_ind, iser.deserialize<chunk_t>()});
     m_cache_queue.push(chunk_ind);
-    ifs.close();    
+    ifs.close();
+    std::cout << "done!" << std::endl;
   }
   
   return m_chunk_cache.find(chunk_ind) -> second;
