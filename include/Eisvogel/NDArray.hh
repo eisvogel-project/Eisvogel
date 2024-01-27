@@ -149,7 +149,7 @@ public:
   }
 
   // printing
-  void print() {
+  void print() const {
     for(const T& cur: m_data) {
       std::cout << cur << " ";
     }
