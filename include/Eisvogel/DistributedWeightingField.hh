@@ -24,7 +24,7 @@ public:
   void Flush();
 
   void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
-		     const IndexVector start_ind);
+		     const IndexVector chunk_start_inds);
   
   storage_t& E_r() const {return *m_E_r;};
   storage_t& E_z() const {return *m_E_z;};

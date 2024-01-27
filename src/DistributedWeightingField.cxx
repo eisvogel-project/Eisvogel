@@ -47,11 +47,11 @@ DistributedWeightingField::~DistributedWeightingField() {
 }
 
 void DistributedWeightingField::RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
-					      const IndexVector start_ind) {
-
-  m_E_r -> RegisterChunk(chunk_E_r, start_ind);
-  m_E_z -> RegisterChunk(chunk_E_z, start_ind);
-  m_E_phi -> RegisterChunk(chunk_E_phi, start_ind);
+					      const IndexVector chunk_start_inds) {
+  
+  m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
+  m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
+  m_E_phi -> RegisterChunk(chunk_E_phi, chunk_start_inds);
 }
 
 void DistributedWeightingField::Flush() {
