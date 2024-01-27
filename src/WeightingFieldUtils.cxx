@@ -45,23 +45,6 @@ namespace WeightingFieldUtils {
     DeltaVector chunk_size = domain_size / (DeltaVector)(number_chunks);
     IndexVector number_pts_in_chunk = chunk_size / stepsize_requested + 1;    
 
-    std::cout << "start_coords = " << std::endl;
-    start_coords.print();
-    std::cout << "end_coords = " << std::endl;
-    end_coords.print();
-    std::cout << "domain_size = " << std::endl;
-    domain_size.print();
-    std::cout << "stepsize_requested = " << std::endl;
-    stepsize_requested.print();
-    std::cout << "number_pts = " << std::endl;
-    number_pts.print();
-    std::cout << "number_chunks = " << std::endl;
-    number_chunks.print();
-    std::cout << "chunk_size = " << std::endl;
-    chunk_size.print();
-    std::cout << "number_pts_in_chunk = " << std::endl;
-    number_pts_in_chunk.print();
-
     // Prepare chunk buffers
     std::size_t pts_t = C::getT(number_pts_in_chunk), pts_r = C::getR(number_pts_in_chunk), pts_z = C::getZ(number_pts_in_chunk);
     ScalarField3D<scalar_t> chunk_buffer_E_r({pts_t, pts_z, pts_r}, 0.0);
@@ -78,17 +61,6 @@ namespace WeightingFieldUtils {
       CoordVector chunk_start_coords = start_coords + chunk_size * (CoordVector)(chunk_ind);
       CoordVector chunk_end_coords = chunk_start_coords + chunk_size;
       IndexVector chunk_start_inds = number_pts_in_chunk * chunk_ind;
-
-      std::cout << "- - - - " << std::endl;     
-      std::cout << "chunk_ind = " << std::endl;
-      chunk_ind.print();
-      std::cout << "chunk_start_coords = " << std::endl;
-      chunk_start_coords.print();
-      std::cout << "chunk_end_coords = " << std::endl;
-      chunk_end_coords.print();
-      std::cout << "chunk_start_inds = " << std::endl;
-      chunk_start_inds.print();
-      std::cout << "- - - - " << std::endl;
 
       // Fill chunk buffers
       SampleElectricDipoleWeightingFieldChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_coords, chunk_end_coords,
