@@ -7,3 +7,6 @@ target_link_libraries(testDistributedNDArray eisvogel)
 
 add_executable(testDistributedWeightingField testDistributedWeightingField.cxx)
 target_link_libraries(testDistributedWeightingField eisvogel)
+
+add_executable(testSerialization testSerialization.cxx)
+target_link_libraries(testSerialization eisvogel)
