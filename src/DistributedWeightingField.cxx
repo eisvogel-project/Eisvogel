@@ -64,8 +64,8 @@ void DistributedWeightingField::Flush() {
   oser.serialize(*m_start_coords);
   oser.serialize(*m_end_coords);
   
-  // Flush the actual data
-  m_E_r -> Flush();
-  m_E_z -> Flush();
-  m_E_phi -> Flush();
+  // Make the indices persistent
+  m_E_r -> FlushIndex();
+  m_E_z -> FlushIndex();
+  m_E_phi -> FlushIndex();
 }
