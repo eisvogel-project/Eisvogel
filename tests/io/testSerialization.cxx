@@ -38,6 +38,8 @@ int test_serialization_vector(std::string ser_path, std::size_t length) {
 
   std::chrono::duration<double> time_span = duration_cast<std::chrono::duration<double>>(t_end - t_start);
   std::cout << "It took me " << time_span.count() << " seconds." << std::endl;
+
+  throw std::runtime_error("Bla");
   
   for(std::size_t ind = 0; ind < length; ind++) {
     if(vec[ind] != res[ind]) {
@@ -51,5 +53,5 @@ int test_serialization_vector(std::string ser_path, std::size_t length) {
 int main(int argc, char* argv[]) {
        
   std::string ser_path = "ser_test.bin";
-  test_serialization_vector(ser_path, 100000);
+  test_serialization_vector(ser_path, 1e6);
 }
