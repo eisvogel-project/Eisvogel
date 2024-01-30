@@ -16,6 +16,7 @@ public:
   using shape_t = std::array<std::size_t, dims>;
 
 public:
+  NDArray() { }
   NDArray(const shape_t& shape) : m_shape(shape) { }
   virtual ~NDArray() = 0;
 
@@ -28,7 +29,7 @@ public:
   }
 
 protected:
-  const shape_t m_shape = {};
+  shape_t m_shape = {};
 };
 
 template <class T, std::size_t dims>
@@ -48,6 +49,13 @@ private:
 
 private:
   friend struct stor::Traits<DenseNDArray<T, dims>>;
+  
+  template <typename T0, std::size_t dims0, typename T1, typename T2>
+  friend inline DenseNDArray<T0, dims0> operator_binary(const DenseNDArray<T1, dims0>& lhs, const DenseNDArray<T2, dims0>& rhs, auto binary_op);
+  
+  template <typename T0, std::size_t dims0, typename T1>
+  friend inline DenseNDArray<T0, dims0> operator_unary(const DenseNDArray<T1, dims0>& arg, auto unary_op);
+
   template <typename T1> friend class DenseNDArray<T, dims>;
 
 public:
@@ -139,6 +147,14 @@ public:
   bool operator==(const DenseNDArray<T, dims>& rhs) {
     return rhs.m_data == m_data;
   }
+
+  // printing
+  void print() const {
+    for(const T& cur: m_data) {
+      std::cout << cur << " ";
+    }
+    std::cout << std::endl;
+  }
   
   auto begin() {return m_data.begin();}
   auto cbegin() {return m_data.cbegin();}
@@ -149,59 +165,91 @@ public:
   const std::size_t size() const requires(dims == 1) {return m_data.size();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::plus<>());
+    return operator_binary<T, dims, T, T>(lhs, rhs, std::plus<>());
   }
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const T& rhs) {
     auto plus_rhs = [&](const T& el){return std::plus<>()(el, rhs);};
-    return operator_unary(lhs, plus_rhs);
+    return operator_unary<T, dims, T>(lhs, plus_rhs);
   }
 
   friend DenseNDArray<T, dims> operator-(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::minus<>());
+    return operator_binary<T, dims, T, T>(lhs, rhs, std::minus<>());
   }
 
   friend DenseNDArray<T, dims> operator-(const DenseNDArray<T, dims>& lhs, const T& rhs) {
     auto minus_rhs = [&](const T& el){return std::minus<>()(el, rhs);};
-    return operator_unary(lhs, minus_rhs);
+    return operator_unary<T, dims, T>(lhs, minus_rhs);
   }
 
   friend DenseNDArray<T, dims> operator*(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::multiplies<>());
+    return operator_binary<T, dims, T, T>(lhs, rhs, std::multiplies<>());
   }
 
   friend DenseNDArray<T, dims> operator*(const DenseNDArray<T, dims>& lhs, const T& rhs) {
     auto multiplies_rhs = [&](const T& el){return std::multiplies<>()(el, rhs);};
-    return operator_unary(lhs, multiplies_rhs);
+    return operator_unary<T, dims, T>(lhs, multiplies_rhs);
   }
 
   friend DenseNDArray<T, dims> operator/(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
-    return operator_binary(lhs, rhs, std::divides<>());
+    return operator_binary<T, dims, T, T>(lhs, rhs, std::divides<>());
   }
 
   friend DenseNDArray<T, dims> operator/(const DenseNDArray<T, dims>& lhs, const T& rhs) {
     auto divides_rhs = [&](const T& el){return std::divides<>()(el, rhs);};
-    return operator_unary(lhs, divides_rhs);
+    return operator_unary<T, dims, T>(lhs, divides_rhs);
   }
 
+  friend DenseNDArray<bool, dims> operator<(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_lt = [&](const T& el_lhs, const T& el_rhs){return el_lhs < el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_lt);
+  }
+
+  friend DenseNDArray<bool, dims> operator<=(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_leq = [&](const T& el_lhs, const T& el_rhs){return el_lhs <= el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_leq);
+  }
+
+  friend DenseNDArray<bool, dims> operator>(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_gt = [&](const T& el_lhs, const T& el_rhs){return el_lhs > el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_gt);
+  }
+
+  friend DenseNDArray<bool, dims> operator>=(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
+    auto elementwise_geq = [&](const T& el_lhs, const T& el_rhs){return el_lhs >= el_rhs;};
+    return operator_binary<bool, dims, T, T>(lhs, rhs, elementwise_geq);
+  }
+  
 private:
 
   stride_t m_strides = {};
   data_t m_data = {};
-
-  friend inline DenseNDArray<T, dims> operator_binary(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs,
-						      auto binary_op) {
-    DenseNDArray<T, dims> result(lhs.m_shape, T());
-    std::transform(lhs.m_data.begin(), lhs.m_data.end(), rhs.m_data.begin(), result.m_data.begin(), binary_op);
-    return result;
-  }
-
-  friend inline DenseNDArray<T, dims> operator_unary(const DenseNDArray<T, dims>& arg, auto unary_op) {
-    DenseNDArray<T, dims> result(arg.m_shape, T());
-    std::transform(arg.m_data.begin(), arg.m_data.end(), result.m_data.begin(), unary_op);
-    return result;
-  }
 };
+
+template <typename T0, std::size_t dims0, typename T1, typename T2>
+inline DenseNDArray<T0, dims0> operator_binary(const DenseNDArray<T1, dims0>& lhs, const DenseNDArray<T2, dims0>& rhs,
+					       auto binary_op) {
+  DenseNDArray<T0, dims0> result(lhs.m_shape, T0());
+  std::transform(lhs.m_data.begin(), lhs.m_data.end(), rhs.m_data.begin(), result.m_data.begin(), binary_op);
+  return result;
+}
+
+template <typename T0, std::size_t dims0, typename T1>
+inline DenseNDArray<T0, dims0> operator_unary(const DenseNDArray<T1, dims0>& arg, auto unary_op) {
+  DenseNDArray<T0, dims0> result(arg.m_shape, T0());
+  std::transform(arg.m_data.begin(), arg.m_data.end(), result.m_data.begin(), unary_op);
+  return result;
+}
+
+template <std::size_t dims>
+bool all(const DenseNDArray<bool, dims>& mask) {
+  for(bool cur : mask) {
+    if(cur == false) {
+      return false;
+    }
+  }
+  return true;
+}
 
 namespace stor {
 

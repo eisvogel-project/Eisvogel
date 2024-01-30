@@ -5,7 +5,7 @@
 #include <memory>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/Integrator.hh"
-#include "Eisvogel/WeightingField.hh"
+#include "Eisvogel/DistributedWeightingField.hh"
 #include "Eisvogel/Current0D.hh"
 #include "Eisvogel/SparseCurrentDensity3D.hh"
 
@@ -19,7 +19,6 @@ public:
 private:
   std::string m_geometry_path;
   Integrator m_integrator;
-  static std::shared_ptr<WeightingField> load_wf(const std::string& path);
 };
 
 #endif
