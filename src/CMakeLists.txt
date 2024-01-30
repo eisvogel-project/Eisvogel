@@ -2,10 +2,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=2 -funroll-loops -march=native")
 
-find_package(MPI REQUIRED)
-
 add_library(eisvogel SHARED
             WeightingFieldUtils.cxx
+	    DistributedWeightingField.cxx
             Kernels.cxx
             Interpolator.cxx
             Integrator.cxx
@@ -19,6 +18,7 @@ set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
 
 if(BUILD_WFC)
+    find_package(MPI REQUIRED)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(MEEP REQUIRED meep)
 
