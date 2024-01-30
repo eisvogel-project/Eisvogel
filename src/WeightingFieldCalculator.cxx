@@ -1,9 +1,15 @@
 #include <iostream>
 #include <filesystem>
 #include "Eisvogel/WeightingFieldCalculator.hh"
+#include "Eisvogel/DistributedWeightingField.hh"
+#include "Eisvogel/CoordUtils.hh"
 
-WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna,
+// For now, this only handles geometries with cylindrical symmetry
+WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
 						   double courant_factor, double resolution, double pml_width) {
+
+  start_coords = std::make_shared<CoordVector>(CoordUtils::MakeCoordVectorTRZ(0.0, 0.0, 0.0));
+  end_coords = std::make_shared<CoordVector>(CoordUtils::MakeCoordVectorTRZ(t_end, 0.0, 0.0));
   
   gv = std::make_shared<meep::grid_volume>(meep::volcyl(geom.GetRMax(), geom.GetZMax() - geom.GetZMin(), resolution));
   s = std::make_shared<meep::structure>(*gv, geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
@@ -98,7 +104,9 @@ void WeightingFieldCalculator::Calculate(double t_end, std::string tmpdir) {
   }
   
   // This is only for cross-checking the geometry for now
-  f -> output_hdf5(meep::Dielectric, gv -> surroundings());
+  // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
+
+  DistributedWeightingField dwf(tmpdir, *start_coords, *end_coords);
 
   int stepcnt = 0;
   while (f -> time() < t_end) {
