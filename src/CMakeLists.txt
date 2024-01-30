@@ -5,6 +5,7 @@ set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=
 add_library(eisvogel SHARED
             WeightingFieldUtils.cxx
 	    DistributedWeightingField.cxx
+	    IteratorUtils.cxx
             Kernels.cxx
             Interpolator.cxx
             Integrator.cxx

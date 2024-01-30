@@ -9,6 +9,7 @@ option(BUILD_TESTS "Build tests." OFF)
 add_subdirectory(cmake)
 add_subdirectory(src)
 add_subdirectory(examples)
+add_subdirectory(extern)
 
 if(BUILD_PYTHON)
     add_subdirectory(cpython)
