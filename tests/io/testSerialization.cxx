@@ -37,9 +37,7 @@ int test_serialization_vector(std::string ser_path, std::size_t length) {
   std::chrono::high_resolution_clock::time_point t_end = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> time_span = duration_cast<std::chrono::duration<double>>(t_end - t_start);
-  std::cout << "It took me " << time_span.count() << " seconds." << std::endl;
-
-  throw std::runtime_error("Bla");
+  std::cout << "Completed in " << time_span.count() << " seconds." << std::endl;
   
   for(std::size_t ind = 0; ind < length; ind++) {
     if(vec[ind] != res[ind]) {
