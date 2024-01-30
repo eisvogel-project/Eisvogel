@@ -1,3 +1,23 @@
+namespace stor {
+  template <>
+  struct Traits<ChunkMetadata> {
+    using type = ChunkMetadata;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<std::string>::serialize(stream, val.filename);
+      Traits<IndexVector>::serialize(stream, val.start_ind);
+      Traits<IndexVector>::serialize(stream, val.stop_ind);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      std::string filename = Traits<std::string>::deserialize(stream);
+      IndexVector start_ind = Traits<IndexVector>::deserialize(stream);
+      IndexVector stop_ind = Traits<IndexVector>::deserialize(stream);
+      return ChunkMetadata(filename, start_ind, stop_ind);
+    }    
+  };
+}
+
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size) :
   NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size) {
@@ -7,14 +27,17 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
     std::filesystem::create_directory(m_dirpath);
   }
 
-  // Load index if there is one
   if(std::filesystem::exists(m_indexpath)) {
-    // Load index
+    // Load index if there is one
     std::fstream ifs; 
     ifs.open(m_indexpath, std::ios::in | std::ios::binary);
     stor::Serializer iser(ifs);
     m_chunk_index = iser.deserialize<index_t>();
     ifs.close();    
+  }
+  else {
+    // Attempt to rebuild index
+    rebuildIndex();
   }
 
   // Calculate global shape of this array
@@ -23,17 +46,20 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
 
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::~DistributedNDArray() {
-  Flush();
+  FlushIndex();
 }
 
 template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind) {
+void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind, bool require_nonoverlapping) {
 
-  // make sure this chunk does not overlap with any that we already have and crash if it does
   IndexVector stop_ind = start_ind + chunk.shape();
-  for(auto& chunk_meta : m_chunk_index) {
-    if(chunkContainsInds(chunk_meta, start_ind) || chunkContainsInds(chunk_meta, stop_ind)) {
-      throw std::runtime_error("Trying to add a chunk that overlaps with an already existing one!");
+  
+  if(require_nonoverlapping) {
+    // make sure this chunk does not overlap with any that we already have and crash if it does
+    for(auto& chunk_meta : m_chunk_index) {
+      if(chunkContainsInds(chunk_meta, start_ind) || chunkContainsInds(chunk_meta, stop_ind)) {
+	throw std::runtime_error("Trying to add a chunk that overlaps with an already existing one!");
+      }
     }
   }
 
@@ -47,6 +73,7 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   std::fstream ofs;
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
   stor::Serializer oser(ofs);
+  oser.serialize<ChunkMetadata>(meta);
   oser.serialize<chunk_t>(chunk);
   ofs.close();
 
@@ -55,13 +82,32 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
 }
 
 template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::Flush() {
+void DistributedNDArray<T, dims>::FlushIndex() {
   // Update index on disk
   std::fstream ofs;
   ofs.open(m_indexpath, std::ios::out | std::ios::binary);  
   stor::Serializer oser(ofs);
   oser.serialize<index_t>(m_chunk_index);
   ofs.close();
+}
+
+template <class T, std::size_t dims>
+void DistributedNDArray<T, dims>::rebuildIndex() {
+  m_chunk_index.clear();
+
+  // With the index gone, also the cache is now out of scope
+  m_chunk_cache.clear();
+  m_cache_queue = {};
+
+  for(auto const& dir_entry : std::filesystem::directory_iterator(m_dirpath)) {
+    std::fstream ifs;
+    ifs.open(dir_entry.path(), std::ios::in | std::ios::binary);
+    stor::Serializer iser(ifs);
+    ChunkMetadata meta = iser.deserialize<ChunkMetadata>();
+    ifs.close();
+    
+    m_chunk_index.push_back(meta);
+  }
 }
 
 template <class T, std::size_t dims>
@@ -116,6 +162,7 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
     std::cout << "Loading chunk from " + chunk_path + " ... ";
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
     stor::Serializer iser(ifs);
+    iser.deserialize<ChunkMetadata>(); // skip metadata
     m_chunk_cache.insert({chunk_ind, iser.deserialize<chunk_t>()});
     m_cache_queue.push(chunk_ind);
     ifs.close();

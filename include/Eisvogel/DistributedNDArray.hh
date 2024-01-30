@@ -24,28 +24,6 @@ struct ChunkMetadata {
   IndexVector stop_ind;  
 };
 
-namespace stor {
-  template <>
-  struct Traits<ChunkMetadata> {
-    using type = ChunkMetadata;
-
-    static void serialize(std::iostream& stream, const type& val) {
-      Traits<std::string>::serialize(stream, val.filename);
-      Traits<IndexVector>::serialize(stream, val.start_ind);
-      Traits<IndexVector>::serialize(stream, val.stop_ind);
-    }
-
-    static type deserialize(std::iostream& stream) {
-      std::string filename = Traits<std::string>::deserialize(stream);
-      IndexVector start_ind = Traits<IndexVector>::deserialize(stream);
-      IndexVector stop_ind = Traits<IndexVector>::deserialize(stream);
-      return ChunkMetadata(filename, start_ind, stop_ind);
-    }    
-  };
-}
-
-// ----
-
 template <class T, std::size_t dims>
 class DistributedNDArray : public NDArray<T, dims> {
 
@@ -57,8 +35,10 @@ public:
   using chunk_t = DenseNDArray<T, dims>;
 
   // For assembling a distributed array
-  void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind);
-  void Flush();
+  void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
+  void FlushIndex();
+
+  void rebuildIndex();
   
   // For accessing a distributed array
   T operator()(IndexVector& inds);
@@ -69,6 +49,7 @@ private:
   std::size_t getChunkIndex(const IndexVector& inds);
   chunk_t& retrieveChunk(std::size_t chunk_ind);
   void calculateShape();
+
   bool isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds);
 
   IndexVector& getGlobalStartInd();
@@ -83,7 +64,7 @@ private:
 
   // Keeps track of the chunks this DistributedNDArray is composed of
   using index_t = std::vector<ChunkMetadata>;
-  index_t m_chunk_index;
+  index_t m_chunk_index; // TODO: maybe later when we need fancier things (e.g. predictive loading of additional neighbouring chunks), can think about turning this into a class
 
   // Data strutures for caching of frequently-accessed elements of the array
   std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
