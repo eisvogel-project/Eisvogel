@@ -3,6 +3,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <algorithm>
 
 #include "Common.hh"
 #include "Kernels.hh"
@@ -23,7 +24,7 @@ public:
     return Interpolate(target_inds);
   }
 
-  ValueT Interpolate(const DenseVector<scalar_t>& target_inds) const {
+  ValueT Interpolate(const DenseVector<scalar_t>& target_inds, bool fail_on_extrapolate = false) const {
     IndexVector start_inds(dims, 0);
     IndexVector end_inds(dims, 0);
 
@@ -31,11 +32,15 @@ public:
       scalar_t start_ind = std::ceil(target_inds(i) - m_kernel.Support());
       scalar_t end_ind = std::floor(target_inds(i) + m_kernel.Support() + 1);
 
-      // extrapolation is not permitted
-      if((start_ind < 0) || (end_ind > m_data.shape(i))) {
-	std::cerr << "Extrapolation is not permitted" << std::endl;
-	throw;
+      if(fail_on_extrapolate) {
+	if((start_ind < 0) || (end_ind > m_data.shape(i))) {
+	  throw std::runtime_error("Extrapolation is not permitted!");
+	}
       }
+
+      // Make sure to always fall inside the available region, i.e. assume everything outside is at zero
+      start_ind = std::clamp(start_ind, (scalar_t)0.0, (scalar_t)m_data.shape(i));
+      end_ind = std::clamp(end_ind, (scalar_t)0.0, (scalar_t)m_data.shape(i));
 
       start_inds(i) = std::size_t(start_ind);
       end_inds(i) = std::size_t(end_ind);
