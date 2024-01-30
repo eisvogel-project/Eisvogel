@@ -6,7 +6,9 @@ set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=
 
 add_library(eisvogel SHARED WeightingFieldUtils.cxx DistributedWeightingField.cxx Kernels.cxx Interpolator.cxx Integrator.cxx Trajectory.cxx MathUtils.cxx SignalExport.cxx SignalCalculator.cxx IteratorUtils.cxx)
 
-target_include_directories(eisvogel PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(eisvogel
+	PUBLIC "${PROJECT_SOURCE_DIR}/src"
+	PUBLIC "${PROJECT_SOURCE_DIR}/include")
 
 set_target_properties(eisvogel PROPERTIES
                       LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel)
