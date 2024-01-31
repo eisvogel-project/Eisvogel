@@ -26,14 +26,16 @@ int main(int argc, char* argv[]) {
   std::string wf_path = argv[1];
   
   auto eps = [](scalar_t r, scalar_t z) {
-    return 1.78;
+    return 1.00;
   };
 
   auto impulse_response = [](scalar_t t) {
-    unsigned int order = 6;
-    double tp = 2.0;   
-    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
-    return retval;
+    unsigned int N = 6; // order of filter
+    double tp = 2.0; // peaking time of filter
+    if(t <= 0) {
+      return 0.0;
+    }
+    return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
   
   CylinderGeometry geom(20, -20, 20, eps);
