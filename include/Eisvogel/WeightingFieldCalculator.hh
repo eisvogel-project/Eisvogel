@@ -12,16 +12,17 @@ class WeightingFieldCalculator {
 public:
   WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
 			   double courant_factor = 0.5, double resolution = 20, double pml_width = 1.0);
-  void Calculate(double t_end, std::string tmpdir = "");
+  void Calculate(std::string tmpdir = "");
 
 private:
 
-  std::shared_ptr<CoordVector> start_coords;
-  std::shared_ptr<CoordVector> end_coords;
+  scalar_t m_t_end = 0.0;
+  std::shared_ptr<CoordVector> m_start_coords;
+  std::shared_ptr<CoordVector> m_end_coords;
   
-  std::shared_ptr<meep::grid_volume> gv;
-  std::shared_ptr<meep::structure> s;
-  std::shared_ptr<meep::fields> f;
+  std::shared_ptr<meep::grid_volume> m_gv;
+  std::shared_ptr<meep::structure> m_s;
+  std::shared_ptr<meep::fields> m_f;
 };
 
 #endif

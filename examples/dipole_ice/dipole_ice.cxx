@@ -33,9 +33,9 @@ int main(int argc, char* argv[]) {
   CylinderGeometry geom(20, -20, 20, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
 
-  scalar_t t_end = 250;
+  scalar_t t_end = 25;
   WeightingFieldCalculator wfc(geom, dipole, t_end);
-  wfc.Calculate(10);
+  wfc.Calculate("./wf_dipole_ice");
   
   return 0;
 }
