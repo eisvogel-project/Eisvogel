@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <filesystem>
 #include <meep.hpp>
 #include "Antenna.hh"
 #include "Geometry.hh"
@@ -12,7 +13,7 @@ class WeightingFieldCalculator {
 public:
   WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
 			   double courant_factor = 0.5, double resolution = 20, double pml_width = 1.0);
-  void Calculate(std::string tmpdir = "");
+  void Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir = "");
 
 private:
 
