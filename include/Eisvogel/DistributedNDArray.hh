@@ -36,7 +36,7 @@ public:
 
   // For assembling and indexing a distributed array
   void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
-  void FlushIndex();
+  void MakeIndexPersistent();
   void rebuildIndex();
   
   // For accessing a distributed array

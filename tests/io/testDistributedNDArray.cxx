@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
   DistributedNDArray<float, 2> darr_save("./distarr/", 10);
   darr_save.RegisterChunk(chunk1, start_ind1);
   darr_save.RegisterChunk(chunk2, start_ind2);
-  darr_save.FlushIndex();
+  darr_save.MakeIndexPersistent();
 
   DistributedNDArray<float, 2> darr_load("./distarr/", 10);
 

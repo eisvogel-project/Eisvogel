@@ -62,10 +62,11 @@ void DistributedWeightingField::Flush() {
   ofs.open(meta_path, std::ios::out | std::ios::binary);  
   stor::Serializer oser(ofs);
   oser.serialize(*m_start_coords);
-  oser.serialize(*m_end_coords);
-  
-  // Make the indices persistent
-  m_E_r -> FlushIndex();
-  m_E_z -> FlushIndex();
-  m_E_phi -> FlushIndex();
+  oser.serialize(*m_end_coords);  
+}
+
+void DistributedWeightingField::MakeIndexPersistent() {
+  m_E_r -> MakeIndexPersistent();
+  m_E_z -> MakeIndexPersistent();
+  m_E_phi -> MakeIndexPersistent();
 }

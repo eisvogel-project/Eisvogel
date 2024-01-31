@@ -1,3 +1,5 @@
+#include <uuid/uuid.h>
+
 namespace stor {
   template <>
   struct Traits<ChunkMetadata> {
@@ -46,9 +48,7 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
 }
 
 template <class T, std::size_t dims>
-DistributedNDArray<T, dims>::~DistributedNDArray() {
-  FlushIndex();
-}
+DistributedNDArray<T, dims>::~DistributedNDArray() { }
 
 template <class T, std::size_t dims>
 void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind, bool require_nonoverlapping) {
@@ -64,12 +64,19 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
     }
   }
 
+  // get chunk filename that should not clash with anything
+  uuid_t uuid_binary;
+  uuid_generate_random(uuid_binary);
+  char uuid_string[36];
+  uuid_unparse(uuid_binary, uuid_string);
+  std::string chunk_filename = std::string(uuid_string) + ".bin";
+
   // build chunk metadata and add to index
-  std::string chunk_filename = "chunk_" + std::to_string(m_chunk_index.size()) + ".bin";
   ChunkMetadata meta(chunk_filename, start_ind, stop_ind);
   m_chunk_index.push_back(meta);
   
   // write chunk data to disk --> this is where fancy sparsification and compression would happen
+  
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
   std::fstream ofs;
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
@@ -83,7 +90,7 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
 }
 
 template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::FlushIndex() {
+void DistributedNDArray<T, dims>::MakeIndexPersistent() {
   // Update index on disk
   std::fstream ofs;
   ofs.open(m_indexpath, std::ios::out | std::ios::binary);  

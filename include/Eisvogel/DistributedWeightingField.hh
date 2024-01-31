@@ -25,6 +25,8 @@ public:
 
   void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const chunk_t& chunk_E_phi,
 		     const IndexVector chunk_start_inds);
+
+  void MakeIndexPersistent();
   
   storage_t& E_r() const {return *m_E_r;};
   storage_t& E_z() const {return *m_E_z;};
@@ -59,6 +61,8 @@ private:
 
   std::string m_wf_path; 
 
+  // TODO: this will be replaced by a single array of vectors (instead of scalars) asap, to keep the different
+  // vector components local in memory
   std::shared_ptr<storage_t> m_E_r;
   std::shared_ptr<storage_t> m_E_z;
   std::shared_ptr<storage_t> m_E_phi;
