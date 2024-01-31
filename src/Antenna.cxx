@@ -26,7 +26,11 @@ InfEDipoleAntenna::InfEDipoleAntenna(scalar_t start_time, scalar_t end_time, sca
   Antenna(start_time, end_time, z_pos, impulse_response_func) { };
 
 void InfEDipoleAntenna::AddToGeometry(meep::fields& f, Geometry& geom) const {
-  CoordVector antenna_pos = CoordUtils::MakeCoordVectorTRZ(0.0, 1, z_pos);
+
+  // According to workaround described in https://github.com/NanoComp/meep/issues/2704, need to place source at r = 1.5 * delta_R,
+  // where delta_R is the radial voxel extent
+  scalar_t r_pos = 1.5 / f.a;
+  CoordVector antenna_pos = CoordUtils::MakeCoordVectorTRZ(0.0, r_pos, z_pos);
   
   // orientation hard-coded for now ... need to change
   f.add_point_source(meep::Ez, *this, geom.toMeepCoords(antenna_pos));
