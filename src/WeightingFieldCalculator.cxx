@@ -91,8 +91,8 @@ namespace meep {
     vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
     
     // prepare the list of field components to fetch at each grid point
-    component components[] = {Ex, Ey, Ez};
-    chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 3, components);
+    component components[] = {Ez, Er};
+    chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
     
     // loop over all grid points in chunk
     LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
@@ -113,13 +113,12 @@ namespace meep {
       
       // fetch field components at child point
       data.update_values(idx);
-      double E_x_val = data.values[0].real();
-      double E_y_val = data.values[1].real();
-      double E_z_val = data.values[2].real();
-
-      double E_r_val = std::sqrt(std::pow(E_x_val, 2) + std::pow(E_y_val, 2));
+      double E_z_val = data.values[0].real();
+      double E_r_val = data.values[1].real();
+      
+      // double E_r_val = std::sqrt(std::pow(E_x_val, 2) + std::pow(E_y_val, 2));
       double E_phi_val = 0.0; // TODO: to be able to compute this, need to extract x/y coordinates of this point!
-
+      
       IndexVector chunk_ind = global_ind - chunk_start_inds;
       
       chunk_buffer_E_r(chunk_ind) = E_r_val;
@@ -149,16 +148,18 @@ void WeightingFieldCalculator::Calculate(std::string tmpdir) {
   ChunkloopData cld(0, dwf);
 
   std::size_t stepcnt = 0;
-  while (m_f -> time() < m_t_end) {
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 1) {
+
+    // Time-step the fields
+    while (m_f -> time() < cur_t) {
+      m_f -> step();
+    }
     
     if(meep::am_master()) {
       std::cout << "Simulation time: " << m_f -> time() << std::endl;
     }
 
-    // Time-step the fields
-    m_f -> step();
     cld.ind_t = stepcnt++;
-
     m_f -> loop_in_chunks(meep::saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
   }
 }

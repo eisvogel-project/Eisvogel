@@ -18,6 +18,12 @@ unsigned int fact(unsigned arg) {
 int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
+
+  if(argc < 2) {
+    throw std::runtime_error("Error: need to pass path to output directory!");
+  }
+
+  std::string wf_path = argv[1];
   
   auto eps = [](scalar_t r, scalar_t z) {
     return 1.78;
@@ -26,7 +32,7 @@ int main(int argc, char* argv[]) {
   auto impulse_response = [](scalar_t t) {
     unsigned int order = 6;
     double tp = 2.0;   
-    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);    
+    double retval = 1.0 / (tp * fact(order - 1)) * std::pow(t * (double)order / tp, (double)order) * std::exp(-t * (double)order / tp);
     return retval;
   };
   
@@ -35,7 +41,7 @@ int main(int argc, char* argv[]) {
 
   scalar_t t_end = 25;
   WeightingFieldCalculator wfc(geom, dipole, t_end);
-  wfc.Calculate("./wf_dipole_ice");
+  wfc.Calculate(wf_path);
   
   return 0;
 }

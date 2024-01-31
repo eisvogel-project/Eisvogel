@@ -26,7 +26,7 @@ InfEDipoleAntenna::InfEDipoleAntenna(scalar_t start_time, scalar_t end_time, sca
   Antenna(start_time, end_time, z_pos, impulse_response_func) { };
 
 void InfEDipoleAntenna::AddToGeometry(meep::fields& f, Geometry& geom) const {
-  CoordVector antenna_pos = CoordUtils::MakeCoordVectorTRZ(0.0, 0.0, z_pos);
+  CoordVector antenna_pos = CoordUtils::MakeCoordVectorTRZ(0.0, 1, z_pos);
   
   // orientation hard-coded for now ... need to change
   f.add_point_source(meep::Ez, *this, geom.toMeepCoords(antenna_pos));
