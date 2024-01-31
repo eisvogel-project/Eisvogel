@@ -56,6 +56,15 @@ cdef class DeltaVector:
     def FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z):
         return DeltaVector.__c_FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z)
 
+cdef class IndexVector:
+    cdef unique_ptr[ccoordutils.IndexVector] c_vec
+
+    @staticmethod
+    def __c_FromIndexVectorTRZ(size_t ind_t, size_t ind_r, size_t ind_z):
+        cdef IndexVector ind = IndexVector.__new__(IndexVector)
+        ind.c_vec = make_unique[ccoordutils.IndexVector](ccoordutils.MakeIndexVectorTRZ(ind_t, ind_r, ind_z))
+        return ind
+
 from cpython cimport ccurrent
 cdef class Current0D:
     cdef unique_ptr[ccurrent.Current0D] c_current

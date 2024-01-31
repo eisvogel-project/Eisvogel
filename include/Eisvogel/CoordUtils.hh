@@ -23,6 +23,9 @@ namespace CoordUtils {
   static inline DeltaVector MakeDeltaVectorTXYZ(scalar_t delta_t, scalar_t delta_x, scalar_t delta_y, scalar_t delta_z) {
     return DeltaVector({delta_t, delta_z, delta_x, delta_y});
   }
+  static inline IndexVector MakeIndexVectorTRZ(std::size_t ind_t, std::size_t ind_r, std::size_t ind_z) {
+    return IndexVector({ind_t, ind_z, ind_r});
+  }
   
   static inline scalar_t getT(const CoordVector& vect) {return vect(0);}
   static inline scalar_t getR(const CoordVector& vect) {return vect(2);}
