@@ -103,9 +103,7 @@ namespace meep {
       // fetch field components at child point
       data.update_values(idx);
       double E_z_val = data.values[0].real();
-      double E_r_val = data.values[1].real();
-      
-      // double E_r_val = std::sqrt(std::pow(E_x_val, 2) + std::pow(E_y_val, 2));
+      double E_r_val = data.values[1].real();     
       double E_phi_val = 0.0; // TODO: to be able to compute this, need to extract x/y coordinates of this point!
       
       IndexVector chunk_ind = global_ind - chunk_start_inds;
