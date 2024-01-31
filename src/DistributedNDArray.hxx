@@ -20,7 +20,8 @@ namespace stor {
 
 template <class T, std::size_t dims>
 DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size) :
-  NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size) {
+  NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size),
+  m_global_start_ind(dims, 0) {
 
   // Create directory if it does not already exist
   if(!std::filesystem::exists(m_dirpath)) {
@@ -180,13 +181,13 @@ void DistributedNDArray<T, dims>::calculateShape() {
     return;
   }
   
-  IndexVector& global_start_ind = getGlobalStartInd();
+  m_global_start_ind = getGlobalStartInd();
   IndexVector& global_stop_ind = getGlobalStopInd();
 
-  if(isGloballyContiguous(global_start_ind, global_stop_ind)) {
+  if(isGloballyContiguous(m_global_start_ind, global_stop_ind)) {
     // Chunks fill a contiguous array, makes sense to define a global shape
     for(std::size_t cur_dim = 0; cur_dim < dims; cur_dim++) {
-      this -> m_shape[cur_dim] = global_stop_ind(cur_dim) - global_start_ind(cur_dim);
+      this -> m_shape[cur_dim] = global_stop_ind(cur_dim) - m_global_start_ind(cur_dim);
     }
   }
 }

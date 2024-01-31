@@ -30,6 +30,13 @@ public:
   storage_t& E_z() const {return *m_E_z;};
   storage_t& E_phi() const {return *m_E_phi;};
 
+  scalar_t E_r(IndexVector& ind) const {return m_E_r -> operator()(ind);};
+  scalar_t E_z(IndexVector& ind) const {return m_E_z -> operator()(ind);};
+  scalar_t E_phi(IndexVector& ind) const {return m_E_phi -> operator()(ind);};
+
+  std::size_t shape(std::size_t dim) const {return m_E_r -> shape(dim);};
+  std::size_t startInd(std::size_t dim) const {return m_E_r -> startInd(dim);};
+  
   static inline CoordVector FracIndsToCoord(const CoordVector& frac_inds, const CoordVector& start_coords, const CoordVector& end_coords, 
 					    const CoordVector& shape) {
     return start_coords + (end_coords - start_coords) / shape * frac_inds;
