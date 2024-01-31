@@ -57,13 +57,17 @@ cdef class DeltaVector:
         return DeltaVector.__c_FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z)
 
 cdef class IndexVector:
-    cdef unique_ptr[ccoordutils.IndexVector] c_vec
+    cdef unique_ptr[ccoordutils.IndexVector] c_ind
 
     @staticmethod
-    def __c_FromIndexVectorTRZ(size_t ind_t, size_t ind_r, size_t ind_z):
+    def __c_FromTRZ(size_t ind_t, size_t ind_r, size_t ind_z):
         cdef IndexVector ind = IndexVector.__new__(IndexVector)
-        ind.c_vec = make_unique[ccoordutils.IndexVector](ccoordutils.MakeIndexVectorTRZ(ind_t, ind_r, ind_z))
+        ind.c_ind = make_unique[ccoordutils.IndexVector](ccoordutils.MakeIndexVectorTRZ(ind_t, ind_r, ind_z))
         return ind
+
+    @staticmethod
+    def FromTRZ(ind_t, ind_r, ind_z):
+        return IndexVector.__c_FromTRZ(ind_t, ind_r, ind_z)
 
 from cpython cimport ccurrent
 cdef class Current0D:
@@ -113,6 +117,39 @@ cdef class SignalCalculator:
             ), t_sig)
         else:
             raise RuntimeError("Unknown source type")
+
+from cpython cimport cdistributedweightingfield
+cdef class DistributedWeightingField:
+    cdef cdistributedweightingfield.DistributedWeightingField* c_dwf
+
+    def __init__(self, wf_path):
+        self.c_dwf = new cdistributedweightingfield.DistributedWeightingField(wf_path.encode("utf-8"))
+
+    def E_r(self, ind_trz):
+        ind_t, ind_r, ind_z = ind_trz
+        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
+        return self.c_dwf.E_r(dereference(ind.c_ind))
+
+    def E_z(self, ind_trz):
+        ind_t, ind_r, ind_z = ind_trz
+        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
+        return self.c_dwf.E_z(dereference(ind.c_ind))
+
+    def E_phi(self, ind_trz):
+        ind_t, ind_r, ind_z = ind_trz
+        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
+        return self.c_dwf.E_phi(dereference(ind.c_ind))
+
+    def E_rzphi(self, ind_trz):
+        ind_t, ind_r, ind_z = ind_trz
+        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
+        return [self.c_dwf.E_r(dereference(ind.c_ind)),  self.c_dwf.E_z(dereference(ind.c_ind)), self.c_dwf.E_phi(dereference(ind.c_ind))]
+
+    def shape(self):
+        return [self.c_dwf.shape(0), self.c_dwf.shape(2), self.c_dwf.shape(1)]
+
+    def startInd(self):
+        return [self.c_dwf.startInd(0), self.c_dwf.startInd(2), self.c_dwf.startInd(1)]
 
 from cpython cimport cweightingfieldutils
 cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 
