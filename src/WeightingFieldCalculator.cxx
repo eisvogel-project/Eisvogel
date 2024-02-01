@@ -84,6 +84,7 @@ namespace meep {
     chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
     
     // loop over all grid points in chunk
+    // TODO: in principle, need only iterate over all parent points and store those, no need to separately store all points on a symmetry orbit
     LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
       
       // get grid indices and coordinates of parent point
