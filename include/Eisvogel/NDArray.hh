@@ -9,6 +9,8 @@
 
 #include "Serialization.hh"
 
+// TODO: probably also want a fixed-sized version of NDArray that allows to specify the individual dimensions
+
 template <class T, std::size_t dims>
 class NDArray {
 
@@ -277,6 +279,7 @@ template <class T>
 using DenseVector = DenseNDArray<T, 1>;
 
 using IndexVector = DenseVector<std::size_t>;
+using GridVector = DenseVector<unsigned int>;
 
 template <class T>
 using ScalarField3D = DenseNDArray<T, 3>;

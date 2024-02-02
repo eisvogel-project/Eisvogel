@@ -65,10 +65,64 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
       
       CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
 
-      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_phi -> Interpolate(wf_eval_frac_inds));
+      auto get_E_r = [&](GridVector& vec) -> scalar_t {
 
+	int ind_t = vec(0);
+	int ind_z = vec(1);
+	int ind_r = vec(2);	
+	
+	if(ind_t < 0) {
+	  return 0.0;
+	}
+
+	if(ind_r < 0) {
+	  ind_r = -ind_r;
+	}
+	
+	IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};	
+	return m_dwf -> E_r().operator()(ind);
+      };
+
+      auto get_E_z = [&](GridVector& vec) -> scalar_t {
+
+	int ind_t = vec(0);
+	int ind_z = vec(1);
+	int ind_r = vec(2);	
+	
+	if(ind_t < 0) {
+	  return 0.0;
+	}
+
+	if(ind_r < 0) {
+	  ind_r = -ind_r;
+	}
+	
+	IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};	
+	return m_dwf -> E_z().operator()(ind);
+      };
+
+      auto get_E_phi = [&](GridVector& vec) -> scalar_t {
+
+	int ind_t = vec(0);
+	int ind_z = vec(1);
+	int ind_r = vec(2);	
+	
+	if(ind_t < 0) {
+	  return 0.0;
+	}
+
+	if(ind_r < 0) {
+	  ind_r = -ind_r;
+	}
+	
+	IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};	
+	return m_dwf -> E_phi().operator()(ind);
+      };
+      
+      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(InterpolateFunc(get_E_r, *m_kernel, wf_eval_frac_inds),
+						      InterpolateFunc(get_E_z, *m_kernel, wf_eval_frac_inds),
+						      InterpolateFunc(get_E_phi, *m_kernel, wf_eval_frac_inds));
+      
       FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
 
       scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
