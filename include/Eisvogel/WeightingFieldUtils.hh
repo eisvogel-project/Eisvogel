@@ -1,7 +1,7 @@
 #ifndef __WEIGHTING_FIELD_UTILS_HH
 #define __WEIGHTING_FIELD_UTILS_HH
 
-#include "WeightingField.hh"
+#include "CoordUtils.hh"
 #include "NDArray.hh"
 
 namespace WeightingFieldUtils {

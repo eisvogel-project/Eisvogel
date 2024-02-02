@@ -157,7 +157,7 @@ namespace WeightingFieldUtils {
 
       IndexVector ind = cnt.index();
 
-      CoordVector coords = WeightingField::FracIndsToCoord(ind, start_coords, end_coords, E_r_buffer.shape());
+      CoordVector coords = DistributedWeightingField::FracIndsToCoord(ind, start_coords, end_coords, E_r_buffer.shape());
       scalar_t t = C::getT(coords);
       scalar_t r = C::getR(coords);
       scalar_t z = C::getZ(coords);
