@@ -17,9 +17,7 @@ class TRZFieldIndexer {
 
 public:
 
-  TRZFieldIndexer(std::filesystem::path index_path);
-
-  void SetShape(IndexVector shape); // temporary, to be removed
+  TRZFieldIndexer(std::filesystem::path index_path, FieldStorage& storage);
   
   CoordVector GetFieldIndexFromCoord(CoordVector pos_txyz);
   IndexVector GetFieldIndex(GridVector inds_trz);
@@ -38,30 +36,16 @@ public:
   WeightingField(std::string wf_path);
   
   template <typename KernelT = KeysCubicInterpolationKernelNew>
-  scalar_t Er(CoordVector pos) {    
-    return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_r(arg);});
-  };
+  scalar_t E_r(CoordVector pos);
+
+  template <typename KernelT = KeysCubicInterpolationKernelNew>
+  scalar_t E_z(CoordVector pos);
 
 private:
   
   template <typename KernelT, typename GetterT,
 	    typename ValueT = std::invoke_result_t<GetterT, IndexVector&>>
-  ValueT eval(CoordVector pos, GetterT getter) {
-
-    // Weighting fields are nonzero only for t > 0
-    if(CoordUtils::getT(pos) <= 0) {
-      return 0.0;
-    }
-
-    CoordVector frac_inds = m_field_indexer -> GetFieldIndexFromCoord(pos);
-
-    auto to_interpolate = [&](GridVector& vec) -> ValueT {
-      IndexVector inds = m_field_indexer -> GetFieldIndex(vec);
-      return getter(inds);
-    };
-
-    return InterpolateFuncNew<KernelT>(to_interpolate, frac_inds);        
-  }
+  ValueT eval(CoordVector pos, GetterT getter);
   
 private:
 

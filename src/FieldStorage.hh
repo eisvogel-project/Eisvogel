@@ -5,7 +5,13 @@
 #include <filesystem>
 #include "Eisvogel/DistributedNDArray.hh"
 
-class RZFieldStorage {
+class FieldStorage {
+  
+public:
+  virtual IndexVector shape() = 0;
+};
+
+class RZFieldStorage : public FieldStorage {
 
 public:
   using storage_t = DistributedNDArray<scalar_t, 3>;
