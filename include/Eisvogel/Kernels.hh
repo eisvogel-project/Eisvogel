@@ -2,22 +2,47 @@
 #define __KERNELS_HH
 
 #include <limits>
+#include <cmath>
 #include "Common.hh"
 
-class Kernel {
+struct KeysCubicInterpolationKernel {
+
+  const static int Support = 2;
   
-public:
-  virtual std::size_t Support() const = 0;
-  virtual scalar_t operator()(scalar_t arg) const = 0;
-  virtual scalar_t CDF(int arg) const = 0;
-};
+  static scalar_t Weight(scalar_t arg) {
+    scalar_t abs_arg = std::fabs(arg);
+    
+    if(abs_arg < 1.0) {
+      return 1.0 + abs_arg * abs_arg * (-2.5 + 1.5 * abs_arg);
+    }
+    else if(abs_arg < 2.0) {
+      return 2.0 + abs_arg * (-4.0 + (2.5 - 0.5 * abs_arg) * abs_arg);
+    }
+    else {
+      return 0.0;
+    }
+  }
 
-class KeysCubicInterpolationKernel : public Kernel {
+  static scalar_t CDF(int arg) {
 
-public:
-  std::size_t Support() const;
-  scalar_t operator()(scalar_t arg) const;
-  scalar_t CDF(int arg) const;
+    if(arg <= -2) {
+      return 0.0;
+    }
+    else if(arg == -1) {
+      return -0.0416667;
+    }
+    else if(arg == 0) {
+      return 0.5;
+    }
+    else if(arg == 1) {
+      return 1.04167;
+    }
+    else if(arg >= 2) {
+      return 1.0;
+    }
+    
+    return 1.0;
+  }
 };
 
 #endif

@@ -1,25 +1,7 @@
-#include "Eisvogel/Integrator.hh"
-#include "Eisvogel/CoordUtils.hh"
-
-#include <utility>
-#include <iostream>
-
 #include "Eisvogel/Trajectory.hh"
-#include "Eisvogel/SignalExport.hh"
 
-namespace CU = CoordUtils;
-
-void Integrator::SetGeometry(std::shared_ptr<DistributedWeightingField> dwf, 
-			     std::shared_ptr<Kernel> kernel) {
-  m_kernel = kernel;
-  m_dwf = dwf;
-
-  m_itpl_E_r = std::make_unique<interpolator_t>(m_dwf -> E_r(), *m_kernel);
-  m_itpl_E_z = std::make_unique<interpolator_t>(m_dwf -> E_z(), *m_kernel);
-  m_itpl_E_phi = std::make_unique<interpolator_t>(m_dwf -> E_phi(), *m_kernel);
-}
-
-scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_factor) const {
+template <class WeightingFieldT, typename KernelT>
+scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scalar_t os_factor) {
 
   // compute velocity vector for each segment
   Trajectory deltas, velocities;
@@ -27,9 +9,9 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
     deltas.AddPoint(curr.GetPoint(pt_ind + 1) - curr.GetPoint(pt_ind));
     velocities.AddPoint(deltas(pt_ind) / CU::getT(deltas(pt_ind)));
   }
-
-  DeltaVector wf_sampling_intervals = m_dwf -> getSamplingIntervals(); 
-
+  
+  DeltaVector wf_sampling_intervals = wf.GetSamplingIntervals(); 
+  
   // Main signal integration loop
   scalar_t signal = 0;
   for(std::size_t segment_ind = 0; segment_ind < deltas.size(); segment_ind++) {
@@ -56,26 +38,23 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 
     // Integrate along segment (bail out early if allowed by causality)
     scalar_t segment_signal = 0;
-    scalar_t cur_t = t_start - t_step * m_kernel -> Support();
-    for(int step_ind = -m_kernel -> Support(); step_ind <= (int)(number_points + m_kernel -> Support()); step_ind++) {
+    scalar_t cur_t = t_start - t_step * KernelT::Support;
+    for(int step_ind = -KernelT::Support; step_ind <= (int)(number_points + KernelT::Support); step_ind++) {
 
-      CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
-      CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-      CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
+      CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));      
+      CoordVector wf_eval_pos = CU::MakeCoordVectorTXYZ(t - cur_t, CU::getX(cur_pos_txyz), CU::getY(cur_pos_txyz), CU::getZ(cur_pos_txyz));      
       
-      CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
-
-      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
-						      m_itpl_E_phi -> Interpolate(wf_eval_frac_inds));
-
+      FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(wf.template E_r<KernelT>(wf_eval_pos),
+						      wf.template E_z<KernelT>(wf_eval_pos),
+						      wf.template E_phi<KernelT>(wf_eval_pos));
+      
       FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
 
       scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getX(segment_velocity) +
 	CU::getYComponent(wf_xyz) * CU::getY(segment_velocity) +
 	CU::getZComponent(wf_xyz) * CU::getZ(segment_velocity);
       
-      scalar_t kernel_int = m_kernel -> CDF(number_points - step_ind) - m_kernel -> CDF(-step_ind);
+      scalar_t kernel_int = KernelT::CDF(number_points - step_ind) - KernelT::CDF(-step_ind);
       
       segment_signal += -wf_val * kernel_int;
       cur_t += t_step;
@@ -87,7 +66,8 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
   return signal;
 }
 
-scalar_t Integrator::integrate(scalar_t t, const SparseCurrentDensity3D& current_distribution) const {
+template <class WeightingFieldT, typename KernelT>
+scalar_t integrate(WeightingFieldT& wf, scalar_t t, const SparseCurrentDensity3D& current_distribution) {
 
   scalar_t signal = 0;
   scalar_t volume_element = current_distribution.getVolumeElementTXYZ();
@@ -96,15 +76,12 @@ scalar_t Integrator::integrate(scalar_t t, const SparseCurrentDensity3D& current
 
     scalar_t cur_t = CU::getT(cur_pos_txyz);
 
-    CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-    CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
+    CoordVector wf_eval_pos = CU::MakeCoordVectorTXYZ(t - cur_t, CU::getX(cur_pos_txyz), CU::getY(cur_pos_txyz), CU::getZ(cur_pos_txyz));      
 
-    CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
-    
-    FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(m_itpl_E_r -> Interpolate(wf_eval_frac_inds),
-						    m_itpl_E_z -> Interpolate(wf_eval_frac_inds),
-						    m_itpl_E_phi -> Interpolate(wf_eval_frac_inds));
-    
+    FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(wf.template E_r<KernelT>(wf_eval_pos),
+						    wf.template E_z<KernelT>(wf_eval_pos),
+						    wf.template E_phi<KernelT>(wf_eval_pos));
+        
     FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
 
     scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getXComponent(cur_current_density_xyz) +

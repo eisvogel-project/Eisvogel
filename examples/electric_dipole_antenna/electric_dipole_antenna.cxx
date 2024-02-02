@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
   std::string wf_path = argv[1];
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-50.0, -10.0, -10.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(50.0, 10.0, 10.0);
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(0.0, 0.0, -10.0);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(300.0, 300.0, 30.0);
 
   // Filter parameters
   scalar_t tp = 5.0;
