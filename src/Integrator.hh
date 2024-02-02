@@ -1,5 +1,5 @@
-#ifndef __INTEGRATOR_NEW_HH
-#define __INTEGRATOR_NEW_HH
+#ifndef __INTEGRATOR_HH
+#define __INTEGRATOR_HH
 
 #include <memory>
 #include "Eisvogel/Common.hh"
@@ -13,6 +13,6 @@ scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scala
 template <class WeightingFieldT, typename KernelT = KeysCubicInterpolationKernel>
 scalar_t integrate(WeightingFieldT& wf, scalar_t t, const SparseCurrentDensity3D& current_distribution);
 
-#include "IntegratorNew.hxx"
+#include "Integrator.hxx"
 
 #endif

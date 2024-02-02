@@ -1,5 +1,5 @@
 #include "Eisvogel/SignalCalculator.hh"
-#include "IntegratorNew.hh"
+#include "Integrator.hh"
 
 SignalCalculator::SignalCalculator(const std::filesystem::path& geometry_path) :
   m_geometry_path(geometry_path) {
