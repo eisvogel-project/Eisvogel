@@ -10,8 +10,11 @@ TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, Fi
   m_start_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>());
   m_end_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>());
   m_shape = std::make_shared<IndexVector>(storage.shape());
+}
 
-  m_shape->print();
+template <typename SymmetryT>
+CoordVector TRZFieldIndexer<SymmetryT>::GetSamplingIntervals() const {
+  return (*m_end_coords - *m_start_coords) / (CoordVector)*m_shape;
 }
 
 template <typename SymmetryT>
@@ -29,6 +32,9 @@ IndexVector TRZFieldIndexer<SymmetryT>::GetFieldIndex(GridVector inds_trz) {
   if(ind_r < 0) {
     ind_r = -ind_r;
   }
+  if(ind_t < 0) {
+    ind_t = 0;
+  }
   
   IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};	
   return ind;  
@@ -44,6 +50,11 @@ WeightingField<FieldIndexerT, FieldStorageT>::WeightingField(std::string wf_path
 }
 
 template <class FieldIndexerT, class FieldStorageT>
+DeltaVector WeightingField<FieldIndexerT, FieldStorageT>::GetSamplingIntervals() const {
+  return m_field_indexer -> GetSamplingIntervals();
+}
+
+template <class FieldIndexerT, class FieldStorageT>
 template <typename KernelT>
 scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_r(CoordVector pos) {    
   return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_r(arg);});
@@ -53,6 +64,12 @@ template <class FieldIndexerT, class FieldStorageT>
 template <typename KernelT>
 scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_z(CoordVector pos) {    
   return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_z(arg);});
+};
+
+template <class FieldIndexerT, class FieldStorageT>
+template <typename KernelT>
+scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_phi(CoordVector pos) {    
+  return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_phi(arg);});
 };
 
 template <class FieldIndexerT, class FieldStorageT>

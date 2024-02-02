@@ -28,7 +28,28 @@ struct KeysCubicInterpolationKernelNew {
     else {
       return 0.0;
     }
-  }  
+  }
+
+  static scalar_t CDF(int arg) {
+
+    if(arg <= -2) {
+      return 0.0;
+    }
+    else if(arg == -1) {
+      return -0.0416667;
+    }
+    else if(arg == 0) {
+      return 0.5;
+    }
+    else if(arg == 1) {
+      return 1.04167;
+    }
+    else if(arg >= 2) {
+      return 1.0;
+    }
+    
+    return 1.0;
+  }
 };
 
 struct KeysCubicInterpolationKernel : public Kernel {

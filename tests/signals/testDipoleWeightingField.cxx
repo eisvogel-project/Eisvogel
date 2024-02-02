@@ -2,6 +2,7 @@
 
 #include "Eisvogel/WeightingField.hh"
 #include "Eisvogel/Symmetry.hh"
+#include "Eisvogel/Kernels.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -9,7 +10,7 @@ int main(int argc, char* argv[]) {
   
   WeightingField<TRZFieldIndexer<CylindricalSymmetry>, RZFieldStorage> bla(wf_path);
 
-  bla.Er({1.0, 1.0, 1.0, 1.0});
+  std::cout << bla.E_r<KeysCubicInterpolationKernelNew>({1.0, 1.0, 1.0, 1.0}) << std::endl;;
   
   std::cout << "bla" << std::endl;
 }

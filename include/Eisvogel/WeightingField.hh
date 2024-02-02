@@ -22,6 +22,8 @@ public:
   CoordVector GetFieldIndexFromCoord(CoordVector pos_txyz);
   IndexVector GetFieldIndex(GridVector inds_trz);
 
+  DeltaVector GetSamplingIntervals() const;
+
 private:
   std::shared_ptr<IndexVector> m_shape;
   std::shared_ptr<CoordVector> m_start_coords;
@@ -34,13 +36,19 @@ class WeightingField {
 public:
 
   WeightingField(std::string wf_path);
-  
-  template <typename KernelT = KeysCubicInterpolationKernelNew>
+
+  // Accessors for field components
+  template <typename KernelT>
   scalar_t E_r(CoordVector pos);
 
-  template <typename KernelT = KeysCubicInterpolationKernelNew>
+  template <typename KernelT>
   scalar_t E_z(CoordVector pos);
 
+  template <typename KernelT>
+  scalar_t E_phi(CoordVector pos);
+  
+  DeltaVector GetSamplingIntervals() const;
+  
 private:
   
   template <typename KernelT, typename GetterT,

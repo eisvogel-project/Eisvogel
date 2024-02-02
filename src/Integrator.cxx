@@ -60,6 +60,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
     for(int step_ind = -m_kernel -> Support(); step_ind <= (int)(number_points + m_kernel -> Support()); step_ind++) {
 
       CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
+      
       CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
       CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));
       
@@ -79,7 +80,7 @@ scalar_t Integrator::integrate(scalar_t t, const Current0D& curr, scalar_t os_fa
 	  ind_r = -ind_r;
 	}
 	
-	IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};	
+	IndexVector ind = {(std::size_t)ind_t, (std::size_t)ind_z, (std::size_t)ind_r};
 	return m_dwf -> E_r().operator()(ind);
       };
 
