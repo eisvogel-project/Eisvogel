@@ -41,17 +41,7 @@ scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scala
     scalar_t cur_t = t_start - t_step * KernelT::Support;
     for(int step_ind = -KernelT::Support; step_ind <= (int)(number_points + KernelT::Support); step_ind++) {
 
-      CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));
-      
-      // CoordVector cur_pos_trz = CU::TXYZ_to_TRZ(cur_pos_txyz);
-      
-      // CoordVector wf_eval_pos = CU::MakeCoordVectorTRZ(t - cur_t, CU::getR(cur_pos_trz), CU::getZ(cur_pos_trz));      
-      // CoordVector wf_eval_frac_inds = m_dwf -> getFracInds(wf_eval_pos);
-      
-      // FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(InterpolateFunc(get_E_r, *m_kernel, wf_eval_frac_inds),
-      // 						      InterpolateFunc(get_E_z, *m_kernel, wf_eval_frac_inds),
-      // 						      InterpolateFunc(get_E_phi, *m_kernel, wf_eval_frac_inds));
-
+      CoordVector cur_pos_txyz = curr.GetPoint(segment_ind) + deltas(segment_ind) * (cur_t - t_start) / CU::getT(deltas(segment_ind));      
       CoordVector wf_eval_pos = CU::MakeCoordVectorTXYZ(t - cur_t, CU::getX(cur_pos_txyz), CU::getY(cur_pos_txyz), CU::getZ(cur_pos_txyz));      
       
       FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(wf.template E_r<KernelT>(wf_eval_pos),
@@ -71,6 +61,35 @@ scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scala
     }
     segment_signal *= t_step * segment_charge;
     signal += segment_signal;
+  }
+
+  return signal;
+}
+
+template <class WeightingFieldT, typename KernelT>
+scalar_t integrate(WeightingFieldT& wf, scalar_t t, const SparseCurrentDensity3D& current_distribution) {
+
+  scalar_t signal = 0;
+  scalar_t volume_element = current_distribution.getVolumeElementTXYZ();
+
+  for(const auto& [cur_pos_txyz, cur_current_density_xyz] : current_distribution) {
+
+    scalar_t cur_t = CU::getT(cur_pos_txyz);
+
+    CoordVector wf_eval_pos = CU::MakeCoordVectorTXYZ(t - cur_t, CU::getX(cur_pos_txyz), CU::getY(cur_pos_txyz), CU::getZ(cur_pos_txyz));      
+
+    FieldVector wf_rzphi = CU::MakeFieldVectorRZPHI(wf.template E_r<KernelT>(wf_eval_pos),
+						    wf.template E_z<KernelT>(wf_eval_pos),
+						    wf.template E_phi<KernelT>(wf_eval_pos));
+        
+    FieldVector wf_xyz = CU::RZPHI_to_XYZ(wf_rzphi, cur_pos_txyz);
+
+    scalar_t wf_val = CU::getXComponent(wf_xyz) * CU::getXComponent(cur_current_density_xyz) +
+      CU::getYComponent(wf_xyz) * CU::getYComponent(cur_current_density_xyz) +
+      CU::getZComponent(wf_xyz) * CU::getZComponent(cur_current_density_xyz);
+
+    signal += -wf_val * volume_element;
+
   }
 
   return signal;
