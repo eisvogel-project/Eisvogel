@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis
   scalar_t b = 10;
-  scalar_t tstart = -250, tend = 250;
+  scalar_t tstart = -200, tend = 200;
   scalar_t charge = 1;
   scalar_t beta = 0.9;
 
