@@ -3,6 +3,7 @@
 
 #include "NDArray.hh"
 
+// Iterator for dynamic (i.e. known at run time) number of dimensions
 template <typename VecT> class VectorCounter {
 
 private:
@@ -13,7 +14,7 @@ private:
 public:
 
   VectorCounter(const VecT& start, const VecT& end) : m_start(start), m_end(end), m_cur(start), 
-						     number_dims(start.size()) { }
+						      number_dims(start.size()) { }
   VectorCounter& operator++() {
     for(size_t i = 0; i < number_dims; i++) {
       if(++m_cur(i) == m_end(i)) {
