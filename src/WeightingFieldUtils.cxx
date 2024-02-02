@@ -3,8 +3,6 @@
 #include "Eisvogel/IteratorUtils.hh"
 #include "Eisvogel/CoordUtils.hh"
 #include "Eisvogel/MathUtils.hh"
-#include "Eisvogel/Serialization.hh"
-#include "Eisvogel/DistributedWeightingField.hh"
 #include "Eisvogel/WeightingField.hh"
 #include <cmath>
 #include <iostream>
@@ -22,7 +20,6 @@ namespace WeightingFieldUtils {
     // make sure to start from scratch
     std::filesystem::remove_all(wf_path);
     
-    //DistributedWeightingField dwf(wf_path, start_coords, end_coords);
     CylindricalWeightingField cwf(wf_path, start_coords, end_coords);
 
     // compute required step size for sampling of weighting field
@@ -69,12 +66,10 @@ namespace WeightingFieldUtils {
 					      tp, N, r_min, os_factor, n);
 
       // Register chunk buffers
-      // dwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_inds);
       cwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
       
     }   
     
-    // dwf.Flush();
     cwf.MakeMetadataPersistent();
   }
   
@@ -160,8 +155,8 @@ namespace WeightingFieldUtils {
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
 
       IndexVector ind = cnt.index();
-
-      CoordVector coords = DistributedWeightingField::FracIndsToCoord(ind, start_coords, end_coords, E_r_buffer.shape());
+   
+      CoordVector coords = start_coords + (end_coords - start_coords) / (CoordVector)E_r_buffer.shape() * (CoordVector)ind;
       scalar_t t = C::getT(coords);
       scalar_t r = C::getR(coords);
       scalar_t z = C::getZ(coords);
