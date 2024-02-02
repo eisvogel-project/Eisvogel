@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include "Eisvogel/WeightingFieldCalculator.hh"
-#include "Eisvogel/DistributedWeightingField.hh"
+#include "Eisvogel/WeightingField.hh"
 #include "Eisvogel/CoordUtils.hh"
 
 // For now, this only handles geometries with cylindrical symmetry
@@ -23,11 +23,11 @@ WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const
 
 struct ChunkloopData {
 
-  ChunkloopData(std::size_t ind_t, std::shared_ptr<DistributedWeightingField> dwf) :
-    ind_t(ind_t), dwf(dwf) { }
+  ChunkloopData(std::size_t ind_t, std::shared_ptr<CylindricalWeightingField> wf) :
+    ind_t(ind_t), wf(wf) { }
   
   std::size_t ind_t;
-  std::shared_ptr<DistributedWeightingField> dwf;
+  std::shared_ptr<CylindricalWeightingField> wf;
   
 };
 
@@ -63,7 +63,6 @@ namespace meep {
     std::size_t pts_t = 1, pts_r = shape[1], pts_z = shape[0];
     ScalarField3D<scalar_t> chunk_buffer_E_r({pts_t, pts_z, pts_r}, 0.0);
     ScalarField3D<scalar_t> chunk_buffer_E_z({pts_t, pts_z, pts_r}, 0.0);
-    ScalarField3D<scalar_t> chunk_buffer_E_phi({pts_t, pts_z, pts_r}, 0.0);
 
     assert(is.z() >= 0);
     assert(is.r() >= 0);
@@ -104,17 +103,15 @@ namespace meep {
       // fetch field components at child point
       data.update_values(idx);
       double E_z_val = data.values[0].real();
-      double E_r_val = data.values[1].real();     
-      double E_phi_val = 0.0; // TODO: to be able to compute this, need to extract x/y coordinates of this point!
+      double E_r_val = data.values[1].real();
       
       IndexVector chunk_ind = global_ind - chunk_start_inds;
       
       chunk_buffer_E_r(chunk_ind) = E_r_val;
       chunk_buffer_E_z(chunk_ind) = E_z_val;
-      chunk_buffer_E_phi(chunk_ind) = E_phi_val;      
     }
 
-    chunkloop_data -> dwf -> RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_inds);       
+    chunkloop_data -> wf -> RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);       
   }
   
 } // end namespace meep
@@ -124,7 +121,6 @@ void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::file
   // TODO: this will get a lot easier once we can have all three components together in the same array
   std::filesystem::path outdir_Er = outdir / "E_r";
   std::filesystem::path outdir_Ez = outdir / "E_z";
-  std::filesystem::path outdir_Ephi = outdir / "E_phi";
   
   if(meep::am_master()) {
     
@@ -135,7 +131,6 @@ void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::file
 
     std::filesystem::create_directory(outdir_Er);
     std::filesystem::create_directory(outdir_Ez);
-    std::filesystem::create_directory(outdir_Ephi);
   }
 
   meep::all_wait();
@@ -149,8 +144,8 @@ void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::file
   // This is only for cross-checking the geometry for now
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
-  std::shared_ptr<DistributedWeightingField> dwf = std::make_shared<DistributedWeightingField>(tmpdir, *m_start_coords, *m_end_coords);
-  ChunkloopData cld(0, dwf);
+  std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(tmpdir, *m_start_coords, *m_end_coords);
+  ChunkloopData cld(0, cwf);
 
   std::size_t stepcnt = 0;
   for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 1) {
@@ -171,10 +166,9 @@ void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::file
   // TODO: again, will get better once the three separate arrays are gone
   std::filesystem::copy(tmpdir / "E_r", outdir_Er, std::filesystem::copy_options::recursive);
   std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
-  std::filesystem::copy(tmpdir / "E_phi", outdir_Ephi, std::filesystem::copy_options::recursive);
 
   if(meep::am_master()) {
-    dwf -> Flush();
+    cwf -> MakeMetadataPersistent();
     std::filesystem::copy(tmpdir / "wf_meta.bin", outdir);
   }
 }

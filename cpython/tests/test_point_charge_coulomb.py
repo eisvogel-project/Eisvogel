@@ -69,13 +69,13 @@ def compare_eisvogel_to_analytic(bvec, vvec, charge, tp, N, time_test_interval, 
         return vec[-1]
         
     padding = 25
-    start_coords = CoordVector.FromTRZ(tvals_test[0] - t_max_ev - padding,
-                                       min(r_xy(pos_start_vec), r_xy(pos_end_vec)) - padding,
+    start_coords = CoordVector.FromTRZ(0.0,
+                                       0.0,
                                        min(z(pos_start_vec), z(pos_end_vec)) - padding)
     end_coords = CoordVector.FromTRZ(tvals_test[1] - t_min_ev + padding,
                                      max(r_xy(pos_start_vec), r_xy(pos_end_vec)) + padding,
                                      max(z(pos_start_vec), z(pos_end_vec)) + padding)
-    os_factor = 10
+    os_factor = 15
     r_min = 0.1
     wf_dirpath = "./dipole_wf"
     

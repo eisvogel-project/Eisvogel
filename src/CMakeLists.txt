@@ -7,15 +7,12 @@ pkg_check_modules(UUID REQUIRED uuid)
 
 add_library(eisvogel SHARED
             WeightingFieldUtils.cxx
-	    DistributedWeightingField.cxx
 	    IteratorUtils.cxx
-            Kernels.cxx
-            Interpolator.cxx
-            Integrator.cxx
             Trajectory.cxx
             MathUtils.cxx
             SignalExport.cxx
-            SignalCalculator.cxx)
+            SignalCalculator.cxx
+	    FieldStorage.cxx)
 target_include_directories(eisvogel
 	PUBLIC "${PROJECT_SOURCE_DIR}/include" ${MPI_INCLUDE_PATH}
 	PUBLIC "${PROJECT_SOURCE_DIR}/src")
