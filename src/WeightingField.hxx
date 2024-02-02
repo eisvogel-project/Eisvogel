@@ -136,5 +136,5 @@ ValueT WeightingField<FieldIndexerT, FieldStorageT>::eval(CoordVector pos, Gette
     return getter(inds);
   };
   
-  return InterpolateFuncNew<KernelT>(to_interpolate, frac_inds);        
+  return InterpolateFunc<KernelT>(to_interpolate, frac_inds);        
 }

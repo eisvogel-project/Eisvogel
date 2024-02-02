@@ -7,7 +7,7 @@
 
 template <typename KernelT, typename FuncT, 
 	  typename ValueT = std::invoke_result_t<FuncT, GridVector&>>
-ValueT InterpolateFuncNew(FuncT func, CoordVector& target_inds) {
+ValueT InterpolateFunc(FuncT func, CoordVector& target_inds) {
 
   std::size_t dims = target_inds.size();
   
