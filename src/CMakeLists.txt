@@ -4,7 +4,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED YES)
 # set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -msse2 -ftree-vectorizer-verbose=2 -funroll-loops -march=native -g -fno-omit-frame-pointer -fno-inline -fno-default-inline -fno-inline-functions -fno-inline-functions-called-once -fno-optimize-sibling-calls")
 set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=2 -funroll-loops -march=native")
 
-add_library(eisvogel SHARED WeightingFieldUtils.cxx DistributedWeightingField.cxx Kernels.cxx Trajectory.cxx MathUtils.cxx SignalExport.cxx SignalCalculator.cxx IteratorUtils.cxx FieldStorage.cxx)
+add_library(eisvogel SHARED WeightingFieldUtils.cxx Trajectory.cxx MathUtils.cxx SignalExport.cxx SignalCalculator.cxx IteratorUtils.cxx FieldStorage.cxx)
 
 target_include_directories(eisvogel
 	PUBLIC "${PROJECT_SOURCE_DIR}/src"
