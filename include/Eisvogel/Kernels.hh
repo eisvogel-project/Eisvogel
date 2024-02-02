@@ -5,7 +5,7 @@
 #include <cmath>
 #include "Common.hh"
 
-struct KeysCubicInterpolationKernelNew {
+struct KeysCubicInterpolationKernel {
 
   const static int Support = 2;
   
