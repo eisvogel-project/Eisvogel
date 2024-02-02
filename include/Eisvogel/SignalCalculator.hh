@@ -17,10 +17,6 @@ public:
   SignalCalculator(const std::string& geometry_path);
   scalar_t ComputeSignal(const Current0D& track, scalar_t t_sig);
   scalar_t ComputeSignal(const SparseCurrentDensity3D& current_distribution, scalar_t t_sig);
-
-public:
-
-  using CylindricalWeightingField = WeightingField<TRZFieldIndexer<CylindricalSymmetry>, RZFieldStorage>;
   
 private:
   std::string m_geometry_path;

@@ -5,6 +5,7 @@
 #include "Eisvogel/MathUtils.hh"
 #include "Eisvogel/Serialization.hh"
 #include "Eisvogel/DistributedWeightingField.hh"
+#include "Eisvogel/WeightingField.hh"
 #include <cmath>
 #include <iostream>
 #include <filesystem>
@@ -21,7 +22,8 @@ namespace WeightingFieldUtils {
     // make sure to start from scratch
     std::filesystem::remove_all(wf_path);
     
-    DistributedWeightingField dwf(wf_path, start_coords, end_coords);
+    //DistributedWeightingField dwf(wf_path, start_coords, end_coords);
+    CylindricalWeightingField cwf(wf_path, start_coords, end_coords);
 
     // compute required step size for sampling of weighting field
     scalar_t c = 1.0;  // speed of light in vacuum
@@ -67,11 +69,13 @@ namespace WeightingFieldUtils {
 					      tp, N, r_min, os_factor, n);
 
       // Register chunk buffers
-      dwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_inds);
+      // dwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_inds);
+      cwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
       
     }   
     
-    dwf.Flush();
+    // dwf.Flush();
+    cwf.MakeMetadataPersistent();
   }
   
   // TODO: three separate `ScalarField3D`s to be replaced with single vector field

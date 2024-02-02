@@ -18,13 +18,19 @@ class TRZFieldIndexer {
 public:
 
   TRZFieldIndexer(std::filesystem::path index_path, FieldStorage& storage);
+  TRZFieldIndexer(std::filesystem::path index_path, const CoordVector& start_coords, const CoordVector& end_coords);
   
   CoordVector GetFieldIndexFromCoord(CoordVector pos_txyz);
   IndexVector GetFieldIndex(GridVector inds_trz);
 
   DeltaVector GetSamplingIntervals() const;
 
+  void MakePersistent();
+
 private:
+  
+  std::filesystem::path m_meta_path;
+  
   std::shared_ptr<IndexVector> m_shape;
   std::shared_ptr<CoordVector> m_start_coords;
   std::shared_ptr<CoordVector> m_end_coords;  
@@ -36,7 +42,11 @@ class WeightingField {
 public:
 
   WeightingField(std::string wf_path);
+  WeightingField(std::string wf_path, const CoordVector& start_coords, const CoordVector& end_coords);
 
+  template <typename ...Params>
+  void RegisterChunk(Params&&... params);
+  
   // Accessors for field components
   template <typename KernelT>
   scalar_t E_r(CoordVector pos);
@@ -48,6 +58,8 @@ public:
   scalar_t E_phi(CoordVector pos);
   
   DeltaVector GetSamplingIntervals() const;
+
+  void MakeMetadataPersistent();
   
 private:
   
@@ -64,5 +76,8 @@ private:
 };
 
 #include "WeightingField.hxx"
+
+#include "Symmetry.hh"
+using CylindricalWeightingField = WeightingField<TRZFieldIndexer<CylindricalSymmetry>, RZFieldStorage>;
 
 #endif

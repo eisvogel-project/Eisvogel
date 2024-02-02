@@ -1,15 +1,33 @@
 #include "Eisvogel/Serialization.hh"
 
 template <typename SymmetryT>
-TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, FieldStorage& storage) {
+TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, FieldStorage& storage) :
+  m_meta_path(index_path / "wf_meta.bin") {
 
   std::fstream ifs;
-  std::filesystem::path meta_path = index_path / "wf_meta.bin";
-  ifs.open(meta_path, std::ios::in | std::ios::binary);
+  ifs.open(m_meta_path, std::ios::in | std::ios::binary);
   stor::Serializer iser(ifs);
   m_start_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>());
   m_end_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>());
   m_shape = std::make_shared<IndexVector>(storage.shape());
+}
+
+template <typename SymmetryT>
+TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, const CoordVector& start_coords, const CoordVector& end_coords) :
+  m_meta_path(index_path / "wf_meta.bin") {
+
+  m_start_coords = std::make_shared<CoordVector>(start_coords);
+  m_end_coords = std::make_shared<CoordVector>(end_coords);
+}
+
+template <typename SymmetryT>
+void TRZFieldIndexer<SymmetryT>::MakePersistent() {
+  
+  std::fstream ofs;
+  ofs.open(m_meta_path, std::ios::out | std::ios::binary);  
+  stor::Serializer oser(ofs);
+  oser.serialize(*m_start_coords);
+  oser.serialize(*m_end_coords);
 }
 
 template <typename SymmetryT>
@@ -43,10 +61,40 @@ IndexVector TRZFieldIndexer<SymmetryT>::GetFieldIndex(GridVector inds_trz) {
 // ---------------
 
 template <class FieldIndexerT, class FieldStorageT>
+WeightingField<FieldIndexerT, FieldStorageT>::WeightingField(std::string wf_path, const CoordVector& start_coords, const CoordVector& end_coords) :
+  m_wf_path(wf_path) {
+
+  // we might have to create the directory structure if this is an empty weighting field
+  if(!std::filesystem::exists(m_wf_path)) {
+    std::filesystem::create_directory(m_wf_path);
+  }
+  
+  m_field_storage = std::make_shared<FieldStorageT>(wf_path, 10);
+  m_field_indexer = std::make_shared<FieldIndexerT>(wf_path, start_coords, end_coords);  
+}
+
+template <class FieldIndexerT, class FieldStorageT>
 WeightingField<FieldIndexerT, FieldStorageT>::WeightingField(std::string wf_path) : m_wf_path(wf_path) {
 
+  // we might have to create the directory structure if this is an empty weighting field
+  if(!std::filesystem::exists(m_wf_path)) {
+    throw std::runtime_error("No usable weighting field found at this location!");
+  }
+  
   m_field_storage = std::make_shared<FieldStorageT>(wf_path, 10);
   m_field_indexer = std::make_shared<FieldIndexerT>(wf_path, *m_field_storage);  
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+template <typename ...Params>
+void WeightingField<FieldIndexerT, FieldStorageT>::RegisterChunk(Params&&... params) {
+  m_field_storage -> RegisterChunk(std::forward<Params>(params)...);
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+void WeightingField<FieldIndexerT, FieldStorageT>::MakeMetadataPersistent() {
+  m_field_storage -> MakeIndexPersistent();
+  m_field_indexer -> MakePersistent();
 }
 
 template <class FieldIndexerT, class FieldStorageT>

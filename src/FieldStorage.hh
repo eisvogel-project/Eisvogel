@@ -15,6 +15,7 @@ class RZFieldStorage : public FieldStorage {
 
 public:
   using storage_t = DistributedNDArray<scalar_t, 3>;
+  using chunk_t = DenseNDArray<scalar_t, 3>;
 
 public:
 
@@ -26,6 +27,10 @@ public:
 
   IndexVector shape();
 
+  void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const IndexVector chunk_start_inds);
+
+  void MakeIndexPersistent();
+  
   // vector E_rzphi(IndexVector& ind);
   
   // calculate from the stored components

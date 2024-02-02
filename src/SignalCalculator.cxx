@@ -22,10 +22,10 @@ scalar_t SignalCalculator::ComputeSignal(const Current0D& track, scalar_t t_sig)
   // the shower (still need to pay attention that we're not generating I/O unecessarily)
   
   // Compute the signal
-  scalar_t sig_old = m_integrator.integrate(t_sig, track);
+  // scalar_t sig_old = m_integrator.integrate(t_sig, track);
   scalar_t sig_new = integrate<CylindricalWeightingField>(*m_wf, t_sig, track);
 
-  std::cout << "old = " << sig_old << "  < --- >   new = " << sig_new << std::endl;
+  // std::cout << "old = " << sig_old << "  < --- >   new = " << sig_new << std::endl;
   
   return sig_new;
 }
