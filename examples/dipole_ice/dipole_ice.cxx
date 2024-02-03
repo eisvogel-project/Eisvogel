@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   };
 
   auto impulse_response = [](scalar_t t) {
-    unsigned int N = 6; // order of filter
+    unsigned int N = 4; // order of filter
     double tp = 2.0; // peaking time of filter
     if(t <= 0) {
       return 0.0;
