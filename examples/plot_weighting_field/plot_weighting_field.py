@@ -50,8 +50,8 @@ def plot_fields(outdir, cwf, tval, num_pts = 100):
     vals_E_r = []
     vals_E_z = []
     vals_E_abs = []
-    for cur_xval in np.linspace(start_coords_txyz[1] + 1, end_coords_txyz[1] - 1, num_pts):
-        for cur_zval in np.linspace(start_coords_txyz[3] + 1, end_coords_txyz[3] - 1, num_pts):
+    for cur_xval in np.linspace(start_coords_txyz[1] + 2, end_coords_txyz[1] - 2, num_pts):
+        for cur_zval in np.linspace(start_coords_txyz[3] + 2, end_coords_txyz[3] - 2, num_pts):
             
             vals_xz.append([cur_xval, cur_zval])
             cur_yval = 0.0
@@ -81,7 +81,7 @@ def plot_weighting_field(wf_path, outdir):
     
     num_time_slices = 5
     
-    for tval in np.linspace(start_coords_txyz[0], end_coords_txyz[0] - 1, num_time_slices):
+    for tval in np.linspace(start_coords_txyz[0], end_coords_txyz[0] - 2, num_time_slices):
         print(f"Plotting for t = {tval}")
         plot_fields(outdir, cwf, tval)
     
