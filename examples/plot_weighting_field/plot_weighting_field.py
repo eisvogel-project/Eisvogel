@@ -41,7 +41,7 @@ def plot_2d(outpath, vals_xy, vals_z, xlabel = "", ylabel = "", zlabel = "", tit
     fig.savefig(outpath, dpi = 300)
     plt.close()
 
-def plot_fields(outdir, cwf, tval, num_pts = 100):
+def plot_fields(outdir, cwf, tval, num_pts = 200):
 
     start_coords_txyz = cwf.GetStartCoords()
     end_coords_txyz = cwf.GetEndCoords()
@@ -79,9 +79,9 @@ def plot_weighting_field(wf_path, outdir):
     start_coords_txyz = cwf.GetStartCoords()
     end_coords_txyz = cwf.GetEndCoords()
     
-    num_time_slices = 5
+    num_time_slices = 7
     
-    for tval in np.linspace(start_coords_txyz[0], end_coords_txyz[0] - 2, num_time_slices):
+    for tval in np.linspace(start_coords_txyz[0], end_coords_txyz[0] - 1, num_time_slices):
         print(f"Plotting for t = {tval}")
         plot_fields(outdir, cwf, tval)
     
