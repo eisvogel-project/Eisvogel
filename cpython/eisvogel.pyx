@@ -56,6 +56,19 @@ cdef class DeltaVector:
     def FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z):
         return DeltaVector.__c_FromDeltaTXYZ(delta_t, delta_x, delta_y, delta_z)
 
+cdef class IndexVector:
+    cdef unique_ptr[ccoordutils.IndexVector] c_ind
+
+    @staticmethod
+    def __c_FromTRZ(size_t ind_t, size_t ind_r, size_t ind_z):
+        cdef IndexVector ind = IndexVector.__new__(IndexVector)
+        ind.c_ind = make_unique[ccoordutils.IndexVector](ccoordutils.MakeIndexVectorTRZ(ind_t, ind_r, ind_z))
+        return ind
+
+    @staticmethod
+    def FromTRZ(ind_t, ind_r, ind_z):
+        return IndexVector.__c_FromTRZ(ind_t, ind_r, ind_z)
+
 from cpython cimport ccurrent
 cdef class Current0D:
     cdef unique_ptr[ccurrent.Current0D] c_current
@@ -104,6 +117,24 @@ cdef class SignalCalculator:
             ), t_sig)
         else:
             raise RuntimeError("Unknown source type")
+
+from cpython cimport cweightingfield
+cdef class CylindricalWeightingField:
+    cdef cweightingfield.CylindricalWeightingField* c_dwf
+
+    def __init__(self, wf_path):
+        self.c_dwf = new cweightingfield.CylindricalWeightingField(wf_path.encode("utf-8"))
+
+    def E_rz(self, pos_txyz):
+        pos_t, pos_x, pos_y, pos_z = pos_txyz
+        cdef CoordVector pos = CoordVector.FromTXYZ(pos_t, pos_x, pos_y, pos_z)
+        return [self.c_dwf.E_r(dereference(pos.c_vec)), self.c_dwf.E_z(dereference(pos.c_vec))]
+
+    def GetStartCoords(self):
+        return [self.c_dwf.GetStartCoords(0), self.c_dwf.GetStartCoords(2), self.c_dwf.GetStartCoords(3), self.c_dwf.GetStartCoords(1)]
+
+    def GetEndCoords(self):
+        return [self.c_dwf.GetEndCoords(0), self.c_dwf.GetEndCoords(2), self.c_dwf.GetEndCoords(3), self.c_dwf.GetEndCoords(1)]
 
 from cpython cimport cweightingfieldutils
 cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 

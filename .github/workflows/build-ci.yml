@@ -23,8 +23,8 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake ../ &&
-        make &&
+        cmake -DBUILD_PYTHON=ON -DBUILD_WFC=ON -DBUILD_TESTS=ON ../ &&
+        VERBOSE=1 make &&
         popd
 
     - name: Run C++ tests

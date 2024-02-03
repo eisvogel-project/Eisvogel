@@ -45,4 +45,6 @@ struct KeysCubicInterpolationKernel {
   }
 };
 
+using DefaultKernel = KeysCubicInterpolationKernel;
+
 #endif

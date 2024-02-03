@@ -34,15 +34,18 @@ public:
 
   using chunk_t = DenseNDArray<T, dims>;
 
-  // For assembling a distributed array
+  // For assembling and indexing a distributed array
   void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
-  void FlushIndex();
-
+  void MakeIndexPersistent();
   void rebuildIndex();
   
   // For accessing a distributed array
   T operator()(IndexVector& inds);
 
+  std::size_t startInd(std::size_t dim) const {
+    return m_global_start_ind(dim);
+  }
+  
 private:
 
   bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
@@ -64,8 +67,13 @@ private:
 
   // Keeps track of the chunks this DistributedNDArray is composed of
   using index_t = std::vector<ChunkMetadata>;
-  index_t m_chunk_index; // TODO: maybe later when we need fancier things (e.g. predictive loading of additional neighbouring chunks), can think about turning this into a class
+  // TODO: maybe later when we need fancier things (e.g. predictive loading of additional neighbouring chunks),
+  // can think about turning this into a class
+  index_t m_chunk_index;
 
+  // The index may not start at {0, 0, 0}
+  IndexVector m_global_start_ind;
+  
   // Data strutures for caching of frequently-accessed elements of the array
   std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
   std::queue<std::size_t> m_cache_queue; // to keep track of the age of cached chunks

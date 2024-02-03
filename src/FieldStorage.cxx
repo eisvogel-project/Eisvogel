@@ -31,8 +31,8 @@ void RZFieldStorage::RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chun
 }
 
 void RZFieldStorage::MakeIndexPersistent() {
-  m_E_r -> FlushIndex();
-  m_E_z -> FlushIndex();
+  m_E_r -> MakeIndexPersistent();
+  m_E_z -> MakeIndexPersistent();
 }
 
 // calculate from the stored components

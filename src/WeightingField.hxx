@@ -36,6 +36,16 @@ CoordVector TRZFieldIndexer<SymmetryT>::GetSamplingIntervals() const {
 }
 
 template <typename SymmetryT>
+CoordVector TRZFieldIndexer<SymmetryT>::GetStartCoords() const {
+  return *m_start_coords;
+}
+
+template <typename SymmetryT>
+CoordVector TRZFieldIndexer<SymmetryT>::GetEndCoords() const {
+  return *m_end_coords;
+}
+
+template <typename SymmetryT>
 CoordVector TRZFieldIndexer<SymmetryT>::GetFieldIndexFromCoord(CoordVector pos_txyz) {
   return SymmetryT::GetOrbitIndex(pos_txyz, *m_start_coords, *m_end_coords, *m_shape);
 }
@@ -100,6 +110,26 @@ void WeightingField<FieldIndexerT, FieldStorageT>::MakeMetadataPersistent() {
 template <class FieldIndexerT, class FieldStorageT>
 DeltaVector WeightingField<FieldIndexerT, FieldStorageT>::GetSamplingIntervals() const {
   return m_field_indexer -> GetSamplingIntervals();
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+CoordVector WeightingField<FieldIndexerT, FieldStorageT>::GetStartCoords() const {
+  return m_field_indexer -> GetStartCoords();
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+scalar_t WeightingField<FieldIndexerT, FieldStorageT>::GetStartCoords(std::size_t dim) const {
+  return GetStartCoords()(dim);
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+CoordVector WeightingField<FieldIndexerT, FieldStorageT>::GetEndCoords() const {
+  return m_field_indexer -> GetEndCoords();
+}
+
+template <class FieldIndexerT, class FieldStorageT>
+scalar_t WeightingField<FieldIndexerT, FieldStorageT>::GetEndCoords(std::size_t dim) const {
+  return GetEndCoords()(dim);
 }
 
 template <class FieldIndexerT, class FieldStorageT>

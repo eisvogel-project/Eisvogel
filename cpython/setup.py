@@ -9,7 +9,7 @@ extensions = [
               libraries = ["eisvogel"],
               library_dirs = ["${PROJECT_BINARY_DIR}/eisvogel/"],
               language = "c++",
-              extra_compile_args = ["-I${PROJECT_SOURCE_DIR}/include/", "-I${PROJECT_SOURCE_DIR}/src/",
+              extra_compile_args = ["-I${PROJECT_SOURCE_DIR}/include/", "-I${PROJECT_SOURCE_DIR}/src/", "-I${MPI_INCLUDE_PATH}",
                                     "-O3", "-std=gnu++2a",
                                     "-ftree-vectorize", "-ffast-math",
                                     "-ftree-vectorizer-verbose=2", "-funroll-loops", "-march=native"],

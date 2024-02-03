@@ -24,6 +24,8 @@ public:
   IndexVector GetFieldIndex(GridVector inds_trz);
 
   DeltaVector GetSamplingIntervals() const;
+  CoordVector GetStartCoords() const;
+  CoordVector GetEndCoords() const;
 
   void MakePersistent();
 
@@ -46,20 +48,24 @@ public:
 
   template <typename ...Params>
   void RegisterChunk(Params&&... params);
+
+  void MakeMetadataPersistent();
   
   // Accessors for field components
-  template <typename KernelT>
+  template <typename KernelT = DefaultKernel>
   scalar_t E_r(CoordVector pos);
 
-  template <typename KernelT>
+  template <typename KernelT = DefaultKernel>
   scalar_t E_z(CoordVector pos);
 
-  template <typename KernelT>
+  template <typename KernelT = DefaultKernel>
   scalar_t E_phi(CoordVector pos);
   
   DeltaVector GetSamplingIntervals() const;
-
-  void MakeMetadataPersistent();
+  CoordVector GetStartCoords() const;
+  scalar_t GetStartCoords(std::size_t dim) const;
+  CoordVector GetEndCoords() const;
+  scalar_t GetEndCoords(std::size_t dim) const;
   
 private:
   
