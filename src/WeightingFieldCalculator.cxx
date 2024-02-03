@@ -148,7 +148,7 @@ void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::file
   ChunkloopData cld(0, cwf);
 
   std::size_t stepcnt = 0;
-  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 1) {
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {
