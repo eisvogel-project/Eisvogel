@@ -118,38 +118,23 @@ cdef class SignalCalculator:
         else:
             raise RuntimeError("Unknown source type")
 
-from cpython cimport cdistributedweightingfield
-cdef class DistributedWeightingField:
-    cdef cdistributedweightingfield.DistributedWeightingField* c_dwf
+from cpython cimport cweightingfield
+cdef class CylindricalWeightingField:
+    cdef cweightingfield.CylindricalWeightingField* c_dwf
 
     def __init__(self, wf_path):
-        self.c_dwf = new cdistributedweightingfield.DistributedWeightingField(wf_path.encode("utf-8"))
+        self.c_dwf = new cweightingfield.CylindricalWeightingField(wf_path.encode("utf-8"))
 
-    def E_r(self, ind_trz):
-        ind_t, ind_r, ind_z = ind_trz
-        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
-        return self.c_dwf.E_r(dereference(ind.c_ind))
+    def E_rz(self, pos_txyz):
+        pos_t, pos_x, pos_y, pos_z = pos_txyz
+        cdef CoordVector pos = CoordVector.FromTXYZ(pos_t, pos_x, pos_y, pos_z)
+        return [self.c_dwf.E_r(dereference(pos.c_vec)), self.c_dwf.E_z(dereference(pos.c_vec))]
 
-    def E_z(self, ind_trz):
-        ind_t, ind_r, ind_z = ind_trz
-        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
-        return self.c_dwf.E_z(dereference(ind.c_ind))
+    def GetStartCoords(self):
+        return [self.c_dwf.GetStartCoords(0), self.c_dwf.GetStartCoords(2), self.c_dwf.GetStartCoords(3), self.c_dwf.GetStartCoords(1)]
 
-    def E_phi(self, ind_trz):
-        ind_t, ind_r, ind_z = ind_trz
-        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
-        return self.c_dwf.E_phi(dereference(ind.c_ind))
-
-    def E_rzphi(self, ind_trz):
-        ind_t, ind_r, ind_z = ind_trz
-        cdef IndexVector ind = IndexVector.FromTRZ(ind_t, ind_r, ind_z)
-        return [self.c_dwf.E_r(dereference(ind.c_ind)),  self.c_dwf.E_z(dereference(ind.c_ind)), self.c_dwf.E_phi(dereference(ind.c_ind))]
-
-    def shape(self):
-        return [self.c_dwf.shape(0), self.c_dwf.shape(2), self.c_dwf.shape(1)]
-
-    def startInd(self):
-        return [self.c_dwf.startInd(0), self.c_dwf.startInd(2), self.c_dwf.startInd(1)]
+    def GetEndCoords(self):
+        return [self.c_dwf.GetEndCoords(0), self.c_dwf.GetEndCoords(2), self.c_dwf.GetEndCoords(3), self.c_dwf.GetEndCoords(1)]
 
 from cpython cimport cweightingfieldutils
 cpdef CreateElectricDipoleWeightingField(wf_path, CoordVector start_coords, CoordVector end_coords, 

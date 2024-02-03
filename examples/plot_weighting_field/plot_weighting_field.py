@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
-from eisvogel import DistributedWeightingField
+from eisvogel import CylindricalWeightingField, CoordVector
 
 def plot_2d(outpath, vals_xy, vals_z, xlabel = "", ylabel = "", zlabel = "", title = "", fs = 13,
             num_pts_interp = (1000, 1000), cmap = "bwr"):
@@ -41,50 +41,49 @@ def plot_2d(outpath, vals_xy, vals_z, xlabel = "", ylabel = "", zlabel = "", tit
     fig.savefig(outpath, dpi = 300)
     plt.close()
 
-def plot_fields(outdir, dwf, ind_t, downsample = 2):
+def plot_fields(outdir, cwf, tval, num_pts = 100):
 
-    shape_trz = dwf.shape()
-    start_inds_trz = dwf.startInd()
+    start_coords_txyz = cwf.GetStartCoords()
+    end_coords_txyz = cwf.GetEndCoords()
     
-    vals_rz = []
+    vals_xz = []
     vals_E_r = []
     vals_E_z = []
     vals_E_abs = []
-    for ind_r in range(start_inds_trz[1], start_inds_trz[1] + shape_trz[1]):
-        for ind_z in range(start_inds_trz[2], start_inds_trz[2] + shape_trz[2]):
-
-            if (ind_r % downsample != 0) or (ind_z % downsample != 0):
-                continue
+    for cur_xval in np.linspace(start_coords_txyz[1] + 1, end_coords_txyz[1] - 1, num_pts):
+        for cur_zval in np.linspace(start_coords_txyz[3] + 1, end_coords_txyz[3] - 1, num_pts):
             
-            vals_rz.append([ind_r, ind_z])
-            (E_r, E_z, E_phi) = dwf.E_rzphi([ind_t, ind_r, ind_z])
+            vals_xz.append([cur_xval, cur_zval])
+            cur_yval = 0.0
+            
+            (E_r, E_z) = cwf.E_rz([tval, cur_xval, cur_yval, cur_zval])
             vals_E_r.append(E_r)
             vals_E_z.append(E_z)
             vals_E_abs.append(np.sqrt(E_r**2 + E_z**2))
 
-    outpath = os.path.join(outdir, f"E_r_{ind_t}.png")
-    plot_2d(outpath, vals_rz, vals_E_r, xlabel = "r", ylabel = "z", zlabel = r"$E_r$", title = rf"t = {ind_t}", cmap = "bwr")
+    outpath = os.path.join(outdir, f"E_r_{tval}.png")
+    plot_2d(outpath, vals_xz, vals_E_r, xlabel = "x", ylabel = "z", zlabel = r"$E_r$", title = rf"t = {tval}", cmap = "bwr")
 
-    outpath = os.path.join(outdir, f"E_z_{ind_t}.png")
-    plot_2d(outpath, vals_rz, vals_E_z, xlabel = "r", ylabel = "z", zlabel = r"$E_z$", title = rf"t = {ind_t}", cmap = "bwr")
+    outpath = os.path.join(outdir, f"E_z_{tval}.png")
+    plot_2d(outpath, vals_xz, vals_E_z, xlabel = "x", ylabel = "z", zlabel = r"$E_z$", title = rf"t = {tval}", cmap = "bwr")
 
-    outpath = os.path.join(outdir, f"E_abs_{ind_t}.png")
-    plot_2d(outpath, vals_rz, vals_E_abs, xlabel = "r", ylabel = "z", zlabel = "|E|", title = rf"t = {ind_t}", cmap = "Blues")
+    outpath = os.path.join(outdir, f"E_abs_{tval}.png")
+    plot_2d(outpath, vals_xz, vals_E_abs, xlabel = "x", ylabel = "z", zlabel = "|E|", title = rf"t = {tval}", cmap = "Blues")
     
 def plot_weighting_field(wf_path, outdir):
     
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     
-    dwf = DistributedWeightingField(wf_path)
-    shape_trz = dwf.shape()
-    start_inds_trz = dwf.startInd()
-
+    cwf = CylindricalWeightingField(wf_path)
+    start_coords_txyz = cwf.GetStartCoords()
+    end_coords_txyz = cwf.GetEndCoords()
+    
     num_time_slices = 5
     
-    for ind_t in np.linspace(start_inds_trz[0], start_inds_trz[0] + shape_trz[0] - 1, num_time_slices, dtype = int):
-        print(f"Plotting for t = {ind_t}")
-        plot_fields(outdir, dwf, ind_t)
+    for tval in np.linspace(start_coords_txyz[0], end_coords_txyz[0] - 1, num_time_slices):
+        print(f"Plotting for t = {tval}")
+        plot_fields(outdir, cwf, tval)
     
 if __name__ == "__main__":
 
