@@ -141,6 +141,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     char tmpdir_template[] = "/tmp/eisvogel.XXXXXX";
     tmpdir = std::string(mkdtemp(tmpdir_template));
   }
+
+  std::cout << "Using tmpdir = " << tmpdir << std::endl;
   
   // This is only for cross-checking the geometry for now
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
@@ -170,9 +172,10 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
   std::cout << " done!" << std::endl;
 
+  meep::all_wait();
+  
   if(meep::am_master()) {
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
-    // std::filesystem::copy(tmpdir / "wf_meta.bin", outdir);
   }
 }
