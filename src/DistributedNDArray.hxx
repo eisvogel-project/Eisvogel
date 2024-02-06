@@ -21,9 +21,9 @@ namespace stor {
 }
 
 template <class T, std::size_t dims>
-DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size) :
+DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size, stor::Serializer& ser) :
   NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size),
-  m_global_start_ind(dims, 0) {
+  m_global_start_ind(dims, 0), m_ser(ser) {
 
   // Create directory if it does not already exist
   if(!std::filesystem::exists(m_dirpath)) {
@@ -34,8 +34,8 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
     // Load index if there is one
     std::fstream ifs; 
     ifs.open(m_indexpath, std::ios::in | std::ios::binary);
-    stor::Serializer iser(ifs);
-    m_chunk_index = iser.deserialize<index_t>();
+    // stor::Serializer iser;
+    m_chunk_index = m_ser.deserialize<index_t>(ifs);
     ifs.close();    
   }
   else {
@@ -80,12 +80,9 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
   std::fstream ofs;
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
-  stor::Serializer oser(ofs);
-  oser.serialize<ChunkMetadata>(meta);
-
-  
-  
-  oser.serialize<chunk_t>(chunk);
+  //stor::Serializer oser;
+  m_ser.serialize<ChunkMetadata>(ofs, meta);   
+  m_ser.serialize<chunk_t>(ofs, chunk);
   ofs.close();
 
   // update global shape of this array (if possible)
@@ -97,8 +94,8 @@ void DistributedNDArray<T, dims>::MakeIndexPersistent() {
   // Update index on disk
   std::fstream ofs;
   ofs.open(m_indexpath, std::ios::out | std::ios::binary);  
-  stor::Serializer oser(ofs);
-  oser.serialize<index_t>(m_chunk_index);
+  //stor::Serializer oser;
+  m_ser.serialize<index_t>(ofs, m_chunk_index);
   ofs.close();
 }
 
@@ -113,8 +110,8 @@ void DistributedNDArray<T, dims>::rebuildIndex() {
   for(auto const& dir_entry : std::filesystem::directory_iterator(m_dirpath)) {
     std::fstream ifs;
     ifs.open(dir_entry.path(), std::ios::in | std::ios::binary);
-    stor::Serializer iser(ifs);
-    ChunkMetadata meta = iser.deserialize<ChunkMetadata>();
+    // stor::Serializer iser;
+    ChunkMetadata meta = m_ser.deserialize<ChunkMetadata>(ifs);
     ifs.close();
     
     m_chunk_index.push_back(meta);
@@ -172,9 +169,9 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
     std::string chunk_path = m_dirpath + "/" + chunk_meta.filename;
     std::cout << "Loading chunk from " + chunk_path + " ... ";
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
-    stor::Serializer iser(ifs);
-    iser.deserialize<ChunkMetadata>(); // skip metadata
-    m_chunk_cache.insert({chunk_ind, iser.deserialize<chunk_t>()});
+    //stor::Serializer iser;
+    m_ser.deserialize<ChunkMetadata>(ifs); // skip metadata
+    m_chunk_cache.insert({chunk_ind, m_ser.deserialize<chunk_t>(ifs)});
     m_cache_queue.push(chunk_ind);
     ifs.close();
     std::cout << "done!" << std::endl;

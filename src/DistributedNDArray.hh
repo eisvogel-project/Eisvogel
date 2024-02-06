@@ -29,7 +29,7 @@ class DistributedNDArray : public NDArray<T, dims> {
 
 public:
   
-  DistributedNDArray(std::string dirpath, std::size_t max_cache_size);
+  DistributedNDArray(std::string dirpath, std::size_t max_cache_size, stor::Serializer& ser);
   ~DistributedNDArray();
 
   using chunk_t = DenseNDArray<T, dims>;
@@ -60,7 +60,7 @@ private:
   std::size_t getVolume(IndexVector& start_inds, IndexVector& stop_inds);
   
 private:
-
+  
   const std::string m_dirpath;
   const std::string m_indexpath;
   const std::size_t m_max_cache_size;
@@ -77,6 +77,8 @@ private:
   // Data strutures for caching of frequently-accessed elements of the array
   std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
   std::queue<std::size_t> m_cache_queue; // to keep track of the age of cached chunks
+
+  stor::Serializer& m_ser;
 };
 
 #include "DistributedNDArray.hxx"

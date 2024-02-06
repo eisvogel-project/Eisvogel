@@ -10,6 +10,8 @@
 #include <cstring>
 #include "Eisvogel/Common.hh"
 
+#include <iostream>
+
 // inspired by https://github.com/panta/seriously
 
 namespace stor {
@@ -24,20 +26,35 @@ namespace stor {
   class Serializer {
 
   public:
-    Serializer(std::fstream& stream) : m_stream(stream) { }
+    Serializer() { }
     
     template <typename T>
-    void serialize(const T& value) {
-      Traits<T>::serialize(m_stream, value);
+    void serialize(std::fstream& stream, const T& value) {
+      Traits<T>::serialize(stream, value);
     }
 
     template <typename T>
-    T deserialize() {
-      return Traits<T>::deserialize(m_stream);
+    T deserialize(std::fstream& stream) {
+      return Traits<T>::deserialize(stream);
+    }
+  };
+
+  class SparseSerializer : public Serializer {
+
+  public:
+    SparseSerializer() { }
+
+    template <typename T>
+    void serialize(std::fstream& stream, const T& value) {
+      std::cout << "serializing in a sparse way!" << std::endl;
+      Traits<T>::serialize(stream, value);
     }
 
-  private:
-    std::fstream& m_stream;
+    template <typename T>
+    T deserialize(std::fstream& stream) {
+      std::cout << "deserializing in a sparse way!" << std::endl;
+      return Traits<T>::deserialize(stream);
+    }
   };
 }
 
