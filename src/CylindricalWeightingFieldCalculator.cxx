@@ -2,13 +2,13 @@
 #include <memory>
 #include <cassert>
 #include <cmath>
-#include "Eisvogel/WeightingFieldCalculator.hh"
+#include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
 #include "Eisvogel/CoordUtils.hh"
 
 // For now, this only handles geometries with cylindrical symmetry
-WeightingFieldCalculator::WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
-						   double courant_factor, double resolution, double pml_width) {
+CylindricalWeightingFieldCalculator::CylindricalWeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
+									 double courant_factor, double resolution, double pml_width) {
 
   m_t_end = t_end;
   m_start_coords = std::make_shared<CoordVector>(CoordUtils::MakeCoordVectorTRZ(0.0, 0.0, geom.GetZMin()));
@@ -116,7 +116,7 @@ namespace meep {
   
 } // end namespace meep
   
-void WeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir) {
+void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir) {
 
   // TODO: this will get a lot easier once we can have all three components together in the same array
   std::filesystem::path outdir_Er = outdir / "E_r";

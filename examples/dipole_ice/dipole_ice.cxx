@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/WeightingFieldCalculator.hh"
+#include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/Antenna.hh"
 #include "Eisvogel/CoordUtils.hh"
 
@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
   InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
 
   scalar_t t_end = 25;
-  WeightingFieldCalculator wfc(geom, dipole, t_end);
+  CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
   wfc.Calculate(wf_path);
   
   return 0;
