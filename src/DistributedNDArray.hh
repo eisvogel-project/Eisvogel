@@ -83,7 +83,7 @@ private:
 
 #include "DistributedNDArray.hxx"
 
-template <class T, std::size_t dims, class SerializerT>
+template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
 using DistributedDenseNDArray = DistributedNDArray<T, dims, DenseNDArray, SerializerT>;
 
 #endif
