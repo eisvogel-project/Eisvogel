@@ -39,8 +39,8 @@ namespace stor {
   private:
     std::fstream& m_stream;
   };
-
-  #include "Serialization.hxx"
 }
+
+#include "Serialization.hxx"
 
 #endif
