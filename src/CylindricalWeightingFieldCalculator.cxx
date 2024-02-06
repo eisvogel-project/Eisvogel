@@ -4,6 +4,7 @@
 #include <cmath>
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
+#include "FieldStorage.hh"
 #include "Eisvogel/CoordUtils.hh"
 
 // For now, this only handles geometries with cylindrical symmetry
@@ -23,11 +24,11 @@ CylindricalWeightingFieldCalculator::CylindricalWeightingFieldCalculator(Cylinde
 
 struct ChunkloopData {
 
-  ChunkloopData(std::size_t ind_t, std::shared_ptr<CylindricalWeightingField> wf) :
-    ind_t(ind_t), wf(wf) { }
+  ChunkloopData(std::size_t ind_t, RZFieldStorage& fstor) :
+    ind_t(ind_t), fstor(fstor) { }
   
   std::size_t ind_t;
-  std::shared_ptr<CylindricalWeightingField> wf;
+  RZFieldStorage& fstor;
   
 };
 
@@ -111,7 +112,7 @@ namespace meep {
       chunk_buffer_E_z(chunk_ind) = E_z_val;
     }
 
-    chunkloop_data -> wf -> RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);       
+    chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);       
   }
   
 } // end namespace meep
@@ -144,8 +145,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   // This is only for cross-checking the geometry for now
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
-  std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(tmpdir, *m_start_coords, *m_end_coords);
-  ChunkloopData cld(0, cwf);
+  std::shared_ptr<RZFieldStorage> fstor = std::make_shared<RZFieldStorage>(tmpdir, 10);
+  ChunkloopData cld(0, *fstor);
 
   std::size_t stepcnt = 0;
   for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
@@ -162,13 +163,16 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     cld.ind_t = stepcnt++;
     m_f -> loop_in_chunks(meep::saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
   }
-
+  
   // TODO: again, will get better once the three separate arrays are gone
+  std::cout << "moving output into final location ...";
   std::filesystem::copy(tmpdir / "E_r", outdir_Er, std::filesystem::copy_options::recursive);
   std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
+  std::cout << " done!" << std::endl;
 
   if(meep::am_master()) {
+    std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
-    std::filesystem::copy(tmpdir / "wf_meta.bin", outdir);
+    // std::filesystem::copy(tmpdir / "wf_meta.bin", outdir);
   }
 }
