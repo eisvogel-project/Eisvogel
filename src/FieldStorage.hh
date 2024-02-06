@@ -3,7 +3,7 @@
 
 #include <string>
 #include <filesystem>
-#include "Eisvogel/DistributedNDArray.hh"
+#include "DistributedNDArray.hh"
 
 class FieldStorage {
   

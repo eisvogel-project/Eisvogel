@@ -18,12 +18,14 @@ target_include_directories(Shower1D PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
                           "${PROJECT_SOURCE_DIR}/extern/constants"
                           "${PROJECT_SOURCE_DIR}/include/"
+			  "${PROJECT_SOURCE_DIR}/src/"
                           )
 
 target_include_directories(ShowerCreator PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_1D"
                           "${PROJECT_SOURCE_DIR}/extern/shower_profile/shower_2D"
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
+			  "${PROJECT_SOURCE_DIR}/src/"
                           )
 target_include_directories(Environment PUBLIC
                           "${PROJECT_SOURCE_DIR}/extern/utilities"
@@ -35,4 +37,5 @@ target_include_directories(Shower2D PUBLIC
                         "${PROJECT_SOURCE_DIR}/extern/utilities"
                         "${PROJECT_SOURCE_DIR}/extern/constants"
                         "${PROJECT_SOURCE_DIR}/include/"
+			"${PROJECT_SOURCE_DIR}/src/"
                         )

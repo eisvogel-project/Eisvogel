@@ -1,4 +1,4 @@
-#include "Eisvogel/Serialization.hh"
+#include "Serialization.hh"
 
 template <typename SymmetryT>
 TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, FieldStorage& storage) :

@@ -1,4 +1,4 @@
-#include "Eisvogel/Serialization.hh"
+#include "Serialization.hh"
 #include "Eisvogel/Common.hh"
 
 #include <fstream>

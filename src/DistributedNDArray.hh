@@ -10,9 +10,9 @@
 #include <filesystem>
 #include <fstream>
 
-#include "Eisvogel/NDArray.hh"
+#include "NDArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
-#include "Eisvogel/Serialization.hh"
+#include "Serialization.hh"
 
 struct ChunkMetadata {
 

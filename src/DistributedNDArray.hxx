@@ -82,6 +82,9 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
   stor::Serializer oser(ofs);
   oser.serialize<ChunkMetadata>(meta);
+
+  
+  
   oser.serialize<chunk_t>(chunk);
   ofs.close();
 

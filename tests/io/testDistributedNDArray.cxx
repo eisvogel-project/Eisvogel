@@ -1,5 +1,5 @@
-#include "Eisvogel/DistributedNDArray.hh"
-#include "Eisvogel/NDArray.hh"
+#include "DistributedNDArray.hh"
+#include "NDArray.hh"
 
 #include <fstream>
 
