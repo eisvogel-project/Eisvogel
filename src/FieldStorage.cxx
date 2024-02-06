@@ -5,10 +5,10 @@ RZFieldStorage::RZFieldStorage(std::filesystem::path storage_path, std::size_t c
   std::filesystem::path storage_path_E_r = storage_path / "E_r";
   std::filesystem::path storage_path_E_z = storage_path / "E_z";
 
-  std::shared_ptr<stor::SparseSerializer> ser = std::make_shared<stor::SparseSerializer>();
+  m_ser = std::make_shared<serializer_t>();
   
-  m_E_r = std::make_shared<storage_t>(storage_path_E_r, cache_size, *ser);
-  m_E_z = std::make_shared<storage_t>(storage_path_E_z, cache_size, *ser);
+  m_E_r = std::make_shared<storage_t>(storage_path_E_r, cache_size, *m_ser);
+  m_E_z = std::make_shared<storage_t>(storage_path_E_z, cache_size, *m_ser);
 }
 
 IndexVector RZFieldStorage::shape() {

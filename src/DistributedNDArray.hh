@@ -24,12 +24,12 @@ struct ChunkMetadata {
   IndexVector stop_ind;  
 };
 
-template <class T, std::size_t dims>
+template <class T, std::size_t dims, class SerializerT>
 class DistributedNDArray : public NDArray<T, dims> {
 
 public:
   
-  DistributedNDArray(std::string dirpath, std::size_t max_cache_size, stor::Serializer& ser);
+  DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser);
   ~DistributedNDArray();
 
   using chunk_t = DenseNDArray<T, dims>;
@@ -78,7 +78,7 @@ private:
   std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
   std::queue<std::size_t> m_cache_queue; // to keep track of the age of cached chunks
 
-  stor::Serializer& m_ser;
+  SerializerT& m_ser;
 };
 
 #include "DistributedNDArray.hxx"

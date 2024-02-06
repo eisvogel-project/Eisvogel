@@ -14,7 +14,8 @@ public:
 class RZFieldStorage : public FieldStorage {
 
 public:
-  using storage_t = DistributedNDArray<scalar_t, 3>;
+  using serializer_t = stor::DefaultSerializer;
+  using storage_t = DistributedNDArray<scalar_t, 3, serializer_t>;
   using chunk_t = DenseNDArray<scalar_t, 3>;
 
 public:
@@ -43,7 +44,9 @@ public:
 private:
   
   std::shared_ptr<storage_t> m_E_r;
-  std::shared_ptr<storage_t> m_E_z;  
+  std::shared_ptr<storage_t> m_E_z;
+
+  std::shared_ptr<serializer_t> m_ser;
 };
 
 #endif

@@ -22,42 +22,39 @@ namespace stor {
 
   template <typename T>
   struct Traits;
-  
+
+  template <class Derived>
   class Serializer {
 
   public:
-    Serializer() { }
     
     template <typename T>
     void serialize(std::fstream& stream, const T& value) {
-      Traits<T>::serialize(stream, value);
+      static_cast<Derived*>(this) -> template serialize_impl<T>(stream, value);
     }
 
     template <typename T>
     T deserialize(std::fstream& stream) {
-      return Traits<T>::deserialize(stream);
-    }
+      return static_cast<Derived*>(this) -> template deserialize_impl<T>(stream);
+    }    
   };
-
-  class SparseSerializer : public Serializer {
+  
+  class DefaultSerializer : public Serializer<DefaultSerializer> {
 
   public:
-    SparseSerializer() { }
+    DefaultSerializer() { }
+    
+    template <typename T>
+    void serialize_impl(std::fstream& stream, const T& value);
 
     template <typename T>
-    void serialize(std::fstream& stream, const T& value) {
-      std::cout << "serializing in a sparse way!" << std::endl;
-      Traits<T>::serialize(stream, value);
-    }
-
-    template <typename T>
-    T deserialize(std::fstream& stream) {
-      std::cout << "deserializing in a sparse way!" << std::endl;
-      return Traits<T>::deserialize(stream);
-    }
+    T deserialize_impl(std::fstream& stream);
+    
   };
+
 }
 
 #include "Serialization.hxx"
+#include "DefaultSerializationTraits.hxx"
 
 #endif

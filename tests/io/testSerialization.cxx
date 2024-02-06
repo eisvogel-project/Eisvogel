@@ -24,13 +24,13 @@ int test_serialization_vector(std::string ser_path, std::size_t length) {
   
   std::fstream ofs;
   ofs.open(ser_path, std::ios::out | std::ios::binary);  
-  stor::Serializer oser;
+  stor::DefaultSerializer oser;
   oser.serialize(ofs, vec);
   ofs.close();
 
   std::fstream ifs;
   ifs.open(ser_path, std::ios::in | std::ios::binary);
-  stor::Serializer iser; 
+  stor::DefaultSerializer iser; 
   vector_t res = iser.deserialize<vector_t>(ifs);
   ifs.close();  
 

@@ -6,7 +6,7 @@ TRZFieldIndexer<SymmetryT>::TRZFieldIndexer(std::filesystem::path index_path, Fi
 
   std::fstream ifs;
   ifs.open(m_meta_path, std::ios::in | std::ios::binary);
-  stor::Serializer iser;
+  stor::DefaultSerializer iser;
   m_start_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>(ifs));
   m_end_coords = std::make_shared<CoordVector>(iser.deserialize<CoordVector>(ifs));
   m_shape = std::make_shared<IndexVector>(storage.shape());
@@ -25,7 +25,7 @@ void TRZFieldIndexer<SymmetryT>::MakePersistent() {
   
   std::fstream ofs;
   ofs.open(m_meta_path, std::ios::out | std::ios::binary);  
-  stor::Serializer oser;
+  stor::DefaultSerializer oser;
   oser.serialize(ofs, *m_start_coords);
   oser.serialize(ofs, *m_end_coords);
 }

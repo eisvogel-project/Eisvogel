@@ -20,8 +20,8 @@ namespace stor {
   };
 }
 
-template <class T, std::size_t dims>
-DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size, stor::Serializer& ser) :
+template <class T, std::size_t dims, class SerializerT>
+DistributedNDArray<T, dims, SerializerT>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser) :
   NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size),
   m_global_start_ind(dims, 0), m_ser(ser) {
 
@@ -35,7 +35,7 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
     std::fstream ifs; 
     ifs.open(m_indexpath, std::ios::in | std::ios::binary);
     // stor::Serializer iser;
-    m_chunk_index = m_ser.deserialize<index_t>(ifs);
+    m_chunk_index = m_ser.template deserialize<index_t>(ifs);
     ifs.close();    
   }
   else {
@@ -47,11 +47,11 @@ DistributedNDArray<T, dims>::DistributedNDArray(std::string dirpath, std::size_t
   calculateShape();
 }
 
-template <class T, std::size_t dims>
-DistributedNDArray<T, dims>::~DistributedNDArray() { }
+template <class T, std::size_t dims, class SerializerT>
+DistributedNDArray<T, dims, SerializerT>::~DistributedNDArray() { }
 
-template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind, bool require_nonoverlapping) {
+template <class T, std::size_t dims, class SerializerT>
+void DistributedNDArray<T, dims, SerializerT>::RegisterChunk(const DenseNDArray<T, dims>& chunk, const IndexVector start_ind, bool require_nonoverlapping) {
 
   IndexVector stop_ind = start_ind + chunk.shape();
   
@@ -81,26 +81,26 @@ void DistributedNDArray<T, dims>::RegisterChunk(const DenseNDArray<T, dims>& chu
   std::fstream ofs;
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
   //stor::Serializer oser;
-  m_ser.serialize<ChunkMetadata>(ofs, meta);   
-  m_ser.serialize<chunk_t>(ofs, chunk);
+  m_ser.template serialize<ChunkMetadata>(ofs, meta);   
+  m_ser.template serialize<chunk_t>(ofs, chunk);
   ofs.close();
 
   // update global shape of this array (if possible)
   calculateShape();
 }
 
-template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::MakeIndexPersistent() {
+template <class T, std::size_t dims, class SerializerT>
+void DistributedNDArray<T, dims, SerializerT>::MakeIndexPersistent() {
   // Update index on disk
   std::fstream ofs;
   ofs.open(m_indexpath, std::ios::out | std::ios::binary);  
   //stor::Serializer oser;
-  m_ser.serialize<index_t>(ofs, m_chunk_index);
+  m_ser.template serialize<index_t>(ofs, m_chunk_index);
   ofs.close();
 }
 
-template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::rebuildIndex() {
+template <class T, std::size_t dims, class SerializerT>
+void DistributedNDArray<T, dims, SerializerT>::rebuildIndex() {
   m_chunk_index.clear();
 
   // With the index gone, also the cache is now out of scope
@@ -111,15 +111,15 @@ void DistributedNDArray<T, dims>::rebuildIndex() {
     std::fstream ifs;
     ifs.open(dir_entry.path(), std::ios::in | std::ios::binary);
     // stor::Serializer iser;
-    ChunkMetadata meta = m_ser.deserialize<ChunkMetadata>(ifs);
+    ChunkMetadata meta = m_ser.template deserialize<ChunkMetadata>(ifs);
     ifs.close();
     
     m_chunk_index.push_back(meta);
   }
 }
 
-template <class T, std::size_t dims>
-T DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
+template <class T, std::size_t dims, class SerializerT>
+T DistributedNDArray<T, dims, SerializerT>::operator()(IndexVector& inds) {
 
   // check to which chunk this index belongs
   std::size_t chunk_ind = getChunkIndex(inds);
@@ -132,13 +132,13 @@ T DistributedNDArray<T, dims>::operator()(IndexVector& inds) {
   return found_chunk(inds_within_chunk);
 }
 
-template <class T, std::size_t dims>
-bool DistributedNDArray<T, dims>::chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds) {
+template <class T, std::size_t dims, class SerializerT>
+bool DistributedNDArray<T, dims, SerializerT>::chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds) {
   return isInIndexRange(inds, chunk_meta.start_ind, chunk_meta.stop_ind);
 }
 
-template <class T, std::size_t dims>
-std::size_t DistributedNDArray<T, dims>::getChunkIndex(const IndexVector& inds) {
+template <class T, std::size_t dims, class SerializerT>
+std::size_t DistributedNDArray<T, dims, SerializerT>::getChunkIndex(const IndexVector& inds) {
   std::size_t chunk_ind = 0;
   for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
     if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
@@ -149,8 +149,8 @@ std::size_t DistributedNDArray<T, dims>::getChunkIndex(const IndexVector& inds) 
   throw std::runtime_error("No chunk provides these indices!");
 }
 
-template <class T, std::size_t dims>
-DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk(std::size_t chunk_ind) {
+template <class T, std::size_t dims, class SerializerT>
+DistributedNDArray<T, dims, SerializerT>::chunk_t& DistributedNDArray<T, dims, SerializerT>::retrieveChunk(std::size_t chunk_ind) {
   
   ChunkMetadata& chunk_meta = m_chunk_index[chunk_ind];
 
@@ -170,8 +170,8 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
     std::cout << "Loading chunk from " + chunk_path + " ... ";
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
     //stor::Serializer iser;
-    m_ser.deserialize<ChunkMetadata>(ifs); // skip metadata
-    m_chunk_cache.insert({chunk_ind, m_ser.deserialize<chunk_t>(ifs)});
+    m_ser.template deserialize<ChunkMetadata>(ifs); // skip metadata
+    m_chunk_cache.insert({chunk_ind, m_ser.template deserialize<chunk_t>(ifs)});
     m_cache_queue.push(chunk_ind);
     ifs.close();
     std::cout << "done!" << std::endl;
@@ -180,8 +180,8 @@ DistributedNDArray<T, dims>::chunk_t& DistributedNDArray<T, dims>::retrieveChunk
   return m_chunk_cache.find(chunk_ind) -> second;
 }
 
-template <class T, std::size_t dims>
-void DistributedNDArray<T, dims>::calculateShape() {
+template <class T, std::size_t dims, class SerializerT>
+void DistributedNDArray<T, dims, SerializerT>::calculateShape() {
 
   if(m_chunk_index.empty()) {
     // Nothing to do if everything is empty
@@ -199,8 +199,8 @@ void DistributedNDArray<T, dims>::calculateShape() {
   }
 }
 
-template <class T, std::size_t dims>
-bool DistributedNDArray<T, dims>::isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds) {
+template <class T, std::size_t dims, class SerializerT>
+bool DistributedNDArray<T, dims, SerializerT>::isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds) {
   
   std::size_t global_volume = getVolume(global_start_inds, global_stop_inds);
   
@@ -212,8 +212,8 @@ bool DistributedNDArray<T, dims>::isGloballyContiguous(IndexVector& global_start
   return global_volume == total_chunk_volume;
 }
 
-template <class T, std::size_t dims>
-std::size_t DistributedNDArray<T, dims>::getVolume(IndexVector& start_inds, IndexVector& stop_inds) {
+template <class T, std::size_t dims, class SerializerT>
+std::size_t DistributedNDArray<T, dims, SerializerT>::getVolume(IndexVector& start_inds, IndexVector& stop_inds) {
   std::size_t volume = 1;
   for(std::size_t cur_dim = 0; cur_dim < dims; cur_dim++) {
     volume *= (stop_inds(cur_dim) - start_inds(cur_dim));
@@ -221,8 +221,8 @@ std::size_t DistributedNDArray<T, dims>::getVolume(IndexVector& start_inds, Inde
   return volume;
 }
 
-template <class T, std::size_t dims>
-IndexVector& DistributedNDArray<T, dims>::getGlobalStartInd() {
+template <class T, std::size_t dims, class SerializerT>
+IndexVector& DistributedNDArray<T, dims, SerializerT>::getGlobalStartInd() {
   if(m_chunk_index.empty()) {
     throw std::runtime_error("Trying to compute start index of an empty array!");
   }
@@ -235,8 +235,8 @@ IndexVector& DistributedNDArray<T, dims>::getGlobalStartInd() {
   return *global_start_ind;
 }
 
-template <class T, std::size_t dims>
-IndexVector& DistributedNDArray<T, dims>::getGlobalStopInd() {
+template <class T, std::size_t dims, class SerializerT>
+IndexVector& DistributedNDArray<T, dims, SerializerT>::getGlobalStopInd() {
   if(m_chunk_index.empty()) {
     throw std::runtime_error("Trying to compute stop index of an empty array!");
   }

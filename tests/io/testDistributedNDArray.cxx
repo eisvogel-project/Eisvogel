@@ -29,14 +29,14 @@ int main(int argc, char* argv[]) {
   IndexVector start_ind2({2, 0});
   start_ind2.print();
 
-  std::shared_ptr<stor::SparseSerializer> ser = std::make_shared<stor::SparseSerializer>();
+  std::shared_ptr<stor::DefaultSerializer> ser = std::make_shared<stor::DefaultSerializer>();
   
-  DistributedNDArray<float, 2> darr_save("./distarr/", 10, *ser);
+  DistributedNDArray<float, 2, stor::DefaultSerializer> darr_save("./distarr/", 10, *ser);
   darr_save.RegisterChunk(chunk1, start_ind1);
   darr_save.RegisterChunk(chunk2, start_ind2);
   darr_save.MakeIndexPersistent();
 
-  DistributedNDArray<float, 2> darr_load("./distarr/", 10, *ser);
+  DistributedNDArray<float, 2, stor::DefaultSerializer> darr_load("./distarr/", 10, *ser);
 
   IndexVector acc_ind1 = {1,1};
   std::cout << darr_load(acc_ind1) << std::endl;
