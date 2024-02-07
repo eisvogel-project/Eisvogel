@@ -112,14 +112,15 @@ namespace meep {
       chunk_buffer_E_z(chunk_ind) = E_z_val;
     }
 
-    auto to_keep = [](scalar_t value) -> bool {
-      return abs(value) < 1e-6;
-    };
+    // auto to_keep = [](scalar_t value) -> bool {
+    //   return std::fabs(value) > 1e-6;
+    // };
     
-    SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep, 0.0);
-    SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep, 0.0);
-    
-    chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);       
+    // SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep, 0.0);
+    // SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep, 0.0);    
+    // chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);
+
+    chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);       
   }
   
 } // end namespace meep

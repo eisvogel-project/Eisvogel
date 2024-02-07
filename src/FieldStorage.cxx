@@ -27,11 +27,6 @@ scalar_t RZFieldStorage::E_phi(IndexVector& ind) {
   return 0.0;
 }
 
-void RZFieldStorage::RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const IndexVector chunk_start_inds) {
-  m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
-  m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
-}
-
 void RZFieldStorage::MakeIndexPersistent() {
   m_E_r -> MakeIndexPersistent();
   m_E_z -> MakeIndexPersistent();

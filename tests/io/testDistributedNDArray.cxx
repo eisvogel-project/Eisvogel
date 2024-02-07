@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     return abs(value) < 1e-6;
   };
   
-  DistributedDenseNDArray<float, 2> darr_save("./distarr/", 10, *ser);
+  DistributedScalarNDArray<float, 2> darr_save("./distarr/", 10, *ser);
 
   SparseNDArray<float, 2> chunk1_sparse = SparseNDArray<float, 2>::From(chunk1, to_keep, 0.0);
   SparseNDArray<float, 2> chunk2_sparse = SparseNDArray<float, 2>::From(chunk2, to_keep, 0.0);
@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   darr_save.RegisterChunk(chunk2_sparse, start_ind2);
   darr_save.MakeIndexPersistent();
 
-  DistributedDenseNDArray<float, 2> darr_load("./distarr/", 10, *ser);
+  DistributedScalarNDArray<float, 2> darr_load("./distarr/", 10, *ser);
 
   IndexVector acc_ind1 = {1,1};
   std::cout << darr_load(acc_ind1) << std::endl;

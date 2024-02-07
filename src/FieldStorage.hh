@@ -15,9 +15,8 @@ class RZFieldStorage : public FieldStorage {
 
 public:
   using serializer_t = stor::DefaultSerializer;
-  using storage_t = DistributedDenseNDArray<scalar_t, 3, serializer_t>;
-  using chunk_t = SparseNDArray<scalar_t, 3>;
-
+  using storage_t = DistributedScalarNDArray<scalar_t, 3, serializer_t>;
+  
 public:
 
   RZFieldStorage(std::filesystem::path storage_path, std::size_t cache_size);
@@ -28,9 +27,13 @@ public:
 
   IndexVector shape();
 
-  void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const IndexVector chunk_start_inds);
-
   void MakeIndexPersistent();
+
+  template <class ChunkT>
+  void RegisterChunk(const ChunkT& chunk_E_r, const ChunkT& chunk_E_z, const IndexVector chunk_start_inds) {
+    m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
+    m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
+  };
   
   // vector E_rzphi(IndexVector& ind);
   

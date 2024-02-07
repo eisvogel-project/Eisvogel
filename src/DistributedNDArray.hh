@@ -15,29 +15,36 @@
 #include "Eisvogel/IteratorUtils.hh"
 #include "Serialization.hh"
 
+enum class ChunkType : uint32_t {
+  dense = 0,
+  sparse = 1
+};
+
 struct ChunkMetadata {
 
-  ChunkMetadata(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind) :
-    filename(filename), start_ind(start_ind), stop_ind(stop_ind) { } 
+  ChunkMetadata(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
+    filename(filename), start_ind(start_ind), stop_ind(stop_ind), chunk_type(chunk_type) { } 
   
   std::string filename;
   IndexVector start_ind;
-  IndexVector stop_ind;  
+  IndexVector stop_ind;
+  ChunkType chunk_type;
 };
 
-template <class T, std::size_t dims, template<class, std::size_t> class ChunkT, template <class, std::size_t> class StorageT, class SerializerT>
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template <class, std::size_t> class SparseT, class SerializerT>
 class DistributedNDArray : public NDArray<T, dims> {
 
 public:
 
-  using chunk_t = ChunkT<T, dims>;
-  using storage_t = StorageT<T, dims>;
+  using dense_t = DenseT<T, dims>;
+  using sparse_t = SparseT<T, dims>;
   
   DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser);
   ~DistributedNDArray();
 
   // For assembling and indexing a distributed array
-  void RegisterChunk(const storage_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
+  template <class ChunkT>
+  void RegisterChunk(const ChunkT& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
   void MakeIndexPersistent();
   void rebuildIndex();
   
@@ -52,7 +59,7 @@ private:
 
   bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
   std::size_t getChunkIndex(const IndexVector& inds);
-  chunk_t& retrieveChunk(std::size_t chunk_ind);
+  dense_t& retrieveChunk(std::size_t chunk_ind);
   void calculateShape();
 
   bool isGloballyContiguous(IndexVector& global_start_inds, IndexVector& global_stop_inds);
@@ -77,7 +84,7 @@ private:
   IndexVector m_global_start_ind;
   
   // Data strutures for caching of frequently-accessed elements of the array
-  std::map<std::size_t, chunk_t> m_chunk_cache; // key is index of chunk in m_chunk_index
+  std::map<std::size_t, dense_t> m_chunk_cache; // key is index of chunk in m_chunk_index
   std::queue<std::size_t> m_cache_queue; // to keep track of the age of cached chunks
 
   SerializerT& m_ser;
@@ -86,6 +93,6 @@ private:
 #include "DistributedNDArray.hxx"
 
 template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
-using DistributedDenseNDArray = DistributedNDArray<T, dims, DenseNDArray, SparseNDArray, SerializerT>;
+using DistributedScalarNDArray = DistributedNDArray<T, dims, DenseNDArray, SparseNDArray, SerializerT>;
 
 #endif
