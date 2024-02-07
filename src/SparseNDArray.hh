@@ -12,6 +12,7 @@ class SparseNDArray : public NDArray<T, dims> {
 
 private:
   friend struct stor::Traits<SparseNDArray<T, dims>>;
+  friend DenseNDArray<T, dims> DenseNDArray<T, dims>::From(const SparseNDArray<T, dims>& sparse_arr);
   
 public:
   using shape_t = typename NDArray<T, dims>::shape_t;
@@ -21,7 +22,7 @@ public:
   SparseNDArray(const shape_t& shape, const T& default_value) : NDArray<T, dims>(shape), m_default_value(default_value) { }
 
   template<typename KeeperT>
-  static SparseNDArray<T, dims> FromDense(const DenseNDArray<T, dims>& dense_arr, KeeperT to_keep, const T& default_value) {
+  static SparseNDArray<T, dims> From(const DenseNDArray<T, dims>& dense_arr, KeeperT to_keep, const T& default_value) {
 
     SparseNDArray<T, dims> retval(dense_arr.shape(), default_value);
 

@@ -13,15 +13,10 @@ int main(int argc, char* argv[]) {
   darr(1, 1) = 1.4;
   
   auto to_keep = [](float value) -> bool {
-    if(value > 1e-6) {
-      return true;
-    }
-    else {
-      return false;
-    }
+    return abs(value) > 1e-6;
   };
   
-  SparseNDArray<float, 2> sparr = SparseNDArray<float, 2>::FromDense(darr, to_keep, 0.0);
+  SparseNDArray<float, 2> sparr = SparseNDArray<float, 2>::From(darr, to_keep, 0.0);
 
   std::string ser_path = "sparse_ser_test.bin";
   
@@ -39,6 +34,9 @@ int main(int argc, char* argv[]) {
   
   IndexVector acc_ind1 = {1,1};
   std::cout << sparr_res(acc_ind1) << std::endl;
+
+  DenseNDArray<float, 2> darr_res = DenseNDArray<float, 2>::From(sparr_res);
+  std::cout << darr_res(acc_ind1) << std::endl;
   
   std::cout << "done" << std::endl;
 }

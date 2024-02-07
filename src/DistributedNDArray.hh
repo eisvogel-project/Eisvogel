@@ -25,18 +25,19 @@ struct ChunkMetadata {
   IndexVector stop_ind;  
 };
 
-template <class T, std::size_t dims, template<class, std::size_t> class ChunkT, class SerializerT>
+template <class T, std::size_t dims, template<class, std::size_t> class ChunkT, template <class, std::size_t> class StorageT, class SerializerT>
 class DistributedNDArray : public NDArray<T, dims> {
 
 public:
 
   using chunk_t = ChunkT<T, dims>;
+  using storage_t = StorageT<T, dims>;
   
   DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser);
   ~DistributedNDArray();
 
   // For assembling and indexing a distributed array
-  void RegisterChunk(const chunk_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
+  void RegisterChunk(const storage_t& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
   void MakeIndexPersistent();
   void rebuildIndex();
   
@@ -85,9 +86,6 @@ private:
 #include "DistributedNDArray.hxx"
 
 template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
-using DistributedDenseNDArray = DistributedNDArray<T, dims, DenseNDArray, SerializerT>;
-
-template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
-using DistributedSparseNDArray = DistributedNDArray<T, dims, SparseNDArray, SerializerT>;
+using DistributedDenseNDArray = DistributedNDArray<T, dims, DenseNDArray, SparseNDArray, SerializerT>;
 
 #endif

@@ -8,6 +8,9 @@
 #include "NDArray.hh"
 #include "Serialization.hh"
 
+template <class T, std::size_t dims>
+class SparseNDArray;
+
 // TODO: probably also want a fixed-sized version of NDArray that allows to specify the individual dimensions
 // Useful for e.g. 3-dim vectors that don't need to be dynamic
 
@@ -44,6 +47,16 @@ public:
     m_data.resize(m_strides.back(), value);
   }
 
+  static DenseNDArray<T, dims> From(const SparseNDArray<T, dims>& sparse_arr) {
+    DenseNDArray<T, dims> retval(sparse_arr.shape(), sparse_arr.m_default_value);
+
+    for (auto const& [key, val] : sparse_arr.m_data) {
+      retval(key) = val;
+    }
+    
+    return retval;
+  }
+  
   DenseNDArray(const shape_t& shape, std::vector<T>&& data) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;
     std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
@@ -85,6 +98,7 @@ public:
   }
 
   // Indexing with a vector that holds the coordinates
+  // TODO: move to using vectors with compile-time size here and make sure the size matches
   const T& operator()(DenseNDArray<std::size_t, 1>& inds) const {
     if(inds.size() != dims)
       throw;
@@ -99,6 +113,11 @@ public:
     
     std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
     return m_data[flat_ind];
+  }  
+  
+  T& operator()(const std::array<std::size_t, dims>& inds) {
+    std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
+    return m_data[flat_ind];    
   }
 
   // indexing for special (low-dimensional) cases

@@ -15,7 +15,7 @@ class RZFieldStorage : public FieldStorage {
 
 public:
   using serializer_t = stor::DefaultSerializer;
-  using storage_t = DistributedSparseNDArray<scalar_t, 3, serializer_t>;
+  using storage_t = DistributedDenseNDArray<scalar_t, 3, serializer_t>;
   using chunk_t = SparseNDArray<scalar_t, 3>;
 
 public:

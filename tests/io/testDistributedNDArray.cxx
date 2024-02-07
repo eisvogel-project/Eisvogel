@@ -30,10 +30,18 @@ int main(int argc, char* argv[]) {
   start_ind2.print();
 
   std::shared_ptr<stor::DefaultSerializer> ser = std::make_shared<stor::DefaultSerializer>();
+
+  auto to_keep = [](float value) -> bool {
+    return abs(value) < 1e-6;
+  };
   
   DistributedDenseNDArray<float, 2> darr_save("./distarr/", 10, *ser);
-  darr_save.RegisterChunk(chunk1, start_ind1);
-  darr_save.RegisterChunk(chunk2, start_ind2);
+
+  SparseNDArray<float, 2> chunk1_sparse = SparseNDArray<float, 2>::From(chunk1, to_keep, 0.0);
+  SparseNDArray<float, 2> chunk2_sparse = SparseNDArray<float, 2>::From(chunk2, to_keep, 0.0);
+  
+  darr_save.RegisterChunk(chunk1_sparse, start_ind1);
+  darr_save.RegisterChunk(chunk2_sparse, start_ind2);
   darr_save.MakeIndexPersistent();
 
   DistributedDenseNDArray<float, 2> darr_load("./distarr/", 10, *ser);
