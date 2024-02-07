@@ -112,7 +112,14 @@ namespace meep {
       chunk_buffer_E_z(chunk_ind) = E_z_val;
     }
 
-    chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);       
+    auto to_keep = [](float value) -> bool {
+      return value < 1e-6;
+    };
+    
+    SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::FromDense(chunk_buffer_E_r, to_keep, 0.0);
+    SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::FromDense(chunk_buffer_E_z, to_keep, 0.0);
+    
+    chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);       
   }
   
 } // end namespace meep

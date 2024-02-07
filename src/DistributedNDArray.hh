@@ -11,6 +11,7 @@
 #include <fstream>
 
 #include "DenseNDArray.hh"
+#include "SparseNDArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
 #include "Serialization.hh"
 
@@ -85,5 +86,8 @@ private:
 
 template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
 using DistributedDenseNDArray = DistributedNDArray<T, dims, DenseNDArray, SerializerT>;
+
+template <class T, std::size_t dims, class SerializerT = stor::DefaultSerializer>
+using DistributedSparseNDArray = DistributedNDArray<T, dims, SparseNDArray, SerializerT>;
 
 #endif

@@ -65,8 +65,14 @@ namespace WeightingFieldUtils {
       SampleElectricDipoleWeightingFieldChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_coords, chunk_end_coords,
 					      tp, N, r_min, os_factor, n);
 
+      auto to_keep = [](float value) -> bool {
+	return value < 1e-6;
+      };
+      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::FromDense(chunk_buffer_E_r, to_keep, 0.0);
+      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::FromDense(chunk_buffer_E_z, to_keep, 0.0);
+      
       // Register chunk buffers
-      cwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
+      cwf.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);
       
     }   
     
