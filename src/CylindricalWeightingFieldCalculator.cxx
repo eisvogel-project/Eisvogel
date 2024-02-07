@@ -113,7 +113,7 @@ namespace meep {
     }
 
     auto to_keep = [](float value) -> bool {
-      return value < 1e-6;
+      return abs(value) < 1e-6;
     };
     
     SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::FromDense(chunk_buffer_E_r, to_keep, 0.0);
