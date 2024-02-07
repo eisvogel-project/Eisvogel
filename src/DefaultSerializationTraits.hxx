@@ -1,3 +1,7 @@
+#include <array>
+#include <vector>
+#include <map>
+
 namespace stor {
 
   template <>
@@ -154,6 +158,44 @@ namespace stor {
 	val[ind] = Traits<T>::deserialize(stream);
       }
       return val;
+    }
+  };
+
+  // For general maps
+  // TODO: this is super-simple for now, make more performant
+  template <typename T1, typename T2>
+  struct Traits<std::map<T1, T2>> {
+    using type = std::map<T1, T2>;
+
+    static void serialize(std::iostream& stream, const type& val) {
+
+      std::vector<T1> keys;
+      std::vector<T2> values;
+      
+      for (auto const& [key, val] : val) {
+	keys.push_back(key);
+	values.push_back(val);
+      }
+
+      Traits<std::vector<T1>>::serialize(stream, keys);
+      Traits<std::vector<T2>>::serialize(stream, values);
+    }
+
+    static type deserialize(std::iostream& stream) {
+
+      std::vector<T1> keys = Traits<std::vector<T1>>::deserialize(stream);
+      std::vector<T2> values = Traits<std::vector<T2>>::deserialize(stream);
+
+      if(keys.size() != values.size()) {
+	throw std::runtime_error("Error: trying to deserialize malformed std::map!");
+      }
+
+      type retval;
+      for(std::size_t ind = 0; ind < keys.size(); ind++) {
+	retval[keys[ind]] = values[ind];
+      }
+      
+      return retval;
     }
   };
   

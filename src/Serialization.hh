@@ -3,9 +3,7 @@
 
 #include <iostream>
 #include <cstdint>
-#include <vector>
 #include <algorithm>
-#include <array>
 #include <arpa/inet.h>
 #include <cstring>
 #include "Eisvogel/Common.hh"
