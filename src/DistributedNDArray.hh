@@ -10,7 +10,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "NDArray.hh"
+#include "DenseNDArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
 #include "Serialization.hh"
 

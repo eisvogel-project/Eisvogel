@@ -7,8 +7,6 @@
 // General n-dimensional array
 // ======================================================
 
-// TODO: probably also want a fixed-sized version of NDArray that allows to specify the individual dimensions
-
 template <class T, std::size_t dims>
 class NDArray {
 

@@ -1,5 +1,5 @@
 #include "DistributedNDArray.hh"
-#include "NDArray.hh"
+#include "DenseNDArray.hh"
 
 #include <fstream>
 

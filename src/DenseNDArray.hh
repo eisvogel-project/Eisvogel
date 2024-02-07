@@ -8,6 +8,9 @@
 #include "NDArray.hh"
 #include "Serialization.hh"
 
+// TODO: probably also want a fixed-sized version of NDArray that allows to specify the individual dimensions
+// Useful for e.g. 3-dim vectors that don't need to be dynamic
+
 template <class T, std::size_t dims>
 class DenseNDArray : public NDArray<T, dims> {
 
