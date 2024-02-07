@@ -2,7 +2,7 @@
 #define CHARGEEXCESSPROFILE_CLASS
 #include <vector>
 #include "Eisvogel/Common.hh"
-#include "NDArray.hh"
+#include "DenseNDArray.hh"
 
 namespace showers {
 class ChargeExcessProfile {

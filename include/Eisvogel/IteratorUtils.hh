@@ -1,7 +1,8 @@
 #ifndef __ITERATOR_UTILS_HH
 #define __ITERATOR_UTILS_HH
 
-#include "NDArray.hh"
+#include <cuchar>
+#include "DenseNDArray.hh"
 
 // Iterator for dynamic (i.e. known at run time) number of dimensions
 template <typename VecT> class VectorCounter {
@@ -16,7 +17,7 @@ public:
   VectorCounter(const VecT& start, const VecT& end) : m_start(start), m_end(end), m_cur(start), 
 						      number_dims(start.size()) { }
   VectorCounter& operator++() {
-    for(size_t i = 0; i < number_dims; i++) {
+    for(std::size_t i = 0; i < number_dims; i++) {
       if(++m_cur(i) == m_end(i)) {
 	if(i < number_dims - 1) {
 	  m_cur(i) = m_start(i);
@@ -33,7 +34,7 @@ public:
     return m_cur(number_dims - 1) < m_end(number_dims - 1);
   }
 
-  VecT::type& operator()(size_t ind) {return m_cur(ind);}
+  VecT::type& operator()(std::size_t ind) {return m_cur(ind);}
 
   auto begin() {return m_cur.begin();}
   auto end() {return m_cur.end();}
