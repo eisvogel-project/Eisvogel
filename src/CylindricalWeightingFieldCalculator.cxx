@@ -319,7 +319,8 @@ namespace meep {
     std::cout << "truncated " << num_truncations << "/" << pts_r * pts_z << std::endl;
 
     // pays off to store as sparse chunk
-    if(3 * num_truncations > pts_r * pts_z) {
+    std::size_t sparse_vs_dense_expense_ratio = 3; // sparse storage is approximately 3x as expensive as dense storage per nonzero element 
+    if(sparse_vs_dense_expense_ratio * num_truncations > (sparse_vs_dense_expense_ratio - 1) * pts_r * pts_z) {
 
       std::cout << "going to sparsify, using min_abs_E_r = " << min_abs_E_r << ", min_abs_E_z = " << min_abs_E_z << std::endl;
       
@@ -336,6 +337,9 @@ namespace meep {
       chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);      
     }
     else {
+
+      std::cout << "store as dense" << std::endl;
+	
       // better to store as dense chunk as-is
       chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
     }        
