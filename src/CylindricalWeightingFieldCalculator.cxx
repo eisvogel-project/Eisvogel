@@ -390,7 +390,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   
   // Main simulation loop runs here  
   std::size_t stepcnt = 0;
-  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 1) {
+  //for(double cur_t = .0; cur_t <= m_t_end; cur_t += 0.1) {
+  for(double cur_t = 150.0; cur_t <= 152.0; cur_t += 0.1) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {

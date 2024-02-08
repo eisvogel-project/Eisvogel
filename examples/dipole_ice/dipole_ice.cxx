@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
   
-  CylinderGeometry geom(20, -20, 20, eps);
+  CylinderGeometry geom(200, -200, 200, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
 
-  scalar_t t_end = 25;
+  scalar_t t_end = 250;
   CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
   wfc.Calculate(wf_path);
   
