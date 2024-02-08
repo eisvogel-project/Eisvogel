@@ -2,7 +2,6 @@
 #include <memory>
 #include <cassert>
 #include <cmath>
-#include <mpi.h>
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
 #include "FieldStorage.hh"
@@ -211,38 +210,6 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     }
 
     m_f -> loop_in_chunks(meep::eisvogel_findmax_chunkloop, static_cast<void*>(&findmax_cld), m_f -> total_volume());
-
-    // --------------
-    
-    int rank = 0;
-    int num_procs = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-    std::cout << "rank: " << rank << "/" << num_procs << ", E_r_absmax = " << findmax_cld.max_abs_E_r << std::endl;
-    std::cout << "rank: " << rank << "/" << num_procs << ", E_z_absmax = " << findmax_cld.max_abs_E_z << std::endl;
-
-    if(num_procs > 1) {
-      MPI_Barrier(MPI_COMM_WORLD);
-
-      if(rank == 0) {
-	double data = findmax_cld.max_abs_E_r;
-	int size = 1;
-	std::cout << "sending " << data << " to rank " << rank + 1 << std::endl;
-	MPI_Send(&data, size, MPI_DOUBLE, rank + 1, 1, MPI_COMM_WORLD);
-      }
-      else {
-	double data_in = 0.0;
-	int size = 1;
-	MPI_Status stat;
-	MPI_Recv(&data_in, size, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, &stat);
-	std::cout << "got " << data_in << " from rank " << rank - 1 << std::endl;	
-      }
-      
-      
-      
-    }
-
-    // --------------
     
     // saving_cld.ind_t = stepcnt++;
     // m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&saving_cld), m_f -> total_volume());

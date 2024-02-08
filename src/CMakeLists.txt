@@ -26,7 +26,6 @@ if(BUILD_WFC)
 
     add_library(eisvogel_wfc SHARED
                 CylindricalWeightingFieldCalculator.cxx
-		MPIUtils.cxx
                 Geometry.cxx
                 Antenna.cxx)
     target_link_directories(eisvogel_wfc PUBLIC ${MEEP_LIBRARY_DIRS})
