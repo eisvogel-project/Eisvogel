@@ -40,13 +40,14 @@ public:
   using type = T;
 
   DenseNDArray(std::size_t size, const T& value) requires(dims == 1) : DenseNDArray(shape_t({size}), value) { }
-  
+
+  // TODO: This will move to use a fixed-size vector to specify the shape (and dims)
   DenseNDArray(const shape_t& shape, const T& value) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;
     std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
     m_data.resize(m_strides.back(), value);
   }
-
+  
   static DenseNDArray<T, dims> From(const SparseNDArray<T, dims>& sparse_arr) {
     DenseNDArray<T, dims> retval(sparse_arr.shape(), sparse_arr.m_default_value);
 
@@ -274,5 +275,8 @@ using GridVector = DenseVector<unsigned int>;
 
 template <class T>
 using ScalarField3D = DenseNDArray<T, 3>;
+
+template <class T>
+using ScalarField2D = DenseNDArray<T, 2>;
 
 #endif
