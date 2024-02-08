@@ -2,6 +2,7 @@
 #include <memory>
 #include <cassert>
 #include <cmath>
+#include <mpi.h>
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
 #include "FieldStorage.hh"
@@ -32,13 +33,47 @@ struct SavingChunkloopData {
   
 };
 
-namespace meep {
+struct FindMaxChunkloopData {
+
+  FindMaxChunkloopData(scalar_t max_abs_E_r, scalar_t max_abs_E_z) :
+    max_abs_E_r(max_abs_E_r), max_abs_E_z(max_abs_E_z) { }
   
-  void saving_chunkloop(fields_chunk* fc, int ichunk, component cgrid, ivec is, ivec ie,
-			vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
-			ivec shift, std::complex<double> shift_phase,
-			const symmetry& S, int sn, void* cld)
-  {
+  scalar_t max_abs_E_r;
+  scalar_t max_abs_E_z;
+  
+};
+
+namespace meep {
+
+  void eisvogel_findmax_chunkloop(fields_chunk* fc, int ichunk, component cgrid, ivec is, ivec ie,
+				  vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
+				  ivec shift, std::complex<double> shift_phase,
+				  const symmetry& S, int sn, void* cld) {
+
+    FindMaxChunkloopData* chunkloop_data = static_cast<FindMaxChunkloopData*>(cld);
+
+    component components[] = {Ez, Er};
+    chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
+    
+    LOOP_OVER_IVECS(fc->gv, is, ie, idx) {      
+      data.update_values(idx);
+      double abs_E_z_val = std::fabs(data.values[0].real());
+      double abs_E_r_val = std::fabs(data.values[1].real());
+
+      if(abs_E_z_val > chunkloop_data -> max_abs_E_z) {
+	chunkloop_data -> max_abs_E_z = abs_E_z_val;
+      }
+
+      if(abs_E_r_val > chunkloop_data -> max_abs_E_r) {
+	chunkloop_data -> max_abs_E_r = abs_E_r_val;
+      }
+    }    
+  }
+  
+  void eisvogel_saving_chunkloop(fields_chunk* fc, int ichunk, component cgrid, ivec is, ivec ie,
+				 vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
+				 ivec shift, std::complex<double> shift_phase,
+				 const symmetry& S, int sn, void* cld) {
 
     SavingChunkloopData* chunkloop_data = static_cast<SavingChunkloopData*>(cld);
     
@@ -159,10 +194,12 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
   std::shared_ptr<RZFieldStorage> fstor = std::make_shared<RZFieldStorage>(tmpdir, 10);
-  SavingChunkloopData cld(0, *fstor);
-
+  SavingChunkloopData saving_cld(0, *fstor);
+  FindMaxChunkloopData findmax_cld(0.0, 0.0);
+  
+  // Main simulation loop runs here  
   std::size_t stepcnt = 0;
-  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 5) {
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 1) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {
@@ -173,8 +210,42 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
       std::cout << "Simulation time: " << m_f -> time() << std::endl;
     }
 
-    cld.ind_t = stepcnt++;
-    m_f -> loop_in_chunks(meep::saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
+    m_f -> loop_in_chunks(meep::eisvogel_findmax_chunkloop, static_cast<void*>(&findmax_cld), m_f -> total_volume());
+
+    // --------------
+    
+    int rank = 0;
+    int num_procs = 0;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+    std::cout << "rank: " << rank << "/" << num_procs << ", E_r_absmax = " << findmax_cld.max_abs_E_r << std::endl;
+    std::cout << "rank: " << rank << "/" << num_procs << ", E_z_absmax = " << findmax_cld.max_abs_E_z << std::endl;
+
+    if(num_procs > 1) {
+      MPI_Barrier(MPI_COMM_WORLD);
+
+      if(rank == 0) {
+	double data = findmax_cld.max_abs_E_r;
+	int size = 1;
+	std::cout << "sending " << data << " to rank " << rank + 1 << std::endl;
+	MPI_Send(&data, size, MPI_DOUBLE, rank + 1, 1, MPI_COMM_WORLD);
+      }
+      else {
+	double data_in = 0.0;
+	int size = 1;
+	MPI_Status stat;
+	MPI_Recv(&data_in, size, MPI_DOUBLE, rank - 1, 1, MPI_COMM_WORLD, &stat);
+	std::cout << "got " << data_in << " from rank " << rank - 1 << std::endl;	
+      }
+      
+      
+      
+    }
+
+    // --------------
+    
+    // saving_cld.ind_t = stepcnt++;
+    // m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&saving_cld), m_f -> total_volume());
   }
   
   // TODO: again, will get better once the three separate arrays are gone
