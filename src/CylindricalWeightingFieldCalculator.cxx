@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <limits>
+#include <algorithm>
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
 #include "FieldStorage.hh"
@@ -33,7 +34,7 @@ public:
   using region_t = DenseNDArray<scalar_t, dims>;
   
   FieldStatisticsTracker(std::size_t subsampling) :
-    m_subsampling(subsampling), m_largest_max(0.0), m_smallest_max(std::numeric_limits<scalar_t>::max()) { }
+    m_subsampling(subsampling) { }
 
   void AddRegion(KeyT& region_key, const shape_t& region_shape, scalar_t init_value = 0.0) {
     shape_t subsampled_shape = ToSubsampledShape(region_shape);
@@ -68,20 +69,9 @@ public:
       IndexVector cur_subsampled_ind = ToSubsampledInd(cur_ind);            
       scalar_t cur_val = region_data(cur_ind);
 
-      if(cur_val > region_max_data(cur_subsampled_ind)) {
-	
-	// have a new local field maximum	
+      // have a new local field maximum	
+      if(cur_val > region_max_data(cur_subsampled_ind)) {       
 	region_max_data(cur_subsampled_ind) = cur_val;
-	
-	// also have a new global field maximum
-	if(cur_val > m_largest_max) {
-	  m_largest_max = cur_val;
-	}
-      }
-
-      // do we have a new smallest non-zero maximum?
-      if((cur_val > std::numeric_limits<scalar_t>::min()) && (cur_val < m_smallest_max)) {
-	m_smallest_max = cur_val;
       }
     }    
   }
@@ -90,17 +80,10 @@ public:
     auto region_el = m_max_data.find(region_key);
     if(region_el == m_max_data.end()) {
       throw std::runtime_error("Error: requested region not found!");
-    }    
-    return region_el -> second(ToSubsampledInd(region_inds));
+    }
+    IndexVector cur_subsampled_ind = ToSubsampledInd(region_inds);
+    return (region_el -> second)(cur_subsampled_ind);
   }  
-
-  scalar_t GetLargestMaxGlobal() {
-    return m_largest_max;
-  }
-
-  scalar_t GetSmallestMaxGlobal() {
-    return m_smallest_max;
-  }
 
 private:
 
@@ -115,11 +98,8 @@ private:
   
 private:
 
-  std::size_t m_subsampling;
-  
+  std::size_t m_subsampling;  
   std::map<KeyT, region_t> m_max_data;
-  scalar_t m_largest_max;
-  scalar_t m_smallest_max;
   
 };
 
@@ -138,12 +118,14 @@ using MeepChunkMetadata = SimulationChunkMetadata<2>;
 
 struct ChunkloopData {
 
-  ChunkloopData(std::size_t ind_t, RZFieldStorage& fstor, FieldChunkStatisticsTracker2D& fstats) :
-    ind_t(ind_t), fstor(fstor), fstats(fstats) { }
-  
+  ChunkloopData(std::size_t ind_t, RZFieldStorage& fstor, FieldChunkStatisticsTracker2D& fstats, scalar_t dynamic_range, scalar_t abs_min_field) :
+    ind_t(ind_t), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field) { }
+
   std::size_t ind_t;
   RZFieldStorage& fstor;
   FieldChunkStatisticsTracker2D& fstats;
+  scalar_t dynamic_range;
+  scalar_t abs_min_field;
   std::map<int, MeepChunkMetadata> chunk_meta;  
   
 };
@@ -288,19 +270,75 @@ namespace meep {
 
     chunkloop_data -> fstats.UpdateStatisticsForRegion(ichunk, chunk_buffer_Evecnorm_vals);
 
-    std::cout << "current global largest max: " << chunkloop_data -> fstats.GetLargestMaxGlobal() << std::endl;
-    std::cout << "current global smallest max: " << chunkloop_data -> fstats.GetSmallestMaxGlobal() << std::endl;
+    // keep track of smallest surviving nonzero absolute values
+    scalar_t min_abs_E_r = std::numeric_limits<scalar_t>::max();
+    scalar_t min_abs_E_z = std::numeric_limits<scalar_t>::max();
     
-    // auto to_keep = [](scalar_t value) -> bool {
-    //   return std::fabs(value) > 1e-6;
-    // };
-    
-    // SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep, 0.0);
-    // SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep, 0.0);    
-    // chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);
+    // Restrict dynamic range of output fields based on field statistics
+    std::size_t num_truncations = 0;
+    IndexVector start_inds(3, 0);
+    IndexVector end_inds = chunk_buffer_E_r.shape();     
+    for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
+      IndexVector cur_ind = cnt.index();
+      IndexVector cur_slice_ind = {
+	CoordUtils::getZInd(cur_ind),
+	CoordUtils::getRInd(cur_ind)
+      };
+      scalar_t max_field = chunkloop_data -> fstats.GetMaxLocal(ichunk, cur_slice_ind);
+	
+      if(max_field > chunkloop_data -> abs_min_field) {
+	
+	scalar_t cur_E_r_abs = std::fabs(chunk_buffer_E_r(cur_ind));
+	scalar_t cur_E_z_abs = std::fabs(chunk_buffer_E_z(cur_ind));
+	
+	if(cur_E_r_abs < max_field / chunkloop_data -> dynamic_range) {
+	  chunk_buffer_E_r(cur_ind) = 0.0;
+	  cur_E_r_abs = 0.0;
+	  num_truncations++;
+	}
+	if(cur_E_z_abs < max_field / chunkloop_data -> dynamic_range) {
+	  chunk_buffer_E_z(cur_ind) = 0.0;
+	  cur_E_z_abs = 0.0;
+	}
 
-    // chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
-    
+	if((cur_E_r_abs > 0.0) && (cur_E_r_abs < min_abs_E_r)) {
+	  min_abs_E_r = cur_E_r_abs;
+	}
+	if((cur_E_z_abs > 0.0) && (cur_E_z_abs < min_abs_E_z)) {
+	  min_abs_E_z = cur_E_z_abs;
+	}	
+      }
+      else {
+	// The field has never gone above the threshold
+	chunk_buffer_E_r(cur_ind) = 0.0;
+	chunk_buffer_E_z(cur_ind) = 0.0;
+	num_truncations++;
+      }
+    }
+
+    std::cout << "truncated " << num_truncations << "/" << pts_r * pts_z << std::endl;
+
+    // pays off to store as sparse chunk
+    if(3 * num_truncations > pts_r * pts_z) {
+
+      std::cout << "going to sparsify, using min_abs_E_r = " << min_abs_E_r << ", min_abs_E_z = " << min_abs_E_z << std::endl;
+      
+      auto to_keep_E_r = [min_abs_E_r](scalar_t value) -> bool {
+	return std::fabs(value) > min_abs_E_r;
+      };
+
+      auto to_keep_E_z = [min_abs_E_z](scalar_t value) -> bool {
+	return std::fabs(value) > min_abs_E_z;
+      };
+      
+      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep_E_r, 0.0);
+      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep_E_z, 0.0);    
+      chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);      
+    }
+    else {
+      // better to store as dense chunk as-is
+      chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
+    }        
   } // end chunkloop
   
 } // end namespace meep
@@ -339,7 +377,9 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
 
   int fstats_subsampling = 2;
   std::shared_ptr<FieldChunkStatisticsTracker2D> fstats = std::make_shared<FieldChunkStatisticsTracker2D>(fstats_subsampling);
-  ChunkloopData cld(0, *fstor, *fstats);
+  scalar_t dynamic_range = 1e3;
+  scalar_t abs_min_field = 1e-20;
+  ChunkloopData cld(0, *fstor, *fstats, dynamic_range, abs_min_field);
 
   // Setup simulation run
   m_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());

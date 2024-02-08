@@ -26,6 +26,8 @@ public:
 
     SparseNDArray<T, dims> retval(dense_arr.shape(), default_value);
 
+    std::size_t num_entries = 0;
+    
     IndexVector start_inds(dims, 0);
     IndexVector end_inds = dense_arr.shape();
     for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
@@ -35,8 +37,11 @@ public:
 
       if(to_keep(cur_val)) {
 	retval.set(cur_ind, cur_val);
+	num_entries++;
       }
     }
+
+    std::cout << "kept " << num_entries << " in sparse array" << std::endl;
     
     return retval;    
   }
