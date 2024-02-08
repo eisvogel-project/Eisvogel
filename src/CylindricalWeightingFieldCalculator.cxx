@@ -22,9 +22,9 @@ CylindricalWeightingFieldCalculator::CylindricalWeightingFieldCalculator(Cylinde
   antenna.AddToGeometry(*m_f, geom);
 }
 
-struct ChunkloopData {
+struct SavingChunkloopData {
 
-  ChunkloopData(std::size_t ind_t, RZFieldStorage& fstor) :
+  SavingChunkloopData(std::size_t ind_t, RZFieldStorage& fstor) :
     ind_t(ind_t), fstor(fstor) { }
   
   std::size_t ind_t;
@@ -33,13 +33,14 @@ struct ChunkloopData {
 };
 
 namespace meep {
+  
   void saving_chunkloop(fields_chunk* fc, int ichunk, component cgrid, ivec is, ivec ie,
 			vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
 			ivec shift, std::complex<double> shift_phase,
 			const symmetry& S, int sn, void* cld)
   {
 
-    ChunkloopData* chunkloop_data = static_cast<ChunkloopData*>(cld);
+    SavingChunkloopData* chunkloop_data = static_cast<SavingChunkloopData*>(cld);
     
     // index vectors for start and end of chunk
     ivec isS = S.transform(is, sn) + shift;
@@ -60,7 +61,9 @@ namespace meep {
       shape[index++] = cur_len;
     }
 
-    // Prepare chunk buffers
+    // Prepare chunk buffers (different chunks will have different sizes; need to allocate a buffer for each chunk)
+    // TODO: can have a "scanning" chunkloop that is run once at the very beginning to figure out how many chunks there
+    // are and what their dimensions are, then allocate static buffers, and then use those for saving
     std::size_t pts_t = 1, pts_r = shape[1], pts_z = shape[0];
     ScalarField3D<scalar_t> chunk_buffer_E_r({pts_t, pts_z, pts_r}, 0.0);
     ScalarField3D<scalar_t> chunk_buffer_E_z({pts_t, pts_z, pts_r}, 0.0);
@@ -156,10 +159,10 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
   std::shared_ptr<RZFieldStorage> fstor = std::make_shared<RZFieldStorage>(tmpdir, 10);
-  ChunkloopData cld(0, *fstor);
+  SavingChunkloopData cld(0, *fstor);
 
   std::size_t stepcnt = 0;
-  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 5) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {
