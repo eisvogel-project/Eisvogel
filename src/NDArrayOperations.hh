@@ -64,8 +64,8 @@ namespace NDArrayOps {
     return retval;
   }
 
-  template <class T, std::size_t dims>
-  DenseNDArray<T, dims> range(const DenseNDArray<T, dims>& arr, const IndexVector& start_inds, const IndexVector& stop_inds) {
+  template <class T, std::size_t dims, template <class, std::size_t> class ArrayT>
+  DenseNDArray<T, dims> range(const ArrayT<T, dims>& arr, const IndexVector& start_inds, const IndexVector& stop_inds) {
 
     if((start_inds.size() != dims) || (stop_inds.size() != dims)) {
       throw std::runtime_error("Error: not a possible range!");
