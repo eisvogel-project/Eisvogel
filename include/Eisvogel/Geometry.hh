@@ -31,6 +31,10 @@ public:
   meep::vec toMeepCoords(const CoordVector& coords) {
     return meep::veccyl(CoordUtils::getR(coords), CoordUtils::getZ(coords) - z_min);
   };
+
+  CoordVector toEisvogelCoords(const meep::vec& meep_coords) {
+    return CoordUtils::MakeCoordVectorTRZ(0.0, meep_coords.r(), meep_coords.z() + z_min);
+  };
   
 public:
   virtual double eps(const meep::vec& pos);
