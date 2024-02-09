@@ -17,6 +17,16 @@ int main(int argc, char* argv[]) {
 
   std::cout << "vals" << std::endl;
   std::cout << darr_res(2, 2) << std::endl;
+
+  DenseNDArray<float, 2> darr_restricted = NDArrayOps::range(darr_res, {3, 0}, {9, 3});
+  std::cout << "restricted" << std::endl;
+
+  for(auto cur : darr_restricted.shape()) {
+    std::cout << cur << std::endl;
+  }
+
+  std::cout << "vals" << std::endl;
+  std::cout << darr_restricted(5, 1) << std::endl;
   
   std::cout << "done" << std::endl;
 }

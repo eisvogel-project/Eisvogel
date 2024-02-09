@@ -7,7 +7,7 @@
 namespace NDArrayOps {
 
   template <class T, std::size_t dims>
-  DenseNDArray<T, dims> concatenate(DenseNDArray<T, dims> arr_1, DenseNDArray<T, dims> arr_2, std::size_t axis) {
+  DenseNDArray<T, dims> concatenate(const DenseNDArray<T, dims>& arr_1, const DenseNDArray<T, dims>& arr_2, std::size_t axis) {
 
     if(axis >= dims) {
       throw std::runtime_error("Error: 'axis' out of bounds");
@@ -48,8 +48,10 @@ namespace NDArrayOps {
 
     // Migrate contents of arr_2
     {
+      // `arr_2` is offset only along the direction the concatenation is performed
       IndexVector offset(dims, 0);
       offset(axis) = shape_1(axis);
+      
       IndexVector start_inds(dims, 0);
       IndexVector end_inds = shape_2;
       for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
@@ -62,6 +64,30 @@ namespace NDArrayOps {
     return retval;
   }
 
+  template <class T, std::size_t dims>
+  DenseNDArray<T, dims> range(const DenseNDArray<T, dims>& arr, const IndexVector& start_inds, const IndexVector& stop_inds) {
+
+    if((start_inds.size() != dims) || (stop_inds.size() != dims)) {
+      throw std::runtime_error("Error: not a possible range!");
+    }
+
+    IndexVector range_shape = stop_inds - start_inds;
+
+    // --- this is just a crutch for now until we have fixed-size vectors
+    std::array<std::size_t, dims> range_shape_crutch;
+    std::copy(std::begin(range_shape), std::end(range_shape), std::begin(range_shape_crutch));
+    // ---------
+
+    DenseNDArray<float, dims> retval(range_shape_crutch, 0.0);    
+    for(IndexCounter cnt(start_inds, stop_inds); cnt.running(); ++cnt) {
+      IndexVector cur_ind = cnt.index();
+      IndexVector range_ind = cur_ind - start_inds;
+      retval(range_ind) = arr(cur_ind);
+    }
+   
+    return retval;
+  }  
+  
 }; // end namespace
   
 #endif
