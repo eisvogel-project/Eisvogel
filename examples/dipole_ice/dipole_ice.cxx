@@ -26,7 +26,22 @@ int main(int argc, char* argv[]) {
   std::string wf_path = argv[1];
   
   auto eps = [](scalar_t r, scalar_t z) {
-    return 1.00;
+    scalar_t z_m = z / 3.0;    
+    if(z_m > 0.0) {
+      return 1.0;
+    }
+
+    scalar_t density = 0.0;
+
+    if(z_m > -14.9) {
+      density = 0.917 - 0.594 * std::exp(z_m / 30.8);
+    }
+    else {
+      density = 0.917 - 0.367 * std::exp((z_m + 14.9) / 40.5);
+    }
+
+    double eps = std::pow(1 + 0.845 * density, 2.0);
+    return eps;
   };
 
   auto impulse_response = [](scalar_t t) {
@@ -37,11 +52,14 @@ int main(int argc, char* argv[]) {
     }
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
-  
-  CylinderGeometry geom(200, -200, 200, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, -2.0, impulse_response);
 
-  scalar_t t_end = 250;
+  // CylinderGeometry geom(20, -20, 20, eps);
+  // InfEDipoleAntenna dipole(0.0, 10.0, -5.0, impulse_response);
+  
+  CylinderGeometry geom(600, -300, 100, eps);
+  InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
+
+  scalar_t t_end = 25;
   CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
   wfc.Calculate(wf_path);
   
