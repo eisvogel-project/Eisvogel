@@ -122,6 +122,25 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(const IndexVector& requested_chunk_size) {
+
+  // How to make sure own index doesn't get messed up when new chunks are generated?
+
+  // 0) factor out most things of currently existing RegisterChunk into new private method:
+  //      -> WriteChunk(chunk, start_ind, add_to_index)
+  //   (keep the overlap checking etc. in the original RegisterChunk)
+
+  // Then, this function will look like
+  // 0) rebuild index (to make sure everything is taken into account)
+  // 1) then loop over chunks like in `WeightingFieldUtils`
+  //     -> get chunk that has the starting indices
+  //     -> if it conforms to the requested size, don't touch it and continue (will guarantee this function is idempotent)
+  //     -> if it doesn't, build a chunk of correct size (using NDArray::range)
+  // 2) write the individual chunks, but don't touch the index (using `WriteChunk`)
+  // 3) remove all chunks in the index (-> this will remove all the old ones)  
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 T DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::operator()(IndexVector& inds) {
 
   // check to which chunk this index belongs

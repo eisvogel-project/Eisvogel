@@ -15,6 +15,7 @@
 #include "Eisvogel/IteratorUtils.hh"
 #include "Serialization.hh"
 
+// global TODO: remove SparseT and DenseT and instead have a generic type argument for the to-be-saved chunk
 enum class ChunkType : uint32_t {
   dense = 0,
   sparse = 1
@@ -48,12 +49,15 @@ public:
   void MakeIndexPersistent();
   void rebuildIndex();
   
-  // For accessing a distributed array
+  // For accessing a single element
   T operator()(IndexVector& inds);
 
   std::size_t startInd(std::size_t dim) const {
     return m_global_start_ind(dim);
   }
+
+  // Attempts to redistribute into equally large chunks
+  void RebuildChunks(const IndexVector& requested_chunk_size);
   
 private:
 
