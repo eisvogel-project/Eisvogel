@@ -43,9 +43,12 @@ int main(int argc, char* argv[]) {
   darr_save.RegisterChunk(chunk1_sparse, start_ind1);
   darr_save.RegisterChunk(chunk2_sparse, start_ind2);
   darr_save.MakeIndexPersistent();
-
+  
   DistributedScalarNDArray<float, 2> darr_load("./distarr/", 10, *ser);
 
+  IndexVector requested_chunk_size = {10, 10};
+  darr_load.RebuildChunks(requested_chunk_size);
+  
   IndexVector acc_ind1 = {1,1};
   std::cout << darr_load(acc_ind1) << std::endl;
   std::cout << darr_load(acc_ind1) << std::endl;

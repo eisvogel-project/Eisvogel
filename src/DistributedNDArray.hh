@@ -45,7 +45,7 @@ public:
 
   // For assembling and indexing a distributed array
   template <class ChunkT>
-  void RegisterChunk(const ChunkT& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);
+  void RegisterChunk(const ChunkT& chunk, const IndexVector start_ind, bool require_nonoverlapping = false);    
   void MakeIndexPersistent();
   void rebuildIndex();
   
@@ -61,6 +61,9 @@ public:
   
 private:
 
+  template <class ChunkT>
+  void WriteChunk(const ChunkT& chunk, const IndexVector start_ind, bool add_to_index = true);
+  
   bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
   std::size_t getChunkIndex(const IndexVector& inds);
   dense_t& retrieveChunk(std::size_t chunk_ind);

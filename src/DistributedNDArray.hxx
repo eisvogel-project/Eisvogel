@@ -67,6 +67,18 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RegisterChunk(co
     }
   }
 
+  WriteChunk(chunk, start_ind, true);
+  
+  // update global shape of this array (if possible)
+  calculateShape();
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+template <class ChunkT>
+void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const ChunkT& chunk, const IndexVector start_ind, bool add_to_index) {
+
+  IndexVector stop_ind = start_ind + chunk.shape();
+  
   // get chunk filename that should not clash with anything
   uuid_t uuid_binary;
   uuid_generate_random(uuid_binary);
@@ -80,7 +92,10 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RegisterChunk(co
     chunk_type = ChunkType::sparse;
   }
   ChunkMetadata meta(chunk_filename, start_ind, stop_ind, chunk_type);
-  m_chunk_index.push_back(meta);
+
+  if(add_to_index) {
+    m_chunk_index.push_back(meta);
+  }
 
   // write data to disk
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
@@ -88,10 +103,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RegisterChunk(co
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
   m_ser.template serialize<ChunkMetadata>(ofs, meta);   
   m_ser.template serialize<ChunkT>(ofs, chunk);
-  ofs.close();
-
-  // update global shape of this array (if possible)
-  calculateShape();
+  ofs.close();  
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
@@ -105,7 +117,14 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MakeIndexPersist
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
+
+  // clear the cached index
   m_chunk_index.clear();
+  
+  // if there is a persistent index file, make sure to delete it to prevent inconsistencies
+  if(std::filesystem::exists(m_indexpath)) {
+    std::filesystem::remove(m_indexpath);
+  }
 
   // With the index gone, also the cache is now out of scope
   m_chunk_cache.clear();
@@ -129,7 +148,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
   // 0) factor out most things of currently existing RegisterChunk into new private method:
   //      -> WriteChunk(chunk, start_ind, add_to_index)
   //   (keep the overlap checking etc. in the original RegisterChunk)
-
+  
   // Then, this function will look like
   // 0) rebuild index (to make sure everything is taken into account)
   // 1) then loop over chunks like in `WeightingFieldUtils`
@@ -137,7 +156,38 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
   //     -> if it conforms to the requested size, don't touch it and continue (will guarantee this function is idempotent)
   //     -> if it doesn't, build a chunk of correct size (using NDArray::range)
   // 2) write the individual chunks, but don't touch the index (using `WriteChunk`)
-  // 3) remove all chunks in the index (-> this will remove all the old ones)  
+  // 3) remove all chunks in the index (-> this will remove all the old ones)
+
+  std::cout << "in RebuildChunks" << std::endl;
+  
+  if(requested_chunk_size.size() != dims) {
+    throw std::runtime_error("Error: requested chunk size has wrong dimensionality!");
+  }
+
+  std::cout << "rebuilding index" << std::endl;
+  
+  // Make sure we start from a clean index
+  rebuildIndex(); 
+
+  std::cout << "rebuilt index" << std::endl;
+  
+  if(!isGloballyContiguous(getGlobalStartInd(), getGlobalStopInd())) {
+    throw std::runtime_error("Error: refusing to rebuild chunks for a non-contiguous array!");
+  }
+
+  calculateShape();
+
+  IndexVector global_shape(this -> m_shape);
+
+  std::cout << "global shape" << std::endl;
+  global_shape.print();
+  
+  IndexVector number_required_chunks = (global_shape + requested_chunk_size - 1) / requested_chunk_size;
+
+  std::cout << "will have " << std::endl;
+  number_required_chunks.print();
+  std::cout << " chunks after rebuilding" << std::endl;
+  
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
