@@ -133,6 +133,11 @@ scalar_t WeightingField<FieldIndexerT, FieldStorageT>::GetEndCoords(std::size_t 
 }
 
 template <class FieldIndexerT, class FieldStorageT>
+void WeightingField<FieldIndexerT, FieldStorageT>::RebuildChunks(const IndexVector& requested_chunk_size) {
+  m_field_storage -> RebuildChunks(requested_chunk_size);
+}
+
+template <class FieldIndexerT, class FieldStorageT>
 template <typename KernelT>
 scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_r(CoordVector pos) {    
   return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_r(arg);});

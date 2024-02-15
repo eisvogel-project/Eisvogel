@@ -32,6 +32,11 @@ void RZFieldStorage::MakeIndexPersistent() {
   m_E_z -> MakeIndexPersistent();
 }
 
+void RZFieldStorage::RebuildChunks(const IndexVector& requested_chunk_size) {
+  m_E_r -> RebuildChunks(requested_chunk_size);
+  m_E_z -> RebuildChunks(requested_chunk_size);
+}
+
 // calculate from the stored components
 // scalar E_x(IndexVector& ind) { ... };
 // scalar E_y(IndexVector& ind) { ... };

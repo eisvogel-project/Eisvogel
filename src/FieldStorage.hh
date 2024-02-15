@@ -34,6 +34,8 @@ public:
     m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
     m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
   };
+
+  void RebuildChunks(const IndexVector& requested_chunk_size);
   
   // vector E_rzphi(IndexVector& ind);
   
