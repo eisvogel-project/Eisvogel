@@ -78,7 +78,7 @@ namespace NDArrayOps {
     std::copy(std::begin(range_shape), std::end(range_shape), std::begin(range_shape_crutch));
     // ---------
 
-    DenseNDArray<float, dims> retval(range_shape_crutch, 0.0);    
+    DenseNDArray<T, dims> retval(range_shape_crutch, T());    
     for(IndexCounter cnt(start_inds, stop_inds); cnt.running(); ++cnt) {
       IndexVector cur_ind = cnt.index();
       IndexVector range_ind = cur_ind - start_inds;
@@ -86,7 +86,21 @@ namespace NDArrayOps {
     }
    
     return retval;
-  }  
+  }
+
+  template<class T, std::size_t dims, template <class, std::size_t> class ArrayT>
+  DenseNDArray<T, dims> min(const ArrayT<T, dims>& a, const ArrayT<T, dims>& b) {
+
+    DenseNDArray<T, dims> retval(a.shape(), T());
+      
+    IndexVector start_inds(dims, 0);
+    IndexVector end_inds = a.shape();
+    for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
+      IndexVector cur_ind = cnt.index();
+      retval(cur_ind) = std::min(a(cur_ind), b(cur_ind));
+    }    
+    return retval;
+  }
   
 }; // end namespace
   

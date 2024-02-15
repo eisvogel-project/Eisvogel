@@ -32,7 +32,7 @@ int main(int argc, char* argv[]) {
   std::shared_ptr<stor::DefaultSerializer> ser = std::make_shared<stor::DefaultSerializer>();
 
   auto to_keep = [](float value) -> bool {
-    return abs(value) < 1e-6;
+    return true;
   };
   
   DistributedScalarNDArray<float, 2> darr_save("./distarr/", 10, *ser);

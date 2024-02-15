@@ -25,6 +25,14 @@ struct ChunkMetadata {
 
   ChunkMetadata(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
     filename(filename), start_ind(start_ind), stop_ind(stop_ind), chunk_type(chunk_type) { } 
+
+  bool operator==(const ChunkMetadata& rhs) {
+    if(chunk_type != rhs.chunk_type) return false;
+    if(filename != rhs.filename) return false;
+    if(start_ind != rhs.start_ind) return false;
+    if(stop_ind != rhs.stop_ind) return false;
+    return true;
+  }
   
   std::string filename;
   IndexVector start_ind;
@@ -52,6 +60,9 @@ public:
   // For accessing a single element
   T operator()(IndexVector& inds);
 
+  // For accessing a range of elements
+  dense_t range(const IndexVector& start_inds, const IndexVector& stop_inds);
+  
   std::size_t startInd(std::size_t dim) const {
     return m_global_start_ind(dim);
   }

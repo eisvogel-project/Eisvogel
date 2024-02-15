@@ -142,6 +142,19 @@ public:
     return rhs.m_data == m_data;
   }
 
+  // template <std::size_t len>
+  // bool operator==(const std::array<T, len>& rhs) const requires(dims == 1) {
+  //   if(len != m_data.size()) {
+  //     return false;
+  //   }
+  //   for(std::size_t ind = 0; ind < len; ind++) {
+  //     if(m_data[ind] != rhs[ind]) {
+  // 	return false;
+  //     }
+  //   }
+  //   return true;
+  // }
+
   // printing
   void print() const {
     for(const T& cur: m_data) {

@@ -1,5 +1,6 @@
 #include <uuid/uuid.h>
 #include <type_traits>
+#include "NDArrayOperations.hh"
 
 namespace stor {
   template <>
@@ -156,7 +157,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
   //     -> if it conforms to the requested size, don't touch it and continue (will guarantee this function is idempotent)
   //     -> if it doesn't, build a chunk of correct size (using NDArray::range)
   // 2) write the individual chunks, but don't touch the index (using `WriteChunk`)
-  // 3) remove all chunks in the index (-> this will remove all the old ones)
+  // 3) remove all chunks in the index (-> this will remove all the old ones), BUT not those that haven't been touched because they are already conforming to the correct size
 
   std::cout << "in RebuildChunks" << std::endl;
   
@@ -187,7 +188,53 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
   std::cout << "will have " << std::endl;
   number_required_chunks.print();
   std::cout << " chunks after rebuilding" << std::endl;
+
+  index_t chunks_to_keep;
   
+  IndexVector buf_inds_start(dims, 0);
+  IndexVector buf_inds_end = number_required_chunks;
+  for(IndexCounter cnt(buf_inds_start, buf_inds_end); cnt.running(); ++cnt) {
+    
+    IndexVector chunk_ind = cnt.index();
+    IndexVector chunk_inds_start = chunk_ind * requested_chunk_size;
+    IndexVector chunk_inds_end = NDArrayOps::min(chunk_inds_start + requested_chunk_size, global_shape);
+    
+    IndexVector actual_chunk_shape = chunk_inds_end - chunk_inds_start;
+
+    // check if the current chunk already conforms to the requirements
+    std::size_t chunk_index = getChunkIndex(chunk_inds_start);
+    dense_t current_chunk = retrieveChunk(chunk_index);
+
+    if(actual_chunk_shape == current_chunk.shape()) {
+      std::cout << "chunk already has the correct size, keep it" << std::endl;
+      chunks_to_keep.push_back(m_chunk_index[chunk_index]);
+      continue;
+    }
+    
+    std::cout << "now working on rebuild chunk with inds" << std::endl;
+    std::cout << "chunk_inds_start = " << std::endl;
+    chunk_inds_start.print();
+    std::cout << "chunk_inds_end = " << std::endl;
+    chunk_inds_end.print();
+    
+    dense_t chunk = range(chunk_inds_start, chunk_inds_end);
+    WriteChunk(chunk, chunk_inds_start, false);
+  }
+
+  std::cout << "now cleaning up old chunks" << std::endl;
+  for(ChunkMetadata& to_keep : chunks_to_keep) {
+    std::erase(m_chunk_index, to_keep);
+  }
+    
+  for(ChunkMetadata& cur_meta : m_chunk_index) {
+    std::string chunk_path = m_dirpath + "/" + cur_meta.filename;
+    std::cout << "now removing " << chunk_path << std::endl;
+    std::filesystem::remove(chunk_path);
+  }
+
+  // re-index again
+  rebuildIndex();
+  calculateShape();
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
@@ -202,6 +249,32 @@ T DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::operator()(IndexVec
   // index and return element
   IndexVector inds_within_chunk = inds - m_chunk_index[chunk_ind].start_ind;  
   return found_chunk(inds_within_chunk);
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::range(const IndexVector& start_inds, const IndexVector& stop_inds) {
+
+  // TODO: very simple and very slow---only temporary for now and to be made faster by intelligently splicing together individual chunks
+  
+  if((start_inds.size() != dims) || (stop_inds.size() != dims)) {
+    throw std::runtime_error("Error: not a possible range!");
+  }
+  
+  IndexVector range_shape = stop_inds - start_inds;
+  
+  // --- this is just a crutch for now until we have fixed-size vectors
+  std::array<std::size_t, dims> range_shape_crutch;
+  std::copy(std::begin(range_shape), std::end(range_shape), std::begin(range_shape_crutch));
+  // ---------
+  
+  DenseNDArray<T, dims> retval(range_shape_crutch, T());    
+  for(IndexCounter cnt(start_inds, stop_inds); cnt.running(); ++cnt) {
+    IndexVector cur_ind = cnt.index();
+    IndexVector range_ind = cur_ind - start_inds;
+    retval(range_ind) = this -> operator()(cur_ind);
+  }
+  
+  return retval;
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
