@@ -43,9 +43,11 @@ int main(int argc, char* argv[]) {
   
   DistributedScalarNDArray<float, 2> darr_load("./distarr/", 10, *ser);
 
-  IndexVector requested_chunk_size = {10, 10};
-  darr_load.RebuildChunks(requested_chunk_size);
-  darr_load.RebuildChunks(requested_chunk_size);
+  // IndexVector requested_chunk_size = {10, 10};
+  // darr_load.RebuildChunks(requested_chunk_size);
+  // darr_load.RebuildChunks(requested_chunk_size);
+
+  darr_load.MergeChunks(0, 100);
   
   IndexVector acc_ind1 = {1,1};
   std::cout << darr_load(acc_ind1) << std::endl;
