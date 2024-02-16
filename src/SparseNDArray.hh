@@ -46,6 +46,10 @@ public:
     return retval;    
   }
 
+  std::size_t NumEntries() {
+    return m_data.size();
+  }
+  
   T& operator()(IndexVector& inds) {
 
     // TODO: this will be changed when the fixed-dim vectors are available

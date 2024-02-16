@@ -317,32 +317,8 @@ namespace meep {
     }
 
     std::cout << "truncated " << num_truncations << "/" << pts_r * pts_z << std::endl;
-
-    // pays off to store as sparse chunk
-    std::size_t sparse_vs_dense_expense_ratio = 3; // sparse storage is approximately 3x as expensive as dense storage per nonzero element 
-    if(sparse_vs_dense_expense_ratio * num_truncations > (sparse_vs_dense_expense_ratio - 1) * pts_r * pts_z) {
-
-      std::cout << "going to sparsify, using min_abs_E_r = " << min_abs_E_r << ", min_abs_E_z = " << min_abs_E_z << std::endl;
-      
-      auto to_keep_E_r = [min_abs_E_r](scalar_t value) -> bool {
-	return std::fabs(value) > min_abs_E_r;
-      };
-
-      auto to_keep_E_z = [min_abs_E_z](scalar_t value) -> bool {
-	return std::fabs(value) > min_abs_E_z;
-      };
-      
-      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep_E_r, 0.0);
-      SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep_E_z, 0.0);    
-      chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);
-    }
-    else {
-
-      std::cout << "store as dense" << std::endl;
 	
-      // better to store as dense chunk as-is
-      chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
-    }        
+    chunkloop_data -> fstor.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);        
   } // end chunkloop
   
 } // end namespace meep
@@ -428,8 +404,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
 
-    std::cout << "start defragmentation" << std::endl;
-    cwf -> RebuildChunks(requested_chunk_size);
-    std::cout << "end defragmentation" << std::endl;
+    // std::cout << "start defragmentation" << std::endl;
+    // cwf -> RebuildChunks(requested_chunk_size);
+    // std::cout << "end defragmentation" << std::endl;
   }
 }

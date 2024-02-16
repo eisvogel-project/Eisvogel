@@ -36,17 +36,15 @@ int main(int argc, char* argv[]) {
   };
   
   DistributedScalarNDArray<float, 2> darr_save("./distarr/", 10, *ser);
-
-  SparseNDArray<float, 2> chunk1_sparse = SparseNDArray<float, 2>::From(chunk1, to_keep, 0.0);
-  SparseNDArray<float, 2> chunk2_sparse = SparseNDArray<float, 2>::From(chunk2, to_keep, 0.0);
   
-  darr_save.RegisterChunk(chunk1_sparse, start_ind1);
-  darr_save.RegisterChunk(chunk2_sparse, start_ind2);
+  darr_save.RegisterChunk(chunk1, start_ind1);
+  darr_save.RegisterChunk(chunk2, start_ind2);
   darr_save.MakeIndexPersistent();
   
   DistributedScalarNDArray<float, 2> darr_load("./distarr/", 10, *ser);
 
   IndexVector requested_chunk_size = {10, 10};
+  darr_load.RebuildChunks(requested_chunk_size);
   darr_load.RebuildChunks(requested_chunk_size);
   
   IndexVector acc_ind1 = {1,1};

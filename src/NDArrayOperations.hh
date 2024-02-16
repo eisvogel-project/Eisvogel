@@ -3,6 +3,7 @@
 
 #include "DenseNDArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
+#include <cmath>
 
 namespace NDArrayOps {
 
@@ -100,6 +101,21 @@ namespace NDArrayOps {
       retval(cur_ind) = std::min(a(cur_ind), b(cur_ind));
     }    
     return retval;
+  }
+
+  template<class T, std::size_t dims>
+  std::size_t number_nonzero_elems(const DenseNDArray<T, dims>& a) {
+    std::size_t nonzero_cnt = 0;
+
+    IndexVector start_inds(dims, 0);
+    IndexVector end_inds = a.shape();
+    for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
+      IndexVector cur_ind = cnt.index();     
+      if(a(cur_ind) != 0.0) {
+	nonzero_cnt++;
+      }
+    }   
+    return nonzero_cnt;
   }
   
 }; // end namespace

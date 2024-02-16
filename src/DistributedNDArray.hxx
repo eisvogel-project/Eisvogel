@@ -78,32 +78,55 @@ template <class T, std::size_t dims, template<class, std::size_t> class DenseT, 
 template <class ChunkT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const ChunkT& chunk, const IndexVector start_ind, bool add_to_index) {
 
-  IndexVector stop_ind = start_ind + chunk.shape();
-  
   // get chunk filename that should not clash with anything
   uuid_t uuid_binary;
   uuid_generate_random(uuid_binary);
   char uuid_string[36];
   uuid_unparse(uuid_binary, uuid_string);
   std::string chunk_filename = std::string(uuid_string) + ".bin";
+  
+  IndexVector stop_ind = start_ind + chunk.shape();
 
-  // build chunk metadata and add to index
-  ChunkType chunk_type = ChunkType::dense;
-  if constexpr(std::is_same_v<ChunkT, sparse_t>) {
-    chunk_type = ChunkType::sparse;
-  }
-  ChunkMetadata meta(chunk_filename, start_ind, stop_ind, chunk_type);
+  // prepare chunk metadata
+  ChunkMetadata meta(chunk_filename, start_ind, stop_ind, ChunkType::dense);
 
-  if(add_to_index) {
-    m_chunk_index.push_back(meta);
-  }
-
-  // write data to disk
+  // prepare output file
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
   std::fstream ofs;
   ofs.open(chunk_path, std::ios::out | std::ios::binary);  
-  m_ser.template serialize<ChunkMetadata>(ofs, meta);   
-  m_ser.template serialize<ChunkT>(ofs, chunk);
+  
+  // Check number of nonzero elements to see if we should store this as dense or sparse array
+  // TODO: later, check possibility of embellishing the number count onto the DenseArray to avoid recomputations
+  std::size_t num_nonzero_elems = NDArrayOps::number_nonzero_elems(chunk);
+  std::size_t num_elems = chunk.volume();
+
+  // pays off to store as sparse chunk
+  std::size_t sparse_vs_dense_expense_ratio = 3; // sparse storage is approximately 3x as expensive as dense storage per nonzero element
+  if(sparse_vs_dense_expense_ratio * num_nonzero_elems < num_elems) {
+    
+    std::cout << "going to sparsify" << std::endl;
+    
+    auto to_keep = [](scalar_t value) -> bool {
+      return value != 0.0;
+    };        
+    sparse_t sparse_chunk = sparse_t::From(chunk, to_keep, 0.0);    
+    meta.chunk_type = ChunkType::sparse;
+
+    std::cout << "after sparsification, " << sparse_chunk.NumEntries() << " entries remain" << std::endl;
+    
+    m_ser.template serialize<ChunkMetadata>(ofs, meta);   
+    m_ser.template serialize<sparse_t>(ofs, sparse_chunk);
+  }
+  else {  
+    std::cout << "store as dense" << std::endl;
+    m_ser.template serialize<ChunkMetadata>(ofs, meta);   
+    m_ser.template serialize<dense_t>(ofs, chunk);
+  }
+  
+  if(add_to_index) {
+    m_chunk_index.push_back(meta);
+  }
+  
   ofs.close();  
 }
 
@@ -241,8 +264,13 @@ template <class T, std::size_t dims, template<class, std::size_t> class DenseT, 
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeNeighbouringChunks(const IndexVector& number_chunks_to_merge) {
 
   // 0) Rebuild index (to make sure we have the full picture)
-  // 1) Concatenate function that takes in an array of DenseNDArrays (in NDArrayOps)
+
   // 2) Then, start with chunk that has the global start inds
+
+  // --> operate entirely on the index and prepare a full list of chunk mergings that need to happen (without actually doing anything)
+  // --> check if there are any problems; if not, go ahead and implement the chunk mergings
+  
+  // 3) again, have the to_keep mechanism
   
   std::cout << "in MergeChunks" << std::endl;
   
