@@ -1,5 +1,7 @@
 #include <uuid/uuid.h>
 #include <type_traits>
+#include <algorithm>
+#include <numeric>
 #include "NDArrayOperations.hh"
 
 namespace stor {
@@ -261,19 +263,107 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
-void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeNeighbouringChunks(const IndexVector& number_chunks_to_merge) {
+void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize) {
 
   // 0) Rebuild index (to make sure we have the full picture)
 
   // 2) Then, start with chunk that has the global start inds
 
   // --> operate entirely on the index and prepare a full list of chunk mergings that need to happen (without actually doing anything)
+  //     --> remove any elements from the index that are already taken care of
   // --> check if there are any problems; if not, go ahead and implement the chunk mergings
+  // --> go to the chunk that neighbours the current main one and continue
   
   // 3) again, have the to_keep mechanism
   
-  std::cout << "in MergeChunks" << std::endl;
+  std::cout << "in MergeNeighbouringChunks" << std::endl;
+
+  rebuildIndex(); 
+
+  std::cout << "rebuilt index" << std::endl;
   
+  if(!isGloballyContiguous(getGlobalStartInd(), getGlobalStopInd())) {
+    throw std::runtime_error("Error: refusing to merge chunks for a non-contiguous array!");
+  }
+
+  calculateShape();
+
+  // put chunks in order along the merging axis
+  std::vector<std::size_t> chunk_order(m_chunk_index.size());
+  std::iota(chunk_order.begin(), chunk_order.end(), 0);
+  std::stable_sort(chunk_order.begin(), chunk_order.end(),
+		   [&m_chunk_index = m_chunk_index, &dim_to_merge = dim_to_merge](std::size_t ind_1, std::size_t ind_2) {
+		     return m_chunk_index[ind_1].start_ind(dim_to_merge) > m_chunk_index[ind_2].start_ind(dim_to_merge);
+		   });
+
+  std::cout << "chunks after sorting:" << std::endl;
+  for(std::size_t chunk_ind : chunk_order) {
+    m_chunk_index[chunk_ind].start_ind.print();
+  }        
+
+  // Now operate on the ordered list of chunks until everything is done
+  while(chunk_order.size() > 0) {
+    std::size_t cur_chunk_index = chunk_order.back();
+    ChunkMetadata& cur_chunk_meta = m_chunk_index[cur_chunk_index];  
+    IndexVector chunk_size = cur_chunk_meta.stop_ind - cur_chunk_meta.start_ind;
+
+    // after we're done, this chunk will conform to all requirements, so remove it from future consideration
+    std::erase(chunk_order, cur_chunk_index);
+    
+    // this chunk is already large enough, we're done with it
+    if(chunk_size(dim_to_merge) >= max_dimsize) {
+      continue;
+    }
+
+    // chunk is not yet large enough, merge with additional ones
+    dense_t output_chunk = retrieveChunk(cur_chunk_index);
+    std::size_t neighbour_chunk_index = cur_chunk_index;
+    while(true) {
+      try {
+	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);	
+	std::erase(chunk_order, neighbour_chunk_index);
+
+	std::cout << "merging chunk " << cur_chunk_index << " with chunk " << neighbour_chunk_index << std::endl;
+	  
+	output_chunk = NDArrayOps::concatenate(output_chunk, retrieveChunk(neighbour_chunk_index), dim_to_merge);
+
+	// chunk is now large enough
+	if(output_chunk.shape(dim_to_merge) >= max_dimsize) {
+	  break;
+	}	
+      } catch(const ChunkNotFoundError& e) {
+	// there are no more neighbours in this direction; stop here
+	break;
+      }
+    }
+
+    // write it to disk
+    WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);
+  }
+
+  // remove all the chunks in the old index
+  std::cout << "now cleaning up old chunks" << std::endl;
+
+  for(ChunkMetadata& cur_meta : m_chunk_index) {
+    std::string chunk_path = m_dirpath + "/" + cur_meta.filename;
+    std::cout << "now removing " << chunk_path << std::endl;
+    std::filesystem::remove(chunk_path);
+  }
+
+  // re-index again
+  rebuildIndex();
+  calculateShape();
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getNeighbouringChunkIndex(std::size_t chunk_index, std::size_t dim) {
+
+  ChunkMetadata& chunk_meta = m_chunk_index[chunk_index];  
+  IndexVector chunk_size_along_dim(dims, 0);
+  chunk_size_along_dim(dim) = chunk_meta.stop_ind(dim) - chunk_meta.start_ind(dim);
+  IndexVector neighbour_chunk_start_ind = chunk_meta.start_ind + chunk_size_along_dim;
+  
+  return getChunkIndex(neighbour_chunk_start_ind);
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
@@ -330,7 +420,7 @@ std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkI
     }
   }
   
-  throw std::runtime_error("No chunk provides these indices!");
+  throw ChunkNotFoundError();
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>

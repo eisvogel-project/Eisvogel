@@ -21,6 +21,10 @@ enum class ChunkType : uint32_t {
   sparse = 1
 };
 
+struct ChunkNotFoundError : public std::runtime_error {
+  ChunkNotFoundError() : std::runtime_error("No chunk provides these indices!") { };
+};
+
 struct ChunkMetadata {
 
   ChunkMetadata(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
@@ -70,8 +74,8 @@ public:
   // Attempts to redistribute into equally large chunks
   void RebuildChunks(const IndexVector& requested_chunk_size);
 
-  // Simpler version that only merges neighbouring chunks
-  void MergeNeighbouringChunks(const IndexVector& number_chunks_to_merge);
+  // Simpler version that only merges chunks
+  void MergeChunks(std::size_t dim, std::size_t max_dimsize);
   
 private:
 
@@ -80,6 +84,7 @@ private:
   
   bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
   std::size_t getChunkIndex(const IndexVector& inds);
+  std::size_t getNeighbouringChunkIndex(std::size_t chunk_index, std::size_t dim);
   dense_t& retrieveChunk(std::size_t chunk_ind);
   void calculateShape();
 
