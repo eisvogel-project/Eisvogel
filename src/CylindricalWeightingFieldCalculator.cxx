@@ -410,9 +410,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
     std::cout << "exit saving chunkloop" << std::endl;
 
-    std::cout << "start defragmentation" << std::endl;
-    fstor -> RebuildChunks(requested_chunk_size);
-    std::cout << "end defragmentation" << std::endl;
+    // Here comes the on-the-fly chunk merging
+    
   }
   
   // TODO: again, will get better once the three separate arrays are gone
@@ -428,5 +427,9 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   if(meep::am_master()) {
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
+
+    std::cout << "start defragmentation" << std::endl;
+    cwf -> RebuildChunks(requested_chunk_size);
+    std::cout << "end defragmentation" << std::endl;
   }
 }
