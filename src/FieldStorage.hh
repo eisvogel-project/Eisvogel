@@ -36,6 +36,7 @@ public:
   };
 
   void RebuildChunks(const IndexVector& requested_chunk_size);
+  void MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize);
   
   // vector E_rzphi(IndexVector& ind);
   

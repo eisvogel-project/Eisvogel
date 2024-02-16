@@ -138,6 +138,11 @@ void WeightingField<FieldIndexerT, FieldStorageT>::RebuildChunks(const IndexVect
 }
 
 template <class FieldIndexerT, class FieldStorageT>
+void WeightingField<FieldIndexerT, FieldStorageT>::MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize) {
+  m_field_storage -> MergeChunks(dim_to_merge, max_dimsize);
+}
+
+template <class FieldIndexerT, class FieldStorageT>
 template <typename KernelT>
 scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_r(CoordVector pos) {    
   return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_r(arg);});

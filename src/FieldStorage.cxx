@@ -37,6 +37,11 @@ void RZFieldStorage::RebuildChunks(const IndexVector& requested_chunk_size) {
   m_E_z -> RebuildChunks(requested_chunk_size);
 }
 
+void RZFieldStorage::MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize) {
+  m_E_r -> MergeChunks(dim_to_merge, max_dimsize);
+  m_E_z -> MergeChunks(dim_to_merge, max_dimsize);
+}
+
 // calculate from the stored components
 // scalar E_x(IndexVector& ind) { ... };
 // scalar E_y(IndexVector& ind) { ... };
