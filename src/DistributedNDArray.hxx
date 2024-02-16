@@ -238,6 +238,17 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeNeighbouringChunks(const IndexVector& number_chunks_to_merge) {
+
+  // 0) Rebuild index (to make sure we have the full picture)
+  // 1) Concatenate function that takes in an array of DenseNDArrays (in NDArrayOps)
+  // 2) Then, start with chunk that has the global start inds
+  
+  std::cout << "in MergeChunks" << std::endl;
+  
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 T DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::operator()(IndexVector& inds) {
 
   // check to which chunk this index belongs

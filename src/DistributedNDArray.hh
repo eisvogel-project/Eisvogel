@@ -69,6 +69,9 @@ public:
 
   // Attempts to redistribute into equally large chunks
   void RebuildChunks(const IndexVector& requested_chunk_size);
+
+  // Simpler version that only merges neighbouring chunks
+  void MergeNeighbouringChunks(const IndexVector& number_chunks_to_merge);
   
 private:
 
