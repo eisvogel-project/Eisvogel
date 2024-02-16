@@ -334,7 +334,7 @@ namespace meep {
       
       SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_r = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_r, to_keep_E_r, 0.0);
       SparseScalarField3D<scalar_t> sparse_chunk_buffer_E_z = SparseScalarField3D<scalar_t>::From(chunk_buffer_E_z, to_keep_E_z, 0.0);    
-      chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);      
+      chunkloop_data -> fstor.RegisterChunk(sparse_chunk_buffer_E_r, sparse_chunk_buffer_E_z, chunk_start_inds);
     }
     else {
 
@@ -377,11 +377,12 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   // This is only for cross-checking the geometry for now
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
 
+  IndexVector requested_chunk_size({400, 400, 400});
   std::shared_ptr<RZFieldStorage> fstor = std::make_shared<RZFieldStorage>(tmpdir, 10);
 
   int fstats_subsampling = 2;
   std::shared_ptr<FieldChunkStatisticsTracker2D> fstats = std::make_shared<FieldChunkStatisticsTracker2D>(fstats_subsampling);
-  scalar_t dynamic_range = 1e3;
+  scalar_t dynamic_range = 50;
   scalar_t abs_min_field = 1e-20;
   ChunkloopData cld(0, *fstor, *fstats, dynamic_range, abs_min_field);
 
@@ -390,8 +391,10 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   
   // Main simulation loop runs here  
   std::size_t stepcnt = 0;
-  //for(double cur_t = .0; cur_t <= m_t_end; cur_t += 0.1) {
-  for(double cur_t = 150.0; cur_t <= 152.0; cur_t += 0.1) {
+  //for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+  //for(double cur_t = 150.0; cur_t <= 152.0; cur_t += 0.1) {
+  //for(double cur_t = 100.0; cur_t <= 102.0; cur_t += 0.13) {
+  for(double cur_t = 0.0; cur_t <= 1.0; cur_t += 0.13) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {
@@ -406,9 +409,15 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     std::cout << "entering saving chunkloop" << std::endl;
     m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
     std::cout << "exit saving chunkloop" << std::endl;
+
+    std::cout << "start defragmentation" << std::endl;
+    fstor -> RebuildChunks(requested_chunk_size);
+    std::cout << "end defragmentation" << std::endl;
   }
   
   // TODO: again, will get better once the three separate arrays are gone
+  // TODO: for large weighting fields, will have to move chunks to the permanent location continuously throughout the calculation so as not to fill up local storage
+  //       move them so that only the complete chunks (surviving after defragmentation) are moved that won't need to be accessed anymore
   std::cout << "moving output into final location ...";
   std::filesystem::copy(tmpdir / "E_r", outdir_Er, std::filesystem::copy_options::recursive);
   std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
