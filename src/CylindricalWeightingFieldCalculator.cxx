@@ -4,6 +4,8 @@
 #include <cmath>
 #include <limits>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
 #include "Eisvogel/WeightingField.hh"
 #include "FieldStorage.hh"
@@ -367,10 +369,10 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   
   // Main simulation loop runs here  
   std::size_t stepcnt = 0;
-  //for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
   //for(double cur_t = 150.0; cur_t <= 152.0; cur_t += 0.1) {
   //for(double cur_t = 100.0; cur_t <= 102.0; cur_t += 0.13) {
-  for(double cur_t = 0.0; cur_t <= 1.0; cur_t += 0.13) {
+  //for(double cur_t = 0.0; cur_t <= 1.0; cur_t += 0.13) {
 
     // Time-step the fields
     while (m_f -> time() < cur_t) {
@@ -386,8 +388,9 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
     std::cout << "exit saving chunkloop" << std::endl;
 
-    // Here comes the on-the-fly chunk merging
-    
+    std::cout << "start chunk merging" << std::endl;
+    fstor -> MergeChunks(0, 400);
+    std::cout << "start chunk merging" << std::endl;
   }
   
   // TODO: again, will get better once the three separate arrays are gone
@@ -398,14 +401,18 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
   std::cout << " done!" << std::endl;
 
+  // Wait until everybody has finished copying
   meep::all_wait();
   
   if(meep::am_master()) {
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
 
-    // std::cout << "start defragmentation" << std::endl;
-    // cwf -> RebuildChunks(requested_chunk_size);
-    // std::cout << "end defragmentation" << std::endl;
+    // Sometimes need to wait for all files to show up?
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    
+    std::cout << "start defragmentation" << std::endl;
+    cwf -> RebuildChunks(requested_chunk_size);
+    std::cout << "end defragmentation" << std::endl;
   }
 }
