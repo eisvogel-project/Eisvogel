@@ -2,6 +2,7 @@
 #include <type_traits>
 #include <algorithm>
 #include <numeric>
+#include <iostream>
 #include "NDArrayOperations.hh"
 
 namespace stor {
@@ -356,6 +357,21 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
+void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::printChunks() {
+
+  for(ChunkMetadata& cur_meta : m_chunk_index) {
+    std::cout << "-----------------------" << std::endl;
+    std::cout << "chunk: " << cur_meta.filename << std::endl;
+    std::cout << "start_ind: " << std::endl;
+    cur_meta.start_ind.print();
+    std::cout << "stop_ind: " << std::endl;
+    cur_meta.stop_ind.print();
+    std::cout << "chunk_type: " << static_cast<uint32_t>(cur_meta.chunk_type) << std::endl;
+    std::cout << "-----------------------" << std::endl;
+  }  
+}
+
+template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getNeighbouringChunkIndex(std::size_t chunk_index, std::size_t dim) {
 
   ChunkMetadata& chunk_meta = m_chunk_index[chunk_index];  
@@ -419,6 +435,11 @@ std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkI
       return chunk_ind;
     }
   }
+
+  std::cout << "HHHHHHH" << std::endl;
+  std::cout << "No chunk for index:" << std::endl;
+  inds.print();
+  std::cout << "HHHHHHH" << std::endl;
   
   throw ChunkNotFoundError();
 }

@@ -76,6 +76,8 @@ public:
 
   // Simpler version that only merges chunks
   void MergeChunks(std::size_t dim, std::size_t max_dimsize);
+
+  void printChunks();
   
 private:
 
