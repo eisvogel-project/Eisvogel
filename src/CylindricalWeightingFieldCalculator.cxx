@@ -388,10 +388,16 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
     std::cout << "exit saving chunkloop" << std::endl;
 
-    std::cout << "start chunk merging" << std::endl;
-    fstor -> MergeChunks(0, 400);
-    std::cout << "start chunk merging" << std::endl;
+    if((stepcnt % 400) == 0) {
+      std::cout << "start chunk merging" << std::endl;
+      fstor -> MergeChunks(0, 400);
+      std::cout << "end chunk merging" << std::endl;
+    }
   }
+
+  std::cout << "start chunk merging" << std::endl;
+  fstor -> MergeChunks(0, 400);
+  std::cout << "end chunk merging" << std::endl;
   
   // TODO: again, will get better once the three separate arrays are gone
   // TODO: for large weighting fields, will have to move chunks to the permanent location continuously throughout the calculation so as not to fill up local storage
@@ -403,13 +409,19 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
 
   // Wait until everybody has finished copying
   meep::all_wait();
+
+  std::cout << "==============================================" << std::endl;
+  std::cout << "==============================================" << std::endl;
+  std::cout << " All parallel things finished, now single-threaded defragmentation " << std::endl;
+  std::cout << "==============================================" << std::endl;
+  std::cout << "==============================================" << std::endl;
   
   if(meep::am_master()) {
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();
 
     // Sometimes need to wait for all files to show up?
-    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     
     std::cout << "start defragmentation" << std::endl;
     cwf -> RebuildChunks(requested_chunk_size);
