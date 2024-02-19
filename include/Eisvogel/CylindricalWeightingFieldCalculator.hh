@@ -1,5 +1,5 @@
-#ifndef __WEIGHTING_FIELD_CALCULATOR__HH
-#define __WEIGHTING_FIELD_CALCULATOR__HH
+#ifndef __CYLINDRICAL_WEIGHTING_FIELD_CALCULATOR__HH
+#define __CYLINDRICAL_WEIGHTING_FIELD_CALCULATOR__HH
 
 #include <memory>
 #include <string>
@@ -8,11 +8,11 @@
 #include "Antenna.hh"
 #include "Geometry.hh"
 
-class WeightingFieldCalculator {
+class CylindricalWeightingFieldCalculator {
 
 public:
-  WeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
-			   double courant_factor = 0.5, double resolution = 40, double pml_width = 1.0);
+  CylindricalWeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
+				      double courant_factor = 0.5, double resolution = 12, double pml_width = 1.0);
   void Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir = "");
 
 private:

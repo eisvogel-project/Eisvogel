@@ -1,5 +1,5 @@
-#include "Eisvogel/DistributedNDArray.hh"
-#include "Eisvogel/NDArray.hh"
+#include "DistributedNDArray.hh"
+#include "DenseNDArray.hh"
 
 #include <fstream>
 
@@ -28,24 +28,43 @@ int main(int argc, char* argv[]) {
 
   IndexVector start_ind2({2, 0});
   start_ind2.print();
+
+  std::shared_ptr<stor::DefaultSerializer> ser = std::make_shared<stor::DefaultSerializer>();
+
+  auto to_keep = [](float value) -> bool {
+    return true;
+  };
   
-  DistributedNDArray<float, 2> darr_save("./distarr/", 10);
+  DistributedScalarNDArray<float, 2> darr_save("./distarr/", 10, *ser);
+  
   darr_save.RegisterChunk(chunk1, start_ind1);
   darr_save.RegisterChunk(chunk2, start_ind2);
   darr_save.MakeIndexPersistent();
+  
+  DistributedScalarNDArray<float, 2> darr_load("./distarr/", 10, *ser);
 
-  DistributedNDArray<float, 2> darr_load("./distarr/", 10);
+  // IndexVector requested_chunk_size = {10, 10};
+  // darr_load.RebuildChunks(requested_chunk_size);
+  // darr_load.RebuildChunks(requested_chunk_size);
 
-  IndexVector acc_ind1 = {1,1};
-  std::cout << darr_load(acc_ind1) << std::endl;
-  std::cout << darr_load(acc_ind1) << std::endl;
+  std::cout << "HHH BEFORE MERGING HHH" << std::endl;
+  darr_load.printChunks();
 
-  IndexVector acc_ind2 = {2,1};
-  std::cout << darr_load(acc_ind2) << std::endl;
-  std::cout << darr_load(acc_ind2) << std::endl;
+  darr_load.MergeChunks(0, 10);
 
-  std::cout << "shape:" << std::endl;  
-  for(auto cur : darr_load.shape()) {
-    std::cout << cur << std::endl;
-  }
+  std::cout << "HHH AFTER MERGING HHH" << std::endl;
+  darr_load.printChunks();
+  
+  // IndexVector acc_ind1 = {1,1};
+  // std::cout << darr_load(acc_ind1) << std::endl;
+  // std::cout << darr_load(acc_ind1) << std::endl;
+
+  // IndexVector acc_ind2 = {2,1};
+  // std::cout << darr_load(acc_ind2) << std::endl;
+  // std::cout << darr_load(acc_ind2) << std::endl;
+
+  // std::cout << "shape:" << std::endl;  
+  // for(auto cur : darr_load.shape()) {
+  //   std::cout << cur << std::endl;
+  // }
 }

@@ -5,8 +5,10 @@ RZFieldStorage::RZFieldStorage(std::filesystem::path storage_path, std::size_t c
   std::filesystem::path storage_path_E_r = storage_path / "E_r";
   std::filesystem::path storage_path_E_z = storage_path / "E_z";
 
-  m_E_r = std::make_shared<storage_t>(storage_path_E_r, cache_size);
-  m_E_z = std::make_shared<storage_t>(storage_path_E_z, cache_size);
+  m_ser = std::make_shared<serializer_t>();
+  
+  m_E_r = std::make_shared<storage_t>(storage_path_E_r, cache_size, *m_ser);
+  m_E_z = std::make_shared<storage_t>(storage_path_E_z, cache_size, *m_ser);
 }
 
 IndexVector RZFieldStorage::shape() {
@@ -25,14 +27,19 @@ scalar_t RZFieldStorage::E_phi(IndexVector& ind) {
   return 0.0;
 }
 
-void RZFieldStorage::RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const IndexVector chunk_start_inds) {
-  m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
-  m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
-}
-
 void RZFieldStorage::MakeIndexPersistent() {
   m_E_r -> MakeIndexPersistent();
   m_E_z -> MakeIndexPersistent();
+}
+
+void RZFieldStorage::RebuildChunks(const IndexVector& requested_chunk_size) {
+  m_E_r -> RebuildChunks(requested_chunk_size);
+  m_E_z -> RebuildChunks(requested_chunk_size);
+}
+
+void RZFieldStorage::MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize) {
+  m_E_r -> MergeChunks(dim_to_merge, max_dimsize);
+  m_E_z -> MergeChunks(dim_to_merge, max_dimsize);
 }
 
 // calculate from the stored components

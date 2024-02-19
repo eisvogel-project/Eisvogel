@@ -2,7 +2,7 @@
 #define __COORD_UTILS_HH
 
 #include "Common.hh"
-#include "NDArray.hh"
+#include "DenseNDArray.hh"
 #include <cmath>
 
 using CoordVector = DenseVector<scalar_t>;

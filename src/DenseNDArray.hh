@@ -1,49 +1,18 @@
-#ifndef __NDARRAY_HH
-#define __NDARRAY_HH
+#ifndef __DENSE_NDARRAY_HH
+#define __DENSE_NDARRAY_HH
 
 #include <vector>
-#include <array>
 #include <numeric>
 #include <algorithm>
 #include <iostream>
-
+#include "NDArray.hh"
 #include "Serialization.hh"
 
-// ======================================================
-// General n-dimensional array
-// ======================================================
+template <class T, std::size_t dims>
+class SparseNDArray;
 
 // TODO: probably also want a fixed-sized version of NDArray that allows to specify the individual dimensions
-
-template <class T, std::size_t dims>
-class NDArray {
-
-public:
-  using shape_t = std::array<std::size_t, dims>;
-
-public:
-  NDArray() { }
-  NDArray(const shape_t& shape) : m_shape(shape) { }
-  virtual ~NDArray() = 0;
-
-  const shape_t& shape() const {
-    return m_shape;
-  };
-
-  std::size_t shape(std::size_t dim) const {
-    return m_shape[dim];
-  }
-
-protected:
-  shape_t m_shape = {};
-};
-
-template <class T, std::size_t dims>
-inline NDArray<T, dims>::~NDArray() { }
-
-// ======================================================
-// Dense n-dimensional array
-// ======================================================
+// Useful for e.g. 3-dim vectors that don't need to be dynamic
 
 template <class T, std::size_t dims>
 class DenseNDArray : public NDArray<T, dims> {
@@ -71,13 +40,24 @@ public:
   using type = T;
 
   DenseNDArray(std::size_t size, const T& value) requires(dims == 1) : DenseNDArray(shape_t({size}), value) { }
-  
+
+  // TODO: This will move to use a fixed-size vector to specify the shape (and dims)
   DenseNDArray(const shape_t& shape, const T& value) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;
     std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
     m_data.resize(m_strides.back(), value);
   }
+  
+  static DenseNDArray<T, dims> From(const SparseNDArray<T, dims>& sparse_arr) {
+    DenseNDArray<T, dims> retval(sparse_arr.shape(), sparse_arr.m_default_value);
 
+    for (auto const& [key, val] : sparse_arr.m_data) {
+      retval(key) = val;
+    }
+    
+    return retval;
+  }
+  
   DenseNDArray(const shape_t& shape, std::vector<T>&& data) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;
     std::partial_sum(shape.begin(), shape.end(), m_strides.begin() + 1, std::multiplies<std::size_t>());
@@ -119,6 +99,7 @@ public:
   }
 
   // Indexing with a vector that holds the coordinates
+  // TODO: move to using vectors with compile-time size here and make sure the size matches
   const T& operator()(DenseNDArray<std::size_t, 1>& inds) const {
     if(inds.size() != dims)
       throw;
@@ -133,6 +114,11 @@ public:
     
     std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
     return m_data[flat_ind];
+  }  
+  
+  T& operator()(const std::array<std::size_t, dims>& inds) {
+    std::size_t flat_ind = std::inner_product(inds.cbegin(), inds.cend(), m_strides.begin(), 0);
+    return m_data[flat_ind];    
   }
 
   // indexing for special (low-dimensional) cases
@@ -156,6 +142,19 @@ public:
     return rhs.m_data == m_data;
   }
 
+  // template <std::size_t len>
+  // bool operator==(const std::array<T, len>& rhs) const requires(dims == 1) {
+  //   if(len != m_data.size()) {
+  //     return false;
+  //   }
+  //   for(std::size_t ind = 0; ind < len; ind++) {
+  //     if(m_data[ind] != rhs[ind]) {
+  // 	return false;
+  //     }
+  //   }
+  //   return true;
+  // }
+
   // printing
   void print() const {
     for(const T& cur: m_data) {
@@ -171,6 +170,7 @@ public:
   auto cend() {return m_data.cend();}
   auto end() const {return m_data.cend();}
   const std::size_t size() const requires(dims == 1) {return m_data.size();}
+  const std::size_t volume() const {return m_strides.back();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
     return operator_binary<T, dims, T, T>(lhs, rhs, std::plus<>());
@@ -290,10 +290,7 @@ using GridVector = DenseVector<unsigned int>;
 template <class T>
 using ScalarField3D = DenseNDArray<T, 3>;
 
-// ======================================================
-// Sparse n-dimensional array
-// ======================================================
-
-
+template <class T>
+using ScalarField2D = DenseNDArray<T, 2>;
 
 #endif

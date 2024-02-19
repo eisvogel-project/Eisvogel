@@ -25,7 +25,7 @@ if(BUILD_WFC)
     pkg_check_modules(MEEP REQUIRED meep)
 
     add_library(eisvogel_wfc SHARED
-                WeightingFieldCalculator.cxx
+                CylindricalWeightingFieldCalculator.cxx
                 Geometry.cxx
                 Antenna.cxx)
     target_link_directories(eisvogel_wfc PUBLIC ${MEEP_LIBRARY_DIRS})

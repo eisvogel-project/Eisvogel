@@ -13,15 +13,15 @@ int main(int argc, char* argv[]) {
   std::string wf_path = argv[1];
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(0.0, 0.0, -20.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(25.0, 20.0, 20.0);
-
+  CoordVector start_coords = CU::MakeCoordVectorTRZ(0.0, 0.0, -150.0);
+  CoordVector end_coords = CU::MakeCoordVectorTRZ(150.0, 70.0, 150.0);
+  
   // Filter parameters
   scalar_t tp = 2.0;
   unsigned int N = 4;
 
   // Sampling parameters
-  scalar_t os_factor = 50;
+  scalar_t os_factor = 30;
   scalar_t r_min = 0.1;
 
   WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor);

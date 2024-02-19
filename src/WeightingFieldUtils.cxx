@@ -46,9 +46,10 @@ namespace WeightingFieldUtils {
 
     // Prepare chunk buffers
     std::size_t pts_t = C::getT(number_pts_in_chunk), pts_r = C::getR(number_pts_in_chunk), pts_z = C::getZ(number_pts_in_chunk);
-    ScalarField3D<scalar_t> chunk_buffer_E_r({pts_t, pts_z, pts_r}, 0.0);
-    ScalarField3D<scalar_t> chunk_buffer_E_z({pts_t, pts_z, pts_r}, 0.0);
-    ScalarField3D<scalar_t> chunk_buffer_E_phi({pts_t, pts_z, pts_r}, 0.0);
+    ScalarField3D<scalar_t>::shape_t buffer_shape = {pts_t, pts_z, pts_r};
+    ScalarField3D<scalar_t> chunk_buffer_E_r(buffer_shape, 0.0);
+    ScalarField3D<scalar_t> chunk_buffer_E_z(buffer_shape, 0.0);
+    ScalarField3D<scalar_t> chunk_buffer_E_phi(buffer_shape, 0.0);
 
     IndexVector buf_inds_start({0, 0, 0});
     IndexVector buf_inds_end = number_chunks;
@@ -64,10 +65,9 @@ namespace WeightingFieldUtils {
       // Fill chunk buffers
       SampleElectricDipoleWeightingFieldChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_buffer_E_phi, chunk_start_coords, chunk_end_coords,
 					      tp, N, r_min, os_factor, n);
-
-      // Register chunk buffers
-      cwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);
       
+      // Register chunk buffers
+      cwf.RegisterChunk(chunk_buffer_E_r, chunk_buffer_E_z, chunk_start_inds);      
     }   
     
     cwf.MakeMetadataPersistent();

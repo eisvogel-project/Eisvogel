@@ -4,7 +4,7 @@
 #include "shower_2D.h"
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
-#include "Eisvogel/NDArray.hh"
+#include "NDArray.hh"
 #include <array>
 #include <string>
 #include <map>

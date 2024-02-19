@@ -66,6 +66,9 @@ public:
   scalar_t GetStartCoords(std::size_t dim) const;
   CoordVector GetEndCoords() const;
   scalar_t GetEndCoords(std::size_t dim) const;
+
+  void RebuildChunks(const IndexVector& requested_chunk_size);
+  void MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize);
   
 private:
   

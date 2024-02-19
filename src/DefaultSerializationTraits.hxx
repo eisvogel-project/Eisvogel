@@ -1,70 +1,53 @@
-#ifndef __SERIALIZATION_HH
-#define __SERIALIZATION_HH
-
-#include <iostream>
-#include <cstdint>
-#include <vector>
-#include <algorithm>
 #include <array>
-#include <arpa/inet.h>
-#include <cstring>
-#include "Eisvogel/Common.hh"
-
-// inspired by https://github.com/panta/seriously
+#include <vector>
+#include <map>
 
 namespace stor {
-
-  // https://stackoverflow.com/a/28592202
-#define htonll(x) ((1==htonl(1)) ? (x) : ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
-#define ntohll(x) ((1==ntohl(1)) ? (x) : ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
-
-  template <typename T>
-  struct Traits;
 
   template <>
   struct Traits<uint32_t> {
     using type = uint32_t;
     using ser_type = type;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       ser_type outval = htonl(val);
       stream.write((char*)&outval, sizeof(outval));
     }
-
+    
     static type deserialize(std::iostream& stream) {
       ser_type inval;
       stream.read((char*)&inval, sizeof(inval));
       return ntohl(inval);
     }
   };
-
+  
   template <>
   struct Traits<uint64_t> {
     using type = uint64_t;
     using ser_type = type;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       ser_type outval = htonll(val);
       stream.write((char*)&outval, sizeof(outval));
     }
-
+    
     static type deserialize(std::iostream& stream) {
       ser_type inval;
       stream.read((char*)&inval, sizeof(inval));
       return ntohll(inval);
     }
   };
-
+  
   template <>
   struct Traits<float> {
     using type = float;
     using ser_type = uint32_t;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       const ser_type ser_val = reinterpret_cast<const ser_type&>(val);
       Traits<ser_type>::serialize(stream, ser_val);
     }
-
+    
     static type deserialize(std::iostream& stream) {
       ser_type ser_val = Traits<ser_type>::deserialize(stream);
       type retval = 0.0f;
@@ -72,17 +55,17 @@ namespace stor {
       return retval;
     }
   };
-
+  
   template<>
   struct Traits<double> {
     using type = double;
     using ser_type = uint64_t;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       const ser_type ser_val = reinterpret_cast<const ser_type&>(val);
       Traits<ser_type>::serialize(stream, ser_val);
     }
-
+    
     static type deserialize(std::iostream& stream) {
       ser_type ser_val = Traits<ser_type>::deserialize(stream);
       type retval = 0.0;
@@ -90,12 +73,12 @@ namespace stor {
       return retval;
     }
   };
-
+  
   template<>
   struct Traits<std::vector<float>> {
     using type = std::vector<float>;
     using ser_type = uint32_t;
-
+    
     static void serialize(std::iostream& stream, const type& val, std::size_t block_size = 10000) {
       std::size_t vec_size = val.size();
       Traits<std::size_t>::serialize(stream, vec_size);
@@ -109,7 +92,7 @@ namespace stor {
 	stream.write((char*)&outbuf, sizeof(outbuf));
       }
     }
-
+    
     static type deserialize(std::iostream& stream, std::size_t block_size = 10000) {
       std::size_t vec_size = Traits<std::size_t>::deserialize(stream);
       std::size_t vec_ind = 0;
@@ -127,10 +110,10 @@ namespace stor {
       return val;
     }
   };
-
+  
   template<std::size_t n>
   struct Traits<std::array<float, n>> {
-
+    
   };
   
   // For general vectors
@@ -155,19 +138,19 @@ namespace stor {
       return val;
     }
   };
-
+  
   // For general arrays
   template <typename T, std::size_t n>
   struct Traits<std::array<T, n>> {
     using type = std::array<T, n>;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       // TODO: speed this up by serializing the entire array instead of values one by one
       for(const T& cur : val) {
 	Traits<T>::serialize(stream, cur);
       }
     }
-
+    
     static type deserialize(std::iostream& stream) {
       type val;
       // TODO: speed this up by serializing the entire array instead of values one by one
@@ -178,10 +161,48 @@ namespace stor {
     }
   };
 
+  // For general maps
+  // TODO: this is super-simple for now, make more performant
+  template <typename T1, typename T2>
+  struct Traits<std::map<T1, T2>> {
+    using type = std::map<T1, T2>;
+
+    static void serialize(std::iostream& stream, const type& val) {
+
+      std::vector<T1> keys;
+      std::vector<T2> values;
+      
+      for (auto const& [key, val] : val) {
+	keys.push_back(key);
+	values.push_back(val);
+      }
+
+      Traits<std::vector<T1>>::serialize(stream, keys);
+      Traits<std::vector<T2>>::serialize(stream, values);
+    }
+
+    static type deserialize(std::iostream& stream) {
+
+      std::vector<T1> keys = Traits<std::vector<T1>>::deserialize(stream);
+      std::vector<T2> values = Traits<std::vector<T2>>::deserialize(stream);
+
+      if(keys.size() != values.size()) {
+	throw std::runtime_error("Error: trying to deserialize malformed std::map!");
+      }
+
+      type retval;
+      for(std::size_t ind = 0; ind < keys.size(); ind++) {
+	retval[keys[ind]] = values[ind];
+      }
+      
+      return retval;
+    }
+  };
+  
   template <>
   struct Traits<std::string> {
     using type = std::string;
-
+    
     static void serialize(std::iostream& stream, const type& val) {
       std::size_t num_chars = val.size();
       Traits<std::size_t>::serialize(stream, num_chars);
@@ -194,26 +215,5 @@ namespace stor {
       stream.read(string_data.data(), num_chars);
       return std::string(string_data.begin(), string_data.end());
     }
-  };
-  
-  class Serializer {
-
-  public:
-    Serializer(std::fstream& stream) : m_stream(stream) { }
-    
-    template <typename T>
-    void serialize(const T& value) {
-      Traits<T>::serialize(m_stream, value);
-    }
-
-    template <typename T>
-    T deserialize() {
-      return Traits<T>::deserialize(m_stream);
-    }
-
-  private:
-    std::fstream& m_stream;
-  };
+  }; 
 }
-
-#endif

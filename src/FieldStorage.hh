@@ -3,7 +3,7 @@
 
 #include <string>
 #include <filesystem>
-#include "Eisvogel/DistributedNDArray.hh"
+#include "DistributedNDArray.hh"
 
 class FieldStorage {
   
@@ -14,9 +14,9 @@ public:
 class RZFieldStorage : public FieldStorage {
 
 public:
-  using storage_t = DistributedNDArray<scalar_t, 3>;
-  using chunk_t = DenseNDArray<scalar_t, 3>;
-
+  using serializer_t = stor::DefaultSerializer;
+  using storage_t = DistributedScalarNDArray<scalar_t, 3, serializer_t>;
+  
 public:
 
   RZFieldStorage(std::filesystem::path storage_path, std::size_t cache_size);
@@ -27,9 +27,16 @@ public:
 
   IndexVector shape();
 
-  void RegisterChunk(const chunk_t& chunk_E_r, const chunk_t& chunk_E_z, const IndexVector chunk_start_inds);
-
   void MakeIndexPersistent();
+
+  template <class ChunkT>
+  void RegisterChunk(const ChunkT& chunk_E_r, const ChunkT& chunk_E_z, const IndexVector chunk_start_inds) {
+    m_E_r -> RegisterChunk(chunk_E_r, chunk_start_inds);
+    m_E_z -> RegisterChunk(chunk_E_z, chunk_start_inds);
+  };
+
+  void RebuildChunks(const IndexVector& requested_chunk_size);
+  void MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize);
   
   // vector E_rzphi(IndexVector& ind);
   
@@ -43,7 +50,9 @@ public:
 private:
   
   std::shared_ptr<storage_t> m_E_r;
-  std::shared_ptr<storage_t> m_E_z;  
+  std::shared_ptr<storage_t> m_E_z;
+
+  std::shared_ptr<serializer_t> m_ser;
 };
 
 #endif

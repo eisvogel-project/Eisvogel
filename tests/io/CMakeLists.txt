@@ -5,6 +5,9 @@ set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=
 add_executable(testDistributedNDArray testDistributedNDArray.cxx)
 target_link_libraries(testDistributedNDArray eisvogel)
 
+# add_executable(testDistributedNDArrayDiagnostics testDistributedNDArrayDiagnostics.cxx)
+# target_link_libraries(testDistributedNDArrayDiagnostics eisvogel)
+
 add_executable(testDistributedWeightingField testDistributedWeightingField.cxx)
 target_link_libraries(testDistributedWeightingField eisvogel)
 
