@@ -20,7 +20,7 @@ def plot_2d(outpath, vals_xy, vals_z, xlabel = "", ylabel = "", zlabel = "", tit
     vals_mesh_x, vals_mesh_y = np.meshgrid(vals_fine_x, vals_fine_y)
     vals_interp_z = interpolator(vals_mesh_x, vals_mesh_y)
 
-    fig, ax = plt.subplots(1, 1, figsize = (5, 5))
+    fig, ax = plt.subplots(1, 1)
     surveyplot = ax.pcolormesh(vals_mesh_x, vals_mesh_y, vals_interp_z, cmap = cmap,
                                norm = matplotlib.colors.SymLogNorm(linthresh = 1e-6))
     divider = make_axes_locatable(ax)
@@ -36,6 +36,8 @@ def plot_2d(outpath, vals_xy, vals_z, xlabel = "", ylabel = "", zlabel = "", tit
     ax.set_ylabel(ylabel, fontsize = fs)
     ax.set_title(title, fontsize = fs)
 
+    ax.set_aspect('equal')
+    
     plt.tight_layout()
     
     fig.savefig(outpath, dpi = 300)
@@ -50,8 +52,8 @@ def plot_fields(outdir, cwf, tval, num_pts = 200):
     vals_E_r = []
     vals_E_z = []
     vals_E_abs = []
-    for cur_xval in np.linspace(start_coords_txyz[1] + 2, end_coords_txyz[1] - 2, num_pts):
-        for cur_zval in np.linspace(start_coords_txyz[3] + 2, end_coords_txyz[3] - 2, num_pts):
+    for cur_xval in np.linspace(start_coords_txyz[1] + 2, end_coords_txyz[1] - 2, int(end_coords_txyz[1] - start_coords_txyz[1])):
+        for cur_zval in np.linspace(start_coords_txyz[3] + 2, end_coords_txyz[3] - 2, int(end_coords_txyz[3] - start_coords_txyz[3])):
             
             vals_xz.append([cur_xval, cur_zval])
             cur_yval = 0.0
