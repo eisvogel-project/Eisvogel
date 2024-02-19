@@ -302,6 +302,8 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
     m_chunk_index[chunk_ind].start_ind.print();
   }        
 
+  index_t chunks_to_keep;
+  
   // Now operate on the ordered list of chunks until everything is done
   while(chunk_order.size() > 0) {
     std::size_t cur_chunk_index = chunk_order.back();
@@ -313,6 +315,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
     
     // this chunk is already large enough, we're done with it
     if(chunk_size(dim_to_merge) >= max_dimsize) {
+      chunks_to_keep.push_back(cur_chunk_meta);
       continue;
     }
 
@@ -342,9 +345,13 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
     WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);
   }
 
-  // remove all the chunks in the old index
+  // remove all the chunks in the old index that should not be kept around
   std::cout << "now cleaning up old chunks" << std::endl;
 
+  for(ChunkMetadata& to_keep : chunks_to_keep) {
+    std::erase(m_chunk_index, to_keep);
+  }
+  
   for(ChunkMetadata& cur_meta : m_chunk_index) {
     std::string chunk_path = m_dirpath + "/" + cur_meta.filename;
     std::cout << "now removing " << chunk_path << std::endl;
