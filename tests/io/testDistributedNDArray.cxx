@@ -47,18 +47,24 @@ int main(int argc, char* argv[]) {
   // darr_load.RebuildChunks(requested_chunk_size);
   // darr_load.RebuildChunks(requested_chunk_size);
 
-  darr_load.MergeChunks(0, 100);
+  std::cout << "HHH BEFORE MERGING HHH" << std::endl;
+  darr_load.printChunks();
+
+  darr_load.MergeChunks(0, 10);
+
+  std::cout << "HHH AFTER MERGING HHH" << std::endl;
+  darr_load.printChunks();
   
-  IndexVector acc_ind1 = {1,1};
-  std::cout << darr_load(acc_ind1) << std::endl;
-  std::cout << darr_load(acc_ind1) << std::endl;
+  // IndexVector acc_ind1 = {1,1};
+  // std::cout << darr_load(acc_ind1) << std::endl;
+  // std::cout << darr_load(acc_ind1) << std::endl;
 
-  IndexVector acc_ind2 = {2,1};
-  std::cout << darr_load(acc_ind2) << std::endl;
-  std::cout << darr_load(acc_ind2) << std::endl;
+  // IndexVector acc_ind2 = {2,1};
+  // std::cout << darr_load(acc_ind2) << std::endl;
+  // std::cout << darr_load(acc_ind2) << std::endl;
 
-  std::cout << "shape:" << std::endl;  
-  for(auto cur : darr_load.shape()) {
-    std::cout << cur << std::endl;
-  }
+  // std::cout << "shape:" << std::endl;  
+  // for(auto cur : darr_load.shape()) {
+  //   std::cout << cur << std::endl;
+  // }
 }
