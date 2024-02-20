@@ -192,7 +192,7 @@ namespace stor {
 
       type retval;
       for(std::size_t ind = 0; ind < keys.size(); ind++) {
-	retval[keys[ind]] = values[ind];
+	retval.insert(retval.end(), std::pair{keys[ind], values[ind]});
       }
       
       return retval;
