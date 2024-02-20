@@ -3,6 +3,7 @@
 
 #include <array>
 #include <map>
+#include <chrono>
 #include "NDArray.hh"
 #include "DenseNDArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
@@ -83,6 +84,31 @@ private:
   data_t m_data = {};  
 };
 
+// namespace stor {
+
+//   template<typename T, std::size_t dims>
+//   struct Traits<SparseNDArray<T, dims>> {
+//     using type = SparseNDArray<T, dims>;
+//     using shape_t = typename type::shape_t;
+//     using data_t = typename type::data_t;
+
+//     static void serialize(std::iostream& stream, const type& val) {
+//       Traits<T>::serialize(stream, val.m_default_value);
+//       Traits<shape_t>::serialize(stream, val.m_shape);
+//       Traits<data_t>::serialize(stream, val.m_data);
+//     }
+
+//     static type deserialize(std::iostream& stream) {
+//       T default_value = Traits<T>::deserialize(stream);
+//       shape_t shape = Traits<shape_t>::deserialize(stream);
+//       data_t data = Traits<data_t>::deserialize(stream);
+//       SparseNDArray<T, dims> retval(shape, default_value);
+//       retval.m_data = data;
+//       return retval;
+//     }
+//   };
+// }
+
 namespace stor {
 
   template<typename T, std::size_t dims>
@@ -91,16 +117,67 @@ namespace stor {
     using shape_t = typename type::shape_t;
     using data_t = typename type::data_t;
 
-    static void serialize(std::iostream& stream, const type& val) {
+    static void serialize(std::iostream& stream, const type& val) {      
       Traits<T>::serialize(stream, val.m_default_value);
       Traits<shape_t>::serialize(stream, val.m_shape);
-      Traits<data_t>::serialize(stream, val.m_data);
+
+      // Convert array data from std::map<index, value> into two 1-dimensional vectors:
+      // (index_1, index_2, ...) with total length of `index_len`, and
+      // (value_1, value_2, ...) with total length of `number_entries`
+      std::size_t number_entries = val.m_data.size();
+      std::size_t index_len = dims * number_entries;
+      
+      std::vector<std::size_t> index_vec(index_len);
+      std::vector<T> data_vec(number_entries);
+
+      // Fill the two vectors ...
+      auto it_index_vec = index_vec.begin();
+      auto it_data_vec = data_vec.begin();
+      for (auto const& [key, val] : val.m_data) {
+	std::copy(key.cbegin(), key.cend(), it_index_vec);
+	*it_data_vec = val;
+
+	std::advance(it_data_vec, 1);
+	std::advance(it_index_vec, dims);
+      }
+      
+      // ... and serialize them
+      Traits<std::vector<std::size_t>>::serialize(stream, index_vec);
+      Traits<std::vector<T>>::serialize(stream, data_vec);
     }
 
     static type deserialize(std::iostream& stream) {
+
+      std::chrono::high_resolution_clock::time_point t_start = std::chrono::high_resolution_clock::now();
+      
       T default_value = Traits<T>::deserialize(stream);
       shape_t shape = Traits<shape_t>::deserialize(stream);
-      data_t data = Traits<data_t>::deserialize(stream);
+
+      std::vector<std::size_t> index_vec = Traits<std::vector<std::size_t>>::deserialize(stream);
+      std::vector<T> data_vec = Traits<std::vector<T>>::deserialize(stream);
+
+      std::chrono::high_resolution_clock::time_point t_cur = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> time_span = duration_cast<std::chrono::duration<double>>(t_cur - t_start);
+      std::cout << "deserialization of data --> Completed in " << time_span.count() << " seconds." << std::endl;
+      
+      // Fill `data` map from `index_vec` and `data_vec` ...
+      data_t data;
+      auto it_index_vec = index_vec.begin();
+      auto it_data_vec = data_vec.begin();
+      std::array<std::size_t, dims> cur_ind;
+      while(it_data_vec != data_vec.end()) {
+	std::copy_n(it_index_vec, dims, cur_ind.begin());
+	data[cur_ind] = *it_data_vec;
+	
+	std::advance(it_data_vec, 1);
+	std::advance(it_index_vec, dims);
+      }
+
+      t_cur = std::chrono::high_resolution_clock::now();
+      time_span = duration_cast<std::chrono::duration<double>>(t_cur - t_start);
+      std::cout << "map building --> Completed in " << time_span.count() << " seconds." << std::endl;
+
+      // ... and build the sparse array      
       SparseNDArray<T, dims> retval(shape, default_value);
       retval.m_data = data;
       return retval;

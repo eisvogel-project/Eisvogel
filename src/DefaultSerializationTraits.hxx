@@ -111,10 +111,10 @@ namespace stor {
     }
   };
   
-  template<std::size_t n>
-  struct Traits<std::array<float, n>> {
+  // template<std::size_t n>
+  // struct Traits<std::array<float, n>> {
     
-  };
+  // };
   
   // For general vectors
   template <typename T>

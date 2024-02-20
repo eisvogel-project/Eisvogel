@@ -88,13 +88,26 @@ int test_serialization_sparse_array(std::string ser_path, std::size_t size) {
   t_end = std::chrono::high_resolution_clock::now();
   time_span = duration_cast<std::chrono::duration<double>>(t_end - t_start);
   std::cout << "SparseNDArray --> Deserialization completed in " << time_span.count() << " seconds." << std::endl;
+
+  DenseNDArray<scalar_t, dims> darr_read = DenseNDArray<scalar_t, dims>::From(sparr_read);
+
+  IndexVector start_inds(dims, 0);
+  IndexVector end_inds = darr_read.shape();
+  for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
+    IndexVector cur_ind = cnt.index();
+    if(darr(cur_ind) != darr_read(cur_ind)) {
+      throw std::runtime_error("Error: mistake");
+    }
+  }
+
+  std::cout << "Test passed" << std::endl;
   
   return 0;
 }
 
 int main(int argc, char* argv[]) {
        
-  std::string ser_path = "ser_test.bin";
+  std::string ser_path = "/tmp/ser_test.bin";
   
   // test_serialization_vector(ser_path, 1e6);
   test_serialization_sparse_array<3>(ser_path, 200);
