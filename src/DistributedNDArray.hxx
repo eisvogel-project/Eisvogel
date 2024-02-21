@@ -476,7 +476,8 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
       m_chunk_cache.insert({chunk_ind, m_ser.template deserialize<dense_t>(ifs)});
     }
     else if(meta.chunk_type == ChunkType::sparse) {
-      m_chunk_cache.insert({chunk_ind, dense_t::From(m_ser.template deserialize<sparse_t>(ifs))});
+      m_chunk_cache.insert({chunk_ind, dense_t::FromSparseFile(ifs)});
+      // m_chunk_cache.insert({chunk_ind, dense_t::From(m_ser.template deserialize<sparse_t>(ifs))});
     }
     else {
       throw std::runtime_error("Error: unknown chunk type encountered!");
