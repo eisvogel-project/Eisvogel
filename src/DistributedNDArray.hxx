@@ -30,7 +30,7 @@ namespace stor {
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser) :
   NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size),
-  m_global_start_ind(dims, 0), m_ser(ser) {
+  m_chunk_last_accessed(0), m_global_start_ind(dims, 0), m_ser(ser) {
 
   // Create directory if it does not already exist
   if(!std::filesystem::exists(m_dirpath)) {
@@ -436,11 +436,26 @@ bool DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::chunkContainsInd
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkIndex(const IndexVector& inds) {
-  std::size_t chunk_ind = 0;
-  for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
-    if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
-      return chunk_ind;
-    }
+
+  if(m_chunk_index.size() == 0) {
+    [[unlikely]];
+    throw ChunkNotFoundError();
+  }
+  
+  if(chunkContainsInds(m_chunk_index[m_chunk_last_accessed], inds)) {
+    [[likely]];
+    return m_chunk_last_accessed;
+  }
+  else {
+    // Trigger a full chunk lookup
+    // TODO: have a search tree here with logarithmic instead of linear complexity
+    std::size_t chunk_ind = 0;
+    for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
+      if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
+	m_chunk_last_accessed = chunk_ind;
+	return chunk_ind;
+      }
+    }   
   }
 
   std::cout << "HHHHHHH" << std::endl;
