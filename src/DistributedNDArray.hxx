@@ -30,7 +30,7 @@ namespace stor {
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::DistributedNDArray(std::string dirpath, std::size_t max_cache_size, SerializerT& ser) :
   NDArray<T, dims>(), m_dirpath(dirpath), m_indexpath(dirpath + "/index.bin"), m_max_cache_size(max_cache_size),
-  m_global_start_ind(dims, 0), m_ser(ser) {
+  m_chunk_last_accessed(0), m_global_start_ind(dims, 0), m_ser(ser) {
 
   // Create directory if it does not already exist
   if(!std::filesystem::exists(m_dirpath)) {
@@ -104,7 +104,8 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
   std::size_t num_elems = chunk.volume();
 
   // pays off to store as sparse chunk
-  std::size_t sparse_vs_dense_expense_ratio = 3; // sparse storage is approximately 3x as expensive as dense storage per nonzero element
+  // std::size_t sparse_vs_dense_expense_ratio = 3; // when only counting storage space: sparse storage is approximately 3x as expensive as dense storage per nonzero element
+  std::size_t sparse_vs_dense_expense_ratio = 20; // when also counting complexity of deserializing + rebuilding a dense chunk
   if(sparse_vs_dense_expense_ratio * num_nonzero_elems < num_elems) {
     
     std::cout << "going to sparsify" << std::endl;
@@ -232,15 +233,15 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
     dense_t current_chunk = retrieveChunk(chunk_index);
 
     if(actual_chunk_shape == current_chunk.shape()) {
-      std::cout << "chunk already has the correct size, keep it" << std::endl;
+      // std::cout << "chunk already has the correct size, keep it" << std::endl;
       chunks_to_keep.push_back(m_chunk_index[chunk_index]);
       continue;
     }
     
-    std::cout << "now working on rebuild chunk with inds" << std::endl;
-    std::cout << "chunk_inds_start = " << std::endl;
+    // std::cout << "now working on rebuild chunk with inds" << std::endl;
+    // std::cout << "chunk_inds_start = " << std::endl;
     chunk_inds_start.print();
-    std::cout << "chunk_inds_end = " << std::endl;
+    // std::cout << "chunk_inds_end = " << std::endl;
     chunk_inds_end.print();
     
     dense_t chunk = range(chunk_inds_start, chunk_inds_end);
@@ -436,11 +437,26 @@ bool DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::chunkContainsInd
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkIndex(const IndexVector& inds) {
-  std::size_t chunk_ind = 0;
-  for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
-    if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
-      return chunk_ind;
-    }
+
+  if(m_chunk_index.size() == 0) {
+    [[unlikely]];
+    throw ChunkNotFoundError();
+  }
+  
+  if(chunkContainsInds(m_chunk_index[m_chunk_last_accessed], inds)) {
+    [[likely]];
+    return m_chunk_last_accessed;
+  }
+  else {
+    // Trigger a full chunk lookup
+    // TODO: have a search tree here with logarithmic instead of linear complexity
+    std::size_t chunk_ind = 0;
+    for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
+      if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
+	m_chunk_last_accessed = chunk_ind;
+	return chunk_ind;
+      }
+    }   
   }
 
   std::cout << "HHHHHHH" << std::endl;
@@ -476,7 +492,8 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
       m_chunk_cache.insert({chunk_ind, m_ser.template deserialize<dense_t>(ifs)});
     }
     else if(meta.chunk_type == ChunkType::sparse) {
-      m_chunk_cache.insert({chunk_ind, dense_t::From(m_ser.template deserialize<sparse_t>(ifs))});
+      m_chunk_cache.insert({chunk_ind, dense_t::FromSparseFile(ifs)});
+      // m_chunk_cache.insert({chunk_ind, dense_t::From(m_ser.template deserialize<sparse_t>(ifs))});
     }
     else {
       throw std::runtime_error("Error: unknown chunk type encountered!");

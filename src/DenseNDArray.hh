@@ -57,6 +57,21 @@ public:
     
     return retval;
   }
+
+  static DenseNDArray<T, dims> FromSparseFile(std::iostream& stream) {
+    T default_value = stor::Traits<T>::deserialize(stream);
+    shape_t shape = stor::Traits<shape_t>::deserialize(stream);
+    DenseNDArray<T, dims> retval(shape, default_value);
+
+    std::vector<std::array<std::size_t, dims>> keys = stor::Traits<std::vector<std::array<std::size_t, dims>>>::deserialize(stream);
+    std::vector<T> values = stor::Traits<std::vector<T>>::deserialize(stream);
+
+    for(std::size_t el_ind = 0; el_ind < keys.size(); el_ind++) {
+      retval(keys[el_ind]) = values[el_ind];
+    }
+    
+    return retval;
+  }
   
   DenseNDArray(const shape_t& shape, std::vector<T>&& data) : NDArray<T, dims>(shape) {
     m_strides[0] = 1;

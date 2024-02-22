@@ -108,6 +108,8 @@ private:
   // can think about turning this into a class
   index_t m_chunk_index;
 
+  std::size_t m_chunk_last_accessed;
+  
   // The index may not start at {0, 0, 0}
   IndexVector m_global_start_ind;
   
