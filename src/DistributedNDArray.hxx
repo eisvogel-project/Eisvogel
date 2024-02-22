@@ -104,7 +104,8 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
   std::size_t num_elems = chunk.volume();
 
   // pays off to store as sparse chunk
-  std::size_t sparse_vs_dense_expense_ratio = 3; // sparse storage is approximately 3x as expensive as dense storage per nonzero element
+  // std::size_t sparse_vs_dense_expense_ratio = 3; // when only counting storage space: sparse storage is approximately 3x as expensive as dense storage per nonzero element
+  std::size_t sparse_vs_dense_expense_ratio = 20; // when also counting complexity of deserializing + rebuilding a dense chunk
   if(sparse_vs_dense_expense_ratio * num_nonzero_elems < num_elems) {
     
     std::cout << "going to sparsify" << std::endl;
