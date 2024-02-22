@@ -10,7 +10,7 @@ namespace NDArrayOps {
   template <class T, std::size_t dims>
   DenseNDArray<T, dims> concatenate(const DenseNDArray<T, dims>& arr_1, const DenseNDArray<T, dims>& arr_2, std::size_t axis) {
 
-    std::cout << " ---> START CONCATENATE <---" << std::endl;
+    // std::cout << " ---> START CONCATENATE <---" << std::endl;
     
     if(axis >= dims) {
       throw std::runtime_error("Error: 'axis' out of bounds");
@@ -39,7 +39,7 @@ namespace NDArrayOps {
     
     DenseNDArray<T, dims> retval(final_shape_crutch, 0.0);
 
-    std::cout << " ---> MIGRATE ARR_1 <---" << std::endl;
+    // std::cout << " ---> MIGRATE ARR_1 <---" << std::endl;
     
     // Migrate contents of arr_1
     {
@@ -51,7 +51,7 @@ namespace NDArrayOps {
       }
     }
 
-    std::cout << " ---> MIGRATE ARR_2 <---" << std::endl;
+    // std::cout << " ---> MIGRATE ARR_2 <---" << std::endl;
     
     // Migrate contents of arr_2
     {
@@ -68,7 +68,7 @@ namespace NDArrayOps {
       }
     }
 
-    std::cout << " ---> FINISH CONCATENATE <---" << std::endl;
+    // std::cout << " ---> FINISH CONCATENATE <---" << std::endl;
     
     return retval;
   }
