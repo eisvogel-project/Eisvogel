@@ -232,15 +232,15 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
     dense_t current_chunk = retrieveChunk(chunk_index);
 
     if(actual_chunk_shape == current_chunk.shape()) {
-      std::cout << "chunk already has the correct size, keep it" << std::endl;
+      // std::cout << "chunk already has the correct size, keep it" << std::endl;
       chunks_to_keep.push_back(m_chunk_index[chunk_index]);
       continue;
     }
     
-    std::cout << "now working on rebuild chunk with inds" << std::endl;
-    std::cout << "chunk_inds_start = " << std::endl;
+    // std::cout << "now working on rebuild chunk with inds" << std::endl;
+    // std::cout << "chunk_inds_start = " << std::endl;
     chunk_inds_start.print();
-    std::cout << "chunk_inds_end = " << std::endl;
+    // std::cout << "chunk_inds_end = " << std::endl;
     chunk_inds_end.print();
     
     dense_t chunk = range(chunk_inds_start, chunk_inds_end);
