@@ -13,7 +13,7 @@ class CylindricalWeightingFieldCalculator {
 public:
   CylindricalWeightingFieldCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
 				      double courant_factor = 0.5, double resolution = 12, double pml_width = 1.0);
-  void Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir = "");
+  void Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir = "", std::filesystem::path mergedir = "");
 
 private:
 
