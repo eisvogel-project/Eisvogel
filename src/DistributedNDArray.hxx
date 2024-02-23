@@ -146,8 +146,9 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MakeIndexPersist
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
 
-  // clear the cached index
+  // clear the index
   m_chunk_index.clear();
+  m_chunk_last_accessed = 0;
   
   // if there is a persistent index file, make sure to delete it to prevent inconsistencies
   if(std::filesystem::exists(m_indexpath)) {
