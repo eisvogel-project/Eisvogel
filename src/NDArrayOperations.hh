@@ -8,6 +8,75 @@
 namespace NDArrayOps {
 
   template <class T, std::size_t dims>
+  DenseNDArray<T, dims> concatenate(const std::vector<DenseNDArray<T, dims>>& arrs, std::size_t axis) {
+
+    if(axis >= dims) {
+      [[unlikely]];
+      throw std::runtime_error("Error: 'axis' out of bounds");
+    }
+
+    if(arrs.size() == 0) {
+      [[unlikely]];
+      throw std::runtime_error("Error: nothing to concatenate!");
+    }
+
+    if(arrs.size() == 1) {
+      [[unlikely]];
+      return arrs[0];
+    }
+
+    IndexVector output_shape = arrs[0].shape();
+
+    // Check if shapes are compatible to allow concatenation: shapes of all arrays must be identical in all directions except `axis`
+    for(std::size_t arr_ind = 1; arr_ind < arrs.size(); arr_ind++) {
+      for(std::size_t dim = 0; dim < dims; dim++) {
+	if(dim == axis) {
+	  output_shape(dim) = output_shape(dim) + arrs[arr_ind].shape(dim);
+	  continue;
+	}
+	if(output_shape(dim) != arrs[arr_ind].shape(dim)) {
+	  throw std::runtime_error("Error: shapes incompatible; cannot concatenate");
+	}
+      }
+    }
+
+    std::cout << "HHH concatenating " << arrs.size() << " arrays" << std::endl;
+    
+    std::cout << "HHHH have concatenated output with dimension of" << std::endl;
+    output_shape.print();
+    std::cout << "HHHH" << std::endl;
+    
+    // --- this is just a crutch for now until we have fixed-size vectors
+    std::array<std::size_t, dims> output_shape_crutch;
+    std::copy(std::begin(output_shape), std::end(output_shape), std::begin(output_shape_crutch));
+    // ---------
+    
+    DenseNDArray<T, dims> retval(output_shape_crutch, 0.0);
+
+    // start assembling concatenated array
+    std::size_t tmp_cnt = 0;
+    IndexVector offset(dims, 0);
+    for(auto& cur_arr : arrs) {
+
+      // Migrate contents of `cur_arr` into output array
+      IndexVector start_inds(dims, 0);
+      IndexVector end_inds = cur_arr.shape();
+      for(IndexCounter cnt(start_inds, end_inds); cnt.running(); ++cnt) {
+	IndexVector cur_ind = cnt.index();
+	IndexVector new_ind = cur_ind + offset;
+	retval(new_ind) = cur_arr(cur_ind);
+      }
+
+      offset(axis) = offset(axis) + cur_arr.shape(axis);
+
+      std::cout << "just migrated array #" << tmp_cnt << std::endl;
+      tmp_cnt++;
+    }
+
+    return retval;
+  }
+  
+  template <class T, std::size_t dims>
   DenseNDArray<T, dims> concatenate(const DenseNDArray<T, dims>& arr_1, const DenseNDArray<T, dims>& arr_2, std::size_t axis) {
 
     // std::cout << " ---> START CONCATENATE <---" << std::endl;
