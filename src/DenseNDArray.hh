@@ -157,6 +157,14 @@ public:
     return rhs.m_data == m_data;
   }
 
+  // to assign blocks of data in an efficient way
+  void copy_from(const DenseNDArray<T, dims>& src,
+		 const DenseNDArray<std::size_t, 1>& ind_src_start, const DenseNDArray<std::size_t, 1>& ind_src_stop,
+		 const DenseNDArray<std::size_t, 1>& ind_dest_start, const DenseNDArray<std::size_t, 1>& ind_dest_stop) {
+
+    
+  }
+  
   // template <std::size_t len>
   // bool operator==(const std::array<T, len>& rhs) const requires(dims == 1) {
   //   if(len != m_data.size()) {

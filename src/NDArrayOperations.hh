@@ -165,7 +165,7 @@ namespace NDArrayOps {
    
     return retval;
   }
-
+  
   template<class T, std::size_t dims, template <class, std::size_t> class ArrayT>
   DenseNDArray<T, dims> min(const ArrayT<T, dims>& a, const ArrayT<T, dims>& b) {
 
