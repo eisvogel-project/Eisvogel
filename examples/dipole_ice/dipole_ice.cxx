@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   
   auto eps = [](scalar_t r, scalar_t z) {
 
-    return 1.0;
+    // return 1.0;
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {
@@ -58,14 +58,14 @@ int main(int argc, char* argv[]) {
 
   // CylinderGeometry geom(20, -15, 15, eps);
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
+  // scalar_t t_end = 25;
   
-  CylinderGeometry geom(70, -150, 150, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-
+  CylinderGeometry geom(150, -150, 150, eps);
+  InfEDipoleAntenna dipole(0.0, 10.0, -30.0, impulse_response);
   scalar_t t_end = 150;
-  //scalar_t t_end = 25;
+  
   CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
-  wfc.Calculate(wf_path);
+  wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
   
   return 0;
 }

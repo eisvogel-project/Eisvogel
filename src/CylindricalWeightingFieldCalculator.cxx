@@ -325,7 +325,7 @@ namespace meep {
   
 } // end namespace meep
   
-void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir, std::filesystem::path mergedir) {
+void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path mergedir, std::filesystem::path tmpdir) {
 
   // Prepare merge directory
   if(mergedir.empty()) {
@@ -425,7 +425,7 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   std::cout << "==============================================" << std::endl;
   
   if(meep::am_master()) {
-    std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
+    std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(mergedir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();    
     cwf -> RebuildChunks(requested_chunk_size);
 
