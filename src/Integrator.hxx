@@ -66,6 +66,13 @@ scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scala
   return signal;
 }
 
+// template <class WeightingFieldT, typename KernelT>
+// std::vector<scalar_t> integrate(WeightingFieldT& wf, std::vector<scalar_t>& ts, const Current0D& curr, scalar_t os_factor = 1.0) {
+
+  
+  
+// }
+
 template <class WeightingFieldT, typename KernelT>
 scalar_t integrate(WeightingFieldT& wf, scalar_t t, const SparseCurrentDensity3D& current_distribution) {
 
