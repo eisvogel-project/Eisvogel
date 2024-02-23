@@ -321,29 +321,55 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
     }
 
     // chunk is not yet large enough, merge with additional ones
-    dense_t output_chunk = retrieveChunk(cur_chunk_index);
+    std::vector<dense_t> chunks_to_merge;
+    chunks_to_merge.push_back(retrieveChunk(cur_chunk_index));
+    std::size_t output_chunk_shape = chunks_to_merge.back().shape(dim_to_merge);
     std::size_t neighbour_chunk_index = cur_chunk_index;
     while(true) {
       try {
-	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);	
+	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);
+	chunks_to_merge.push_back(retrieveChunk(neighbour_chunk_index));
 	std::erase(chunk_order, neighbour_chunk_index);
+	
+	output_chunk_shape += chunks_to_merge.back().shape(dim_to_merge);
 
-	std::cout << "merging chunk " << cur_chunk_index << " with chunk " << neighbour_chunk_index << std::endl;
-	  
-	output_chunk = NDArrayOps::concatenate(output_chunk, retrieveChunk(neighbour_chunk_index), dim_to_merge);
-
-	// chunk is now large enough
-	if(output_chunk.shape(dim_to_merge) >= max_dimsize) {
+	// now have enough chunks to merge
+	if(output_chunk_shape >= max_dimsize) {
 	  break;
 	}	
       } catch(const ChunkNotFoundError& e) {
-	// there are no more neighbours in this direction; stop here
+	// there are no more neighbours in this direction; stop here and merge
 	break;
       }
     }
 
-    // write it to disk
+    // perform the merge and write the result to disk
+    dense_t output_chunk = NDArrayOps::concatenate(chunks_to_merge, dim_to_merge);
     WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);
+    
+    // dense_t output_chunk = retrieveChunk(cur_chunk_index);
+    // std::size_t neighbour_chunk_index = cur_chunk_index;
+    // while(true) {
+    //   try {
+    // 	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);	
+    // 	std::erase(chunk_order, neighbour_chunk_index);
+
+    // 	std::cout << "merging chunk " << cur_chunk_index << " with chunk " << neighbour_chunk_index << std::endl;
+	  
+    // 	output_chunk = NDArrayOps::concatenate(output_chunk, retrieveChunk(neighbour_chunk_index), dim_to_merge);
+
+    // 	// chunk is now large enough
+    // 	if(output_chunk.shape(dim_to_merge) >= max_dimsize) {
+    // 	  break;
+    // 	}	
+    //   } catch(const ChunkNotFoundError& e) {
+    // 	// there are no more neighbours in this direction; stop here
+    // 	break;
+    //   }
+    // }
+
+    // // write it to disk
+    // WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);
   }
 
   // remove all the chunks in the old index that should not be kept around
