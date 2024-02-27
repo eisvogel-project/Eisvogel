@@ -60,9 +60,9 @@ int main(int argc, char* argv[]) {
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   // scalar_t t_end = 250;
   
-  CylinderGeometry geom(150, -150, 150, eps);
+  CylinderGeometry geom(300, -300, 300, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, -30.0, impulse_response);
-  scalar_t t_end = 200;
+  scalar_t t_end = 450;
   
   CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
   wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
