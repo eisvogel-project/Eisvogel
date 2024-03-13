@@ -325,32 +325,42 @@ namespace meep {
   
 } // end namespace meep
   
-void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path tmpdir) {
+void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path mergedir, std::filesystem::path tmpdir) {
 
+  // Prepare merge directory
+  if(mergedir.empty()) {
+    mergedir = outdir;
+  }
+  
   // TODO: this will get a lot easier once we can have all three components together in the same array
-  std::filesystem::path outdir_Er = outdir / "E_r";
-  std::filesystem::path outdir_Ez = outdir / "E_z";
+  std::filesystem::path mergedir_E_r = mergedir / "E_r";
+  std::filesystem::path mergedir_E_z = mergedir / "E_z";
   
   if(meep::am_master()) {
     
-    // Prepare output directory
-    if(!std::filesystem::exists(outdir)) {
-      std::filesystem::create_directory(outdir);
+    if(!std::filesystem::exists(mergedir)) {
+      std::filesystem::create_directory(mergedir);
     }
 
-    std::filesystem::create_directory(outdir_Er);
-    std::filesystem::create_directory(outdir_Ez);
-  }
+    if(!std::filesystem::exists(mergedir_E_r)) {
+      std::filesystem::create_directory(mergedir_E_r);
+    }
 
-  meep::all_wait();
+    if(!std::filesystem::exists(mergedir_E_z)) {
+      std::filesystem::create_directory(mergedir_E_z);
+    }
+  }
   
   // Make sure to have a valid temporary directory to store the results as we go along
   if(tmpdir.empty()) {
     char tmpdir_template[] = "/tmp/eisvogel.XXXXXX";
-    tmpdir = std::string(mkdtemp(tmpdir_template));
+    tmpdir = std::filesystem::path(mkdtemp(tmpdir_template));
   }
-
+  
   std::cout << "Using tmpdir = " << tmpdir << std::endl;
+  std::cout << "Using mergedir = " << mergedir << std::endl;
+
+  meep::all_wait();
   
   // This is only for cross-checking the geometry for now
   // f -> output_hdf5(meep::Dielectric, gv -> surroundings());
@@ -386,7 +396,11 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
     cld.ind_t = stepcnt++;
     m_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), m_f -> total_volume());
 
+    std::cout << "LLL now on stepcnt = " << std::endl;
+    std::cout << stepcnt << std::endl;
+    
     if((stepcnt % 400) == 0) {
+      std::cout << "BBB now merging chunks" << std::endl;
       fstor -> MergeChunks(0, 400);
     }
   }
@@ -396,9 +410,9 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   // TODO: again, will get better once the three separate arrays are gone
   // TODO: for large weighting fields, will have to move chunks to the permanent location continuously throughout the calculation so as not to fill up local storage
   //       move them so that only the complete chunks (surviving after defragmentation) are moved that won't need to be accessed anymore
-  std::cout << "moving output into final location ...";
-  std::filesystem::copy(tmpdir / "E_r", outdir_Er, std::filesystem::copy_options::recursive);
-  std::filesystem::copy(tmpdir / "E_z", outdir_Ez, std::filesystem::copy_options::recursive);
+  std::cout << "moving output into merging location ...";
+  std::filesystem::copy(tmpdir / "E_r", mergedir_E_r, std::filesystem::copy_options::recursive);
+  std::filesystem::copy(tmpdir / "E_z", mergedir_E_z, std::filesystem::copy_options::recursive);
   std::cout << " done!" << std::endl;
 
   // Wait until everybody has finished copying
@@ -411,8 +425,10 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   std::cout << "==============================================" << std::endl;
   
   if(meep::am_master()) {
-    std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(outdir, *m_start_coords, *m_end_coords);
+    std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(mergedir, *m_start_coords, *m_end_coords);
     cwf -> MakeMetadataPersistent();    
     cwf -> RebuildChunks(requested_chunk_size);
+
+    std::filesystem::copy(mergedir, outdir, std::filesystem::copy_options::recursive);
   }
 }

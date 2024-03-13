@@ -107,22 +107,17 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
   // std::size_t sparse_vs_dense_expense_ratio = 3; // when only counting storage space: sparse storage is approximately 3x as expensive as dense storage per nonzero element
   std::size_t sparse_vs_dense_expense_ratio = 20; // when also counting complexity of deserializing + rebuilding a dense chunk
   if(sparse_vs_dense_expense_ratio * num_nonzero_elems < num_elems) {
-    
-    std::cout << "going to sparsify" << std::endl;
-    
+        
     auto to_keep = [](scalar_t value) -> bool {
       return value != 0.0;
     };        
     sparse_t sparse_chunk = sparse_t::From(chunk, to_keep, 0.0);    
     meta.chunk_type = ChunkType::sparse;
-
-    std::cout << "after sparsification, " << sparse_chunk.NumEntries() << " entries remain" << std::endl;
     
     m_ser.template serialize<ChunkMetadata>(ofs, meta);   
     m_ser.template serialize<sparse_t>(ofs, sparse_chunk);
   }
-  else {  
-    std::cout << "store as dense" << std::endl;
+  else {
     m_ser.template serialize<ChunkMetadata>(ofs, meta);   
     m_ser.template serialize<dense_t>(ofs, chunk);
   }
@@ -146,8 +141,9 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MakeIndexPersist
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
 
-  // clear the cached index
+  // clear the index
   m_chunk_index.clear();
+  m_chunk_last_accessed = 0;
   
   // if there is a persistent index file, make sure to delete it to prevent inconsistencies
   if(std::filesystem::exists(m_indexpath)) {
@@ -170,34 +166,13 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(const IndexVector& requested_chunk_size) {
-
-  // How to make sure own index doesn't get messed up when new chunks are generated?
-
-  // 0) factor out most things of currently existing RegisterChunk into new private method:
-  //      -> WriteChunk(chunk, start_ind, add_to_index)
-  //   (keep the overlap checking etc. in the original RegisterChunk)
-  
-  // Then, this function will look like
-  // 0) rebuild index (to make sure everything is taken into account)
-  // 1) then loop over chunks like in `WeightingFieldUtils`
-  //     -> get chunk that has the starting indices
-  //     -> if it conforms to the requested size, don't touch it and continue (will guarantee this function is idempotent)
-  //     -> if it doesn't, build a chunk of correct size (using NDArray::range)
-  // 2) write the individual chunks, but don't touch the index (using `WriteChunk`)
-  // 3) remove all chunks in the index (-> this will remove all the old ones), BUT not those that haven't been touched because they are already conforming to the correct size
-
-  std::cout << "in RebuildChunks" << std::endl;
   
   if(requested_chunk_size.size() != dims) {
     throw std::runtime_error("Error: requested chunk size has wrong dimensionality!");
   }
-
-  std::cout << "rebuilding index" << std::endl;
   
   // Make sure we start from a clean index
   rebuildIndex(); 
-
-  std::cout << "rebuilt index" << std::endl;
   
   if(!isGloballyContiguous(getGlobalStartInd(), getGlobalStopInd())) {
     throw std::runtime_error("Error: refusing to rebuild chunks for a non-contiguous array!");
@@ -205,16 +180,8 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
 
   calculateShape();
 
-  IndexVector global_shape(this -> m_shape);
-
-  std::cout << "global shape" << std::endl;
-  global_shape.print();
-  
+  IndexVector global_shape(this -> m_shape);  
   IndexVector number_required_chunks = (global_shape + requested_chunk_size - 1) / requested_chunk_size;
-
-  std::cout << "will have " << std::endl;
-  number_required_chunks.print();
-  std::cout << " chunks after rebuilding" << std::endl;
 
   index_t chunks_to_keep;
   
@@ -233,15 +200,11 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
     dense_t current_chunk = retrieveChunk(chunk_index);
 
     if(actual_chunk_shape == current_chunk.shape()) {
-      // std::cout << "chunk already has the correct size, keep it" << std::endl;
       chunks_to_keep.push_back(m_chunk_index[chunk_index]);
       continue;
     }
     
-    // std::cout << "now working on rebuild chunk with inds" << std::endl;
-    // std::cout << "chunk_inds_start = " << std::endl;
     chunk_inds_start.print();
-    // std::cout << "chunk_inds_end = " << std::endl;
     chunk_inds_end.print();
     
     dense_t chunk = range(chunk_inds_start, chunk_inds_end);
@@ -267,29 +230,14 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std::size_t dim_to_merge, std::size_t max_dimsize) {
 
-  // 0) Rebuild index (to make sure we have the full picture)
-
-  // 2) Then, start with chunk that has the global start inds
-
-  // --> operate entirely on the index and prepare a full list of chunk mergings that need to happen (without actually doing anything)
-  //     --> remove any elements from the index that are already taken care of
-  // --> check if there are any problems; if not, go ahead and implement the chunk mergings
-  // --> go to the chunk that neighbours the current main one and continue
-  
-  // 3) again, have the to_keep mechanism
-  
-  std::cout << "in MergeNeighbouringChunks" << std::endl;
-
   rebuildIndex(); 
-
-  std::cout << "rebuilt index" << std::endl;
   
   if(!isGloballyContiguous(getGlobalStartInd(), getGlobalStopInd())) {
     throw std::runtime_error("Error: refusing to merge chunks for a non-contiguous array!");
   }
 
   calculateShape();
-
+  
   // put chunks in order along the merging axis
   std::vector<std::size_t> chunk_order(m_chunk_index.size());
   std::iota(chunk_order.begin(), chunk_order.end(), 0);
@@ -321,29 +269,33 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
     }
 
     // chunk is not yet large enough, merge with additional ones
-    dense_t output_chunk = retrieveChunk(cur_chunk_index);
+    std::vector<dense_t> chunks_to_merge;
+    chunks_to_merge.push_back(retrieveChunk(cur_chunk_index));
+    std::size_t output_chunk_shape = chunks_to_merge.back().shape(dim_to_merge);
     std::size_t neighbour_chunk_index = cur_chunk_index;
+    
     while(true) {
       try {
-	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);	
+	neighbour_chunk_index = getNeighbouringChunkIndex(neighbour_chunk_index, dim_to_merge);
+	
+	chunks_to_merge.push_back(retrieveChunk(neighbour_chunk_index));
 	std::erase(chunk_order, neighbour_chunk_index);
+	
+	output_chunk_shape += chunks_to_merge.back().shape(dim_to_merge);
 
-	std::cout << "merging chunk " << cur_chunk_index << " with chunk " << neighbour_chunk_index << std::endl;
-	  
-	output_chunk = NDArrayOps::concatenate(output_chunk, retrieveChunk(neighbour_chunk_index), dim_to_merge);
-
-	// chunk is now large enough
-	if(output_chunk.shape(dim_to_merge) >= max_dimsize) {
+	// now have enough chunks to merge
+	if(output_chunk_shape >= max_dimsize) {
 	  break;
 	}	
       } catch(const ChunkNotFoundError& e) {
-	// there are no more neighbours in this direction; stop here
+	// there are no more neighbours in this direction; stop here and merge
 	break;
       }
     }
 
-    // write it to disk
-    WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);
+    // perform the merge and write the result to disk
+    dense_t output_chunk = NDArrayOps::concatenate(chunks_to_merge, dim_to_merge);
+    WriteChunk(output_chunk, cur_chunk_meta.start_ind, false);    
   }
 
   // remove all the chunks in the old index that should not be kept around
@@ -382,12 +334,18 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::printChunks() {
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getNeighbouringChunkIndex(std::size_t chunk_index, std::size_t dim) {
 
+  if(chunk_index > m_chunk_index.size()) {
+    throw std::runtime_error("Trying to look for neighbours of out-of-bounds chunk: " + std::to_string(chunk_index) + "/" + std::to_string(m_chunk_index.size()));
+  }
+  
   ChunkMetadata& chunk_meta = m_chunk_index[chunk_index];  
   IndexVector chunk_size_along_dim(dims, 0);
   chunk_size_along_dim(dim) = chunk_meta.stop_ind(dim) - chunk_meta.start_ind(dim);
   IndexVector neighbour_chunk_start_ind = chunk_meta.start_ind + chunk_size_along_dim;
   
-  return getChunkIndex(neighbour_chunk_start_ind);
+  std::size_t neighbour_chunk_ind = getChunkIndex(neighbour_chunk_start_ind);
+
+  return neighbour_chunk_ind;
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
@@ -453,7 +411,7 @@ std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkI
     std::size_t chunk_ind = 0;
     for(chunk_ind = 0; chunk_ind < m_chunk_index.size(); chunk_ind++) {
       if(chunkContainsInds(m_chunk_index[chunk_ind], inds)) {
-	m_chunk_last_accessed = chunk_ind;
+	m_chunk_last_accessed = chunk_ind;	
 	return chunk_ind;
       }
     }   
@@ -469,6 +427,10 @@ std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getChunkI
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::retrieveChunk(std::size_t chunk_ind) {
+
+  if(chunk_ind > m_chunk_index.size()) {
+    throw std::runtime_error("Trying to retrieve out-of-bounds chunk: " + std::to_string(chunk_ind) + "/" + std::to_string(m_chunk_index.size()));
+  }
   
   ChunkMetadata& chunk_meta = m_chunk_index[chunk_ind];
 
@@ -485,6 +447,11 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
     std::fstream ifs;
     std::string chunk_path = m_dirpath + "/" + chunk_meta.filename;
     std::cout << "Loading chunk from " + chunk_path + " ... ";
+    
+    if(!std::filesystem::exists(chunk_path)) {
+      throw std::runtime_error("Error: trying to access non-existant file '" + chunk_path + "'!");
+    }
+    
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
     ChunkMetadata meta = m_ser.template deserialize<ChunkMetadata>(ifs);
 
@@ -493,7 +460,6 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
     }
     else if(meta.chunk_type == ChunkType::sparse) {
       m_chunk_cache.insert({chunk_ind, dense_t::FromSparseFile(ifs)});
-      // m_chunk_cache.insert({chunk_ind, dense_t::From(m_ser.template deserialize<sparse_t>(ifs))});
     }
     else {
       throw std::runtime_error("Error: unknown chunk type encountered!");

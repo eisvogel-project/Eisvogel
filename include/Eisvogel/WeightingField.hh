@@ -60,6 +60,22 @@ public:
 
   template <typename KernelT = DefaultKernel>
   scalar_t E_phi(CoordVector pos);
+
+  // // Vectorized accessors for field components
+  // template <typename KernelT = DefaultKernel>
+  // std::vector<scalar_t> E_r(std::vector<CoordVector>& pos);
+
+  // template <typename KernelT = DefaultKernel>
+  // std::vector<scalar_t> E_z(std::vector<CoordVector>& pos);
+
+  // template <typename KernelT = DefaultKernel>
+  // std::vector<scalar_t> E_phi(std::vector<CoordVector>& pos);
+  
+  // template <typename KernelT = DefaultKernel>
+  // scalar_t Eip(CoordVector& pos, CoordVector& vec);
+
+  // template <typename KernelT = DefaultKernel>
+  // std::vector<scalar_t> Eip(std::vector<CoordVector>& pos, std::vector<CoordVector>& vec);
   
   DeltaVector GetSamplingIntervals() const;
   CoordVector GetStartCoords() const;

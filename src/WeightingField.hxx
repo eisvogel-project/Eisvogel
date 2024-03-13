@@ -160,6 +160,14 @@ scalar_t WeightingField<FieldIndexerT, FieldStorageT>::E_phi(CoordVector pos) {
   return eval<KernelT>(pos, [&](auto& arg){return m_field_storage -> E_phi(arg);});
 };
 
+// template <class FieldIndexerT, class FieldSTorageT>
+// template <typename KernelT>
+// std::vector<scalar_t> WeightingField<FieldIndexerT, FieldStorageT>::E_r(std::vector<CoordVector>& pos) {
+//   std::vector<scalar_t> retval;
+  
+//   return retval;
+// }
+
 template <class FieldIndexerT, class FieldStorageT>
 template <typename KernelT, typename GetterT, typename ValueT>
 ValueT WeightingField<FieldIndexerT, FieldStorageT>::eval(CoordVector pos, GetterT getter) {
