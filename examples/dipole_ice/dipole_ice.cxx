@@ -26,8 +26,6 @@ int main(int argc, char* argv[]) {
   std::string wf_path = argv[1];
   
   auto eps = [](scalar_t r, scalar_t z) {
-
-    // return 1.0;
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {
@@ -61,7 +59,7 @@ int main(int argc, char* argv[]) {
   // scalar_t t_end = 250;
   
   CylinderGeometry geom(300, -300, 300, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, -30.0, impulse_response);
+  InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
   scalar_t t_end = 450;
   
   CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
