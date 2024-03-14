@@ -9,6 +9,15 @@ class Current0D {
 public:
 
   Current0D() : m_points({}), m_charges({}) { };
+
+  /**
+   * Create a new particle trajectory as a collection of straight-line segments, with a certain
+   * amount of charge flowing along each segment.
+   *
+   * @param points   Vector of (t, x, y, z) coordinates defining the start- and endpoints of the individual straight-line segments.
+   *                 A vector of length `N` defines `N-1` line segments.
+   * @param charges  Vector of length `N-1` containing charges for each line segment.
+   */  
   Current0D(std::vector<CoordVector>&& points, std::vector<scalar_t>&& charges) : m_points(points), 
 										  m_charges(charges) { 
     if(m_points.size() != m_charges.size() + 1) {
