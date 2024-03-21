@@ -1,10 +1,10 @@
-#ifndef __WEIGHTING_FIELD_UTILS_HH
-#define __WEIGHTING_FIELD_UTILS_HH
+#ifndef __WEIGHTING_FIELD_UTILS_OLD_HH
+#define __WEIGHTING_FIELD_UTILS_OLD_HH
 
 #include "CoordUtils.hh"
 #include "NDArray.hh"
 
-namespace WeightingFieldUtils {
+namespace WeightingFieldUtilsOld {
 
   void CreateElectricDipoleWeightingField(std::string wf_path,
 					  const CoordVector& start_coords, const CoordVector& end_coords,

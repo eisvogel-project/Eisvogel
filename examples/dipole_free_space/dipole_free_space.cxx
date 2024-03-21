@@ -1,7 +1,7 @@
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/WeightingFieldUtils.hh"
+#include "Eisvogel/WeightingFieldUtilsOld.hh"
 
-namespace WFU = WeightingFieldUtils;
+namespace WFU = WeightingFieldUtilsOld;
 namespace CU = CoordUtils;
 
 int main(int argc, char* argv[]) {

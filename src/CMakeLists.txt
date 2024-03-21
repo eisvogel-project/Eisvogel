@@ -6,7 +6,7 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(UUID REQUIRED uuid)
 
 add_library(eisvogel SHARED
-            WeightingFieldUtils.cxx
+            WeightingFieldUtilsOld.cxx
 	    IteratorUtils.cxx
             Trajectory.cxx
             MathUtils.cxx
