@@ -8,6 +8,7 @@
 
 #include "Vector.hh"
 #include "DenseNDVecArray.hh"
+#include "DistributedNDVecArray.hh"
 
 #include <stdlib.h>
 
