@@ -7,6 +7,8 @@
 #include <execution>
 #include <span>
 
+#include "Serialization.hh"
+
 // fixed-length vector
 template <class T, std::size_t vec_dims>
 class Vector {
@@ -14,6 +16,9 @@ class Vector {
 private:
   using data_t = std::array<T, vec_dims>;
 
+private:
+  friend struct stor::Traits<Vector<T, vec_dims>>;
+  
 public:
 
   Vector() : m_data() { }
@@ -24,6 +29,10 @@ public:
   
   template <typename ... Values>
   Vector(Values ... values) requires(sizeof...(Values) == vec_dims) : m_data({values...}) { }
+
+  Vector(const data_t&& data) {
+    std::copy_n(std::execution::unseq, data.begin(), vec_dims, m_data.begin());
+  }
   
   T& operator[](std::size_t ind) {
     return m_data[ind];
@@ -165,5 +174,23 @@ private:
   data_t m_data;
 
 };
+
+namespace stor {
+
+  template <typename T, std::size_t vec_dims>
+  struct Traits<Vector<T, vec_dims>> {
+    using type = Vector<T, vec_dims>;
+    using data_t = typename type::data_t;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<data_t>::serialize(stream, val.m_data);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      data_t data = Traits<data_t>::deserialize(stream);
+      return Vector<T, vec_dims>(std::move(data));
+    }
+  };    
+}
 
 #endif

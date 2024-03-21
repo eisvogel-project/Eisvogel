@@ -7,9 +7,10 @@
 #include <vector>
 #include <span>
 
+#include "Serialization.hh"
 #include "Vector.hh"
 
-template <class T, std::size_t vec_dims>
+template <typename T, std::size_t vec_dims>
 struct VectorView : public std::span<T, vec_dims> {
 
   template <class It>
@@ -21,7 +22,7 @@ struct VectorView : public std::span<T, vec_dims> {
   }
 };
 
-template <class T, std::size_t dims, std::size_t vec_dims>
+template <typename T, std::size_t dims, std::size_t vec_dims>
 class DenseNDVecArray {
 
 public:
@@ -33,6 +34,13 @@ private:
   using data_t = std::vector<T>;
   using stride_t = Vector<std::size_t, dims + 1>;
 
+private:
+  friend struct stor::Traits<DenseNDVecArray<T, dims, vec_dims>>;
+
+  // constructor used by deserializer
+  DenseNDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, data_t&& data) :
+    m_shape(shape), m_strides(strides), m_offset(offset), m_data(std::make_shared<data_t>(data)) { }
+  
 public:
   
   DenseNDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
@@ -45,10 +53,10 @@ public:
     
     // reserve the required memory
     m_data = std::make_shared<data_t>(GetVolume(), value);
-  }
-
+  } 
+  
   view_t operator[](const ind_t& ind) {
-    std::size_t flat_ind = std::inner_product(ind.cbegin(), ind.cend(), m_strides.begin() + 1, m_offset);        
+    std::size_t flat_ind = std::inner_product(ind.cbegin(), ind.cend(), m_strides.begin() + 1, m_offset);
     return view_t(m_data -> begin() + flat_ind, vec_dims);
   }
   
@@ -63,5 +71,32 @@ private:
   shape_t m_shape;
   
 };
+
+namespace stor {
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  struct Traits<DenseNDVecArray<T, dims, vec_dims>> {
+    using type = DenseNDVecArray<T, dims, vec_dims>;
+    using data_t = typename type::data_t;
+    using shape_t = typename type::shape_t;
+    using stride_t = typename type::stride_t;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<shape_t>::serialize(stream, val.m_shape);
+      Traits<stride_t>::serialize(stream, val.m_strides);
+      Traits<std::size_t>::serialize(stream, val.m_offset);
+      Traits<data_t>::serialize(stream, *val.m_data);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      shape_t shape = Traits<shape_t>::deserialize(stream);
+      stride_t strides = Traits<stride_t>::deserialize(stream);
+      std::size_t offset = Traits<std::size_t>::deserialize(stream);
+      data_t data = Traits<data_t>::deserialize(stream);
+
+      return type(shape, strides, offset, std::move(data));
+    }
+  };  
+}
 
 #endif
