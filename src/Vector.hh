@@ -193,4 +193,18 @@ namespace stor {
   };    
 }
 
+// Some type shortcuts
+template <typename T>
+using Vector2D = Vector<T, 2>;
+
+template <typename T>
+using Vector3D = Vector<T, 3>;
+
+template <typename T>
+using Vector4D = Vector<T, 4>;
+
+using IndexVector2D = Vector2D<std::size_t>;
+using IndexVector3D = Vector3D<std::size_t>;
+using IndexVector4D = Vector4D<std::size_t>;
+
 #endif
