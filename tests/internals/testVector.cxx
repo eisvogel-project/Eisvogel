@@ -18,9 +18,7 @@ int main(int argc, char* argv[]) {
   Vector<float, 2> vec1{1.f, 2.f};
   
   // 3-dim array of 2-dim (field) vectors
-  DenseNDVecArray<float, 3, 2> arr1({400u, 400u, 400u}, 0.0f);
-  
-  Vector<std::size_t, 2> ind{1u, 1u};
+  DenseNDVecArray<float, 3, 2> arr1({400u, 400u, 400u}, 0.0f);  
   arr1[{350u, 350u, 1u}] = vec1;
 
   std::cout << "empty value =" << std::endl;
@@ -52,23 +50,23 @@ int main(int argc, char* argv[]) {
   };
   loop_over_region(start, end, printer);
   
-  // std::filesystem::path testpath = "./testVector.bin";   
-  // std::fstream ofs;
-  // ofs.open(testpath, std::ios::out | std::ios::binary);  
-  // stor::DefaultSerializer oser;
-  // oser.serialize(ofs, arr1);
-  // ofs.close();
+  std::filesystem::path testpath = "./testVector.bin";   
+  std::fstream ofs;
+  ofs.open(testpath, std::ios::out | std::ios::binary);  
+  stor::DenseNDVecArraySerializer<float, 3, 2> oser;
+  oser.serialize(ofs, arr1);
+  ofs.close();
 
-  // std::fstream ifs;
-  // ifs.open(testpath, std::ios::in | std::ios::binary);
-  // stor::DefaultSerializer iser;
-  // DenseNDVecArray<float, 2, 3> arr1_read = iser.deserialize<DenseNDVecArray<float, 2, 3>>(ifs);
+  std::fstream ifs;
+  ifs.open(testpath, std::ios::in | std::ios::binary);
+  stor::DenseNDVecArraySerializer<float, 3, 2> iser;
+  DenseNDVecArray<float, 3, 2> arr1_read = iser.deserialize(ifs);
   
-  // auto value = arr1_read[ind];
-  // std::cout << "retrieved value =" << std::endl;
-  // for(auto cur: value) {
-  //   std::cout << cur << std::endl;
-  // }
+  auto value = arr1_read[{350u, 350u, 1u}];
+  std::cout << "retrieved value =" << std::endl;
+  for(auto cur: value) {
+    std::cout << cur << std::endl;
+  }
   
   std::cout << "done" << std::endl;
 }
