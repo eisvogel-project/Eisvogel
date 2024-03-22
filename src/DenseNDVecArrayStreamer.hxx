@@ -33,8 +33,12 @@ namespace stor {
 
     Vector<std::size_t, dims> start_ind(0);
     Vector<std::size_t, dims> end_ind(val.m_shape);
+    end_ind[axis] = start_ind[axis] + 1; // do not iterate over the direction along which the suppression should happen
+
     
-            
+    
+    // loop_over_elements();
+    
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
