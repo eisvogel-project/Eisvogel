@@ -12,6 +12,17 @@
 
 template <std::size_t vec_dims, class CallableT>
 constexpr void loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+				  CallableT&& worker) requires(vec_dims == 2) {  
+  Vector<std::size_t, vec_dims> cur;
+  for(cur[0] = begin[0]; cur[0] < end[0]; cur[0]++) {
+    for(cur[1] = begin[1]; cur[1] < end[1]; cur[1]++) {
+      worker(cur);
+    }
+  }
+}
+
+template <std::size_t vec_dims, class CallableT>
+constexpr void loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
 				  CallableT&& worker) {
   Vector<std::size_t, vec_dims> cur;
   loop_over_elements_dimension<vec_dims - 1, vec_dims, CallableT>(begin, end, cur, worker);
