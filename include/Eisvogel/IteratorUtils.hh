@@ -6,17 +6,20 @@
 
 #include "Vector.hh"
 
+// -----------------------------------------------
+
 // Iterator for static (i.e. known at compile time) number of dimensions
+
 template <std::size_t vec_dims, class CallableT>
-constexpr void loop_over_region(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
-				CallableT&& worker) {
+constexpr void loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+				  CallableT&& worker) {
   Vector<std::size_t, vec_dims> cur;
-  loop_over_dimensions<vec_dims - 1, vec_dims, CallableT>(begin, end, cur, worker);
+  loop_over_elements_dimension<vec_dims - 1, vec_dims, CallableT>(begin, end, cur, worker);
 }
 
 template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
-constexpr void loop_over_dimensions(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
-				    Vector<std::size_t, vec_dims>& cur, CallableT&& worker) {
+constexpr void loop_over_elements_dimension(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+					    Vector<std::size_t, vec_dims>& cur, CallableT&& worker) {
 
   static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
 
@@ -25,10 +28,49 @@ constexpr void loop_over_dimensions(const Vector<std::size_t, vec_dims>& begin, 
       worker(cur);
     }
     else {
-      loop_over_dimensions<cur_dim - 1>(begin, end, cur, worker);
+      loop_over_elements_dimension<cur_dim - 1>(begin, end, cur, worker);
     }
   }  
 }
+
+// -----------------------------------------------
+
+// Iterator over chunks with certain size
+
+template <std::size_t vec_dims, class CallableT>
+constexpr void loop_over_chunks(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+				const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
+  Vector<std::size_t, vec_dims> chunk_begin;
+  Vector<std::size_t, vec_dims> chunk_end;
+  loop_over_chunks_dimension<vec_dims - 1, vec_dims, CallableT>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
+}
+
+template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_chunks_dimension(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+					  const Vector<std::size_t, vec_dims>& chunk_size,
+					  Vector<std::size_t, vec_dims>& chunk_begin, Vector<std::size_t, vec_dims>& chunk_end,
+					  CallableT&& worker) {
+
+  static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
+
+  chunk_begin[cur_dim] = begin[cur_dim];
+  while(chunk_begin[cur_dim] < end[cur_dim]) {
+    chunk_end[cur_dim] = std::min(chunk_begin[cur_dim] + chunk_size[cur_dim], end[cur_dim]);
+
+    if constexpr(cur_dim == 0) {
+      worker(chunk_begin, chunk_end);
+    }
+    else {
+      loop_over_chunks_dimension<cur_dim - 1>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
+    }
+
+    chunk_begin[cur_dim] = chunk_end[cur_dim];
+  }
+  
+}
+
+
+// -----------------------------------------------
 
 // Iterator for dynamic (i.e. known at run time) number of dimensions
 template <typename VecT> class VectorCounter {
