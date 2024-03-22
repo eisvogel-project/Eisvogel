@@ -1,7 +1,6 @@
 find_package(Python3 COMPONENTS Interpreter)
 
 find_package(MPI REQUIRED)
-find_package(HDF5 REQUIRED)
 
 set(SETUP_PY_IN "${CMAKE_CURRENT_SOURCE_DIR}/setup.py")
 set(SETUP_PY "${CMAKE_CURRENT_BINARY_DIR}/setup.py")
