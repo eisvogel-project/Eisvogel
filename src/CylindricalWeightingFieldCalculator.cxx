@@ -423,6 +423,8 @@ void CylindricalWeightingFieldCalculator::Calculate(std::filesystem::path outdir
   std::cout << " All parallel things finished, now single-threaded defragmentation " << std::endl;
   std::cout << "==============================================" << std::endl;
   std::cout << "==============================================" << std::endl;
+
+  // free MEEP resources that are no longer neede
   
   if(meep::am_master()) {
     std::shared_ptr<CylindricalWeightingField> cwf = std::make_shared<CylindricalWeightingField>(mergedir, *m_start_coords, *m_end_coords);
