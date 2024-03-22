@@ -30,6 +30,12 @@ public:
   template <typename ... Values>
   Vector(Values ... values) requires(sizeof...(Values) == vec_dims) : m_data({values...}) { }
 
+  Vector(const T& value) {
+    for(std::size_t ind = 0; ind < vec_dims; ind++) {
+      m_data[ind] = value;
+    }
+  }
+
   Vector(const data_t&& data) {
     std::copy_n(std::execution::unseq, data.begin(), vec_dims, m_data.begin());
   }

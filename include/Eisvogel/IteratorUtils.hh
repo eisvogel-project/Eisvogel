@@ -76,8 +76,7 @@ constexpr void loop_over_chunks_dimension(const Vector<std::size_t, vec_dims>& b
     }
 
     chunk_begin[cur_dim] = chunk_end[cur_dim];
-  }
-  
+  }  
 }
 
 

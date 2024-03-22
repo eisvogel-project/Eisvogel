@@ -13,7 +13,7 @@
 // Forward declaration of (de)serializer
 namespace stor {
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  class DenseNDVecArrayStreamer;
+  struct DenseNDVecArrayStreamer;
 }
 
 template <typename T, std::size_t vec_dims>
@@ -41,7 +41,7 @@ private:
   using stride_t = Vector<std::size_t, dims + 1>;
 
 private:
-  friend class stor::DenseNDVecArrayStreamer<T, dims, vec_dims>;
+  friend struct stor::DenseNDVecArrayStreamer<T, dims, vec_dims>;
 
   // constructor used by deserializer
   DenseNDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, data_t&& data) :
@@ -115,6 +115,9 @@ namespace stor {
 
   // has some specialized functionality for efficient serialization / deserialization / on-disk manipulations
   // that the normal DefaultSerializer does not have
+
+  // TODO: experimental for now, should put into different structs for dense / suppress_zero / etc.?
+  
   template <typename T, std::size_t dims, std::size_t vec_dims>
   struct DenseNDVecArrayStreamer {
 
@@ -123,8 +126,11 @@ namespace stor {
     using shape_t = typename type::shape_t;
     using stride_t = typename type::stride_t;   
 
-    static void serialize(std::fstream& stream, const type& val);
-    static type deserialize(std::fstream& stream);
+    static void serialize_dense(std::fstream& stream, const type& val);  
+    static type deserialize_dense(std::fstream& stream);
+
+    static void serialize_suppress_zero(std::fstream& stream, const type& val, std::size_t axis);
+    static type deserialize_suppress_zero(std::fstream& stream, std::size_t axis);
     
   };
 }

@@ -16,21 +16,22 @@
 
 int main(int argc, char* argv[]) {  
 
-  // std::size_t start = 0;
-  // std::size_t end = 10;
-  // std::size_t chunksize = 3;
+  // Vector<std::size_t, 2> start{0u, 0u};
+  // Vector<std::size_t, 2> end{10u, 10u};
+  // Vector<std::size_t, 2> chunk_size{100u, 300u};
+  // auto print_chunk = [](Vector<std::size_t, 2>& chunk_start, Vector<std::size_t, 2>& chunk_end) {
+  //   std::cout << "--------" << std::endl;
+  //   std::cout << "chunk_start = " << chunk_start[0] << ", " << chunk_start[1] << std::endl;
+  //   std::cout << "chunk_end = " << chunk_end[0] << ", " << chunk_end[1] << std::endl;
+  //   std::cout << "--------" << std::endl;
+  // };
 
-  // std::size_t ind = start;  
-  // while(ind < end) {
-  //   std::size_t cur_start = ind;
-  //   std::size_t cur_end = std::min(ind + chunksize, end);
-
-  //   std::cout << cur_start << " -> " << cur_end << std::endl;
-    
-  //   ind = cur_end;
-  // }
-    
-  // return 0;
+  // auto printer = [](Vector<std::size_t, 2>& cur) {
+  //   std::cout << cur[0] << ", " << cur[1]  << std::endl;
+  // };
+  
+  // loop_over_chunks(start, end, chunk_size, print_chunk);
+  // loop_over_elements(start, end, printer);
   
   Vector<float, 2> vec1{1.f, 2.f};
   
@@ -65,17 +66,18 @@ int main(int argc, char* argv[]) {
   auto printer = [](Vector<std::size_t, 3>& cur) {
     std::cout << cur[0] << ", " << cur[1] << ", " << cur[2] << std::endl;
   };
-  loop_over_region(start, end, printer);
+  loop_over_elements(start, end, printer);
   
   std::filesystem::path testpath = "./testVector.bin";   
   std::fstream ofs;
   ofs.open(testpath, std::ios::out | std::ios::binary);  
-  stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize(ofs, arr1);
+  //stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize(ofs, arr1);
+  stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize_suppress_zero(ofs, arr1, 0);
   ofs.close();
 
   std::fstream ifs;
   ifs.open(testpath, std::ios::in | std::ios::binary);
-  DenseNDVecArray<float, 3, 2> arr1_read = stor::DenseNDVecArrayStreamer<float, 3, 2>::deserialize(ifs);
+  DenseNDVecArray<float, 3, 2> arr1_read = stor::DenseNDVecArrayStreamer<float, 3, 2>::deserialize_suppress_zero(ifs, 0);
   
   auto value = arr1_read[{350u, 350u, 1u}];
   std::cout << "retrieved value =" << std::endl;
