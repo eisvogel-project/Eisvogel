@@ -1,8 +1,8 @@
-#ifndef __DENSE_NDVECARRAY_HH
-#define __DENSE_NDVECARRAY_HH
+#pragma once
 
-#include <iostream>
+#include <iostream> // for debug only---remove at the end
 
+#include <fstream>
 #include <memory>
 #include <vector>
 #include <span>
@@ -13,7 +13,7 @@
 // Forward declaration of (de)serializer
 namespace stor {
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  class DenseNDVecArraySerializer;
+  class DenseNDVecArrayStreamer;
 }
 
 template <typename T, std::size_t vec_dims>
@@ -41,12 +41,13 @@ private:
   using stride_t = Vector<std::size_t, dims + 1>;
 
 private:
-  friend class stor::DenseNDVecArraySerializer<T, dims, vec_dims>;
+  friend class stor::DenseNDVecArrayStreamer<T, dims, vec_dims>;
 
   // constructor used by deserializer
   DenseNDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, data_t&& data) :
     m_shape(shape), m_strides(strides), m_offset(offset), m_data(std::make_shared<data_t>(data)) { }
 
+  // used in creation of view
   DenseNDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, std::shared_ptr<data_t> data) :
     m_shape(shape), m_strides(strides), m_offset(offset), m_data(data) { }
   
@@ -113,24 +114,19 @@ private:
 namespace stor {
 
   // has some specialized functionality for efficient serialization / deserialization / on-disk manipulations
+  // that the normal DefaultSerializer does not have
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  class DenseNDVecArraySerializer {
+  struct DenseNDVecArrayStreamer {
 
-  public:
     using type = DenseNDVecArray<T, dims, vec_dims>;
     using data_t = typename type::data_t;
     using shape_t = typename type::shape_t;
-    using stride_t = typename type::stride_t;
-    
-  public:
-    DenseNDVecArraySerializer() {  }
+    using stride_t = typename type::stride_t;   
 
-    void serialize(std::fstream& stream, const type& val);
-    type deserialize(std::fstream& stream);
+    static void serialize(std::fstream& stream, const type& val);
+    static type deserialize(std::fstream& stream);
     
   };
 }
 
-#include "DenseNDVecArraySerialization.hxx"
-
-#endif
+#include "DenseNDVecArrayStreamer.hxx"

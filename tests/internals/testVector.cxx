@@ -3,6 +3,7 @@
 #include <memory>
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 
 #include <span>
 
@@ -15,6 +16,22 @@
 
 int main(int argc, char* argv[]) {  
 
+  // std::size_t start = 0;
+  // std::size_t end = 10;
+  // std::size_t chunksize = 3;
+
+  // std::size_t ind = start;  
+  // while(ind < end) {
+  //   std::size_t cur_start = ind;
+  //   std::size_t cur_end = std::min(ind + chunksize, end);
+
+  //   std::cout << cur_start << " -> " << cur_end << std::endl;
+    
+  //   ind = cur_end;
+  // }
+    
+  // return 0;
+  
   Vector<float, 2> vec1{1.f, 2.f};
   
   // 3-dim array of 2-dim (field) vectors
@@ -53,14 +70,12 @@ int main(int argc, char* argv[]) {
   std::filesystem::path testpath = "./testVector.bin";   
   std::fstream ofs;
   ofs.open(testpath, std::ios::out | std::ios::binary);  
-  stor::DenseNDVecArraySerializer<float, 3, 2> oser;
-  oser.serialize(ofs, arr1);
+  stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize(ofs, arr1);
   ofs.close();
 
   std::fstream ifs;
   ifs.open(testpath, std::ios::in | std::ios::binary);
-  stor::DenseNDVecArraySerializer<float, 3, 2> iser;
-  DenseNDVecArray<float, 3, 2> arr1_read = iser.deserialize(ifs);
+  DenseNDVecArray<float, 3, 2> arr1_read = stor::DenseNDVecArrayStreamer<float, 3, 2>::deserialize(ifs);
   
   auto value = arr1_read[{350u, 350u, 1u}];
   std::cout << "retrieved value =" << std::endl;
