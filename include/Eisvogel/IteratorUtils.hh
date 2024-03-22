@@ -4,6 +4,32 @@
 #include <cuchar>
 #include "DenseNDArray.hh"
 
+#include "Vector.hh"
+
+// Iterator for static (i.e. known at compile time) number of dimensions
+template <std::size_t vec_dims, class CallableT>
+constexpr void loop_over_region(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+				CallableT&& worker) {
+  Vector<std::size_t, vec_dims> cur;
+  loop_over_dimensions<vec_dims - 1, vec_dims, CallableT>(begin, end, cur, worker);
+}
+
+template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_dimensions(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+				    Vector<std::size_t, vec_dims>& cur, CallableT&& worker) {
+
+  static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
+
+  for(cur[cur_dim] = begin[cur_dim]; cur[cur_dim] < end[cur_dim]; cur[cur_dim]++) {  
+    if constexpr(cur_dim == 0) {
+      worker(cur);
+    }
+    else {
+      loop_over_dimensions<cur_dim - 1>(begin, end, cur, worker);
+    }
+  }  
+}
+
 // Iterator for dynamic (i.e. known at run time) number of dimensions
 template <typename VecT> class VectorCounter {
 

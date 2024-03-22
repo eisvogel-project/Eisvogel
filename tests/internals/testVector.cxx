@@ -9,6 +9,7 @@
 #include "Vector.hh"
 #include "DenseNDVecArray.hh"
 #include "DistributedNDVecArray.hh"
+#include "Eisvogel/IteratorUtils.hh"
 
 #include <stdlib.h>
 
@@ -43,6 +44,13 @@ int main(int argc, char* argv[]) {
   for(auto cur: arr_view[{0u, 0u, 0u}]) {
     std::cout << cur << std::endl;
   }
+
+  Vector<std::size_t, 3> start{0u, 0u, 0u};
+  Vector<std::size_t, 3> end{3u, 3u, 3u};
+  auto printer = [](Vector<std::size_t, 3>& cur) {
+    std::cout << cur[0] << ", " << cur[1] << ", " << cur[2] << std::endl;
+  };
+  loop_over_region(start, end, printer);
   
   // std::filesystem::path testpath = "./testVector.bin";   
   // std::fstream ofs;
