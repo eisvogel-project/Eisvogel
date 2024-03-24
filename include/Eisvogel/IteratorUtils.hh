@@ -3,12 +3,20 @@
 
 #include <cuchar>
 #include "DenseNDArray.hh"
+#include "DenseNDVecArray.hh"
 
 #include "Vector.hh"
 
 // -----------------------------------------------
 
 // Iterator for static (i.e. known at compile time) number of dimensions
+
+template <typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_array_elements(const DenseNDVecArray<T, dims, vec_dims>& arr, CallableT&& worker) {
+  Vector<std::size_t, dims> begin(0);
+  Vector<std::size_t, dims> end = arr.GetShape();
+  loop_over_elements(begin, end, worker);
+}
 
 template <std::size_t vec_dims, class CallableT>
 constexpr void loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
