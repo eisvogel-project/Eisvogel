@@ -22,8 +22,8 @@ namespace stor {
     static void serialize_dense(std::fstream& stream, const type& val);  
     static type deserialize_dense(std::fstream& stream);
     
-    static void serialize_suppress_zero(std::fstream& stream, const type& val, std::size_t axis);
-    static type deserialize_suppress_zero(std::fstream& stream, std::size_t axis);
+    static void serialize_suppress_zero(std::fstream& stream, const type& val, const Vector<std::size_t, dims>& chunk_size);
+    static type deserialize_suppress_zero(std::fstream& stream, const Vector<std::size_t, dims>& chunk_size);
 
   private:
    

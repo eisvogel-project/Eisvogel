@@ -56,6 +56,14 @@ constexpr void loop_over_elements_dimension(const Vector<std::size_t, vec_dims>&
 
 // Iterator over chunks with certain size
 
+template <typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_array_chunks(const DenseNDVecArray<T, dims, vec_dims>& arr,
+				      const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
+  Vector<std::size_t, dims> begin(0);
+  Vector<std::size_t, dims> end = arr.GetShape();
+  loop_over_chunks(begin, end, chunk_size, worker);
+}
+
 template <std::size_t vec_dims, class CallableT>
 constexpr void loop_over_chunks(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
 				const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
