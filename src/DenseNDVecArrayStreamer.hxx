@@ -1,4 +1,5 @@
 #include "Eisvogel/IteratorUtils.hh"
+#include "DenseNDVecArrayCompression.hh"
 
 namespace stor {
   

@@ -62,20 +62,13 @@ public:
   
   // Single-element access
   view_t operator[](const ind_t& ind) {
-    std::size_t flat_ind = std::inner_product(ind.cbegin(), ind.cend(), m_strides.begin() + 1, m_offset);
-    return view_t(m_data -> begin() + flat_ind, vec_dims);
+    return view_t(m_data -> begin() + ComputeFlatInd(ind), vec_dims);
   }
 
-  view_t operator[](const ind_t& ind) requires(dims == 2) {
-    std::size_t flat_ind = m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2];
-    return view_t(m_data -> begin() + flat_ind, vec_dims);
+  const view_t operator[](const ind_t& ind) const {
+    return view_t(m_data -> begin() + ComputeFlatInd(ind), vec_dims);
   }
   
-  view_t operator[](const ind_t& ind) requires(dims == 3) {
-    std::size_t flat_ind = m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2] + ind[2] * m_strides[3];
-    return view_t(m_data -> begin() + flat_ind, vec_dims);
-  }
-
   // Array view access
   DenseNDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) {
     shape_t view_shape = end_ind - start_ind;
@@ -84,11 +77,34 @@ public:
 
     return DenseNDVecArray<T, dims, vec_dims>(view_shape, view_strides, view_offset, m_data);
   }
-  
-  const std::size_t GetVolume() const {return m_strides[0];} 
 
+  bool IsZero(const ind_t& ind) const {
+    for(scalar_t& cur : this -> operator[](ind)) {
+      if(cur != 0) {
+	return false;
+      }
+    }
+    return true;
+  }
+  
+  const shape_t GetShape() const {return m_shape;}
+  const std::size_t GetVolume() const {return m_strides[0];}
+  const std::size_t GetNumberElements() const {return m_strides[0] / vec_dims;}
+  
 private:
 
+  std::size_t ComputeFlatInd(const ind_t& ind) const {
+    return std::inner_product(ind.cbegin(), ind.cend(), m_strides.begin() + 1, m_offset);
+  }
+  
+  std::size_t ComputeFlatInd(const ind_t& ind) const requires(dims == 2) {
+    return m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2];
+  }
+
+  std::size_t ComputeFlatInd(const ind_t& ind) const requires(dims == 3) {
+    return m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2] + ind[2] * m_strides[3];
+  }
+  
   static stride_t ComputeStrides(const shape_t& shape) {
     stride_t strides;
     strides[0] = 1;
@@ -111,28 +127,9 @@ private:
   
 };
 
-namespace stor {
+template <typename T, std::size_t dims, std::size_t vec_dims>
+class DenseNDVecArrayZeroAware : public DenseNDVecArray<T, dims, vec_dims> {
 
-  // has some specialized functionality for efficient serialization / deserialization / on-disk manipulations
-  // that the normal DefaultSerializer does not have
-
-  // TODO: experimental for now, should put into different structs for dense / suppress_zero / etc.?
+  // with faster IsZero overload / bookkeeping of fraction of zero'ed elements -> to be used in compression step
   
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  struct DenseNDVecArrayStreamer {
-
-    using type = DenseNDVecArray<T, dims, vec_dims>;
-    using data_t = typename type::data_t;
-    using shape_t = typename type::shape_t;
-    using stride_t = typename type::stride_t;   
-
-    static void serialize_dense(std::fstream& stream, const type& val);  
-    static type deserialize_dense(std::fstream& stream);
-
-    static void serialize_suppress_zero(std::fstream& stream, const type& val, std::size_t axis);
-    static type deserialize_suppress_zero(std::fstream& stream, std::size_t axis);
-    
-  };
-}
-
-#include "DenseNDVecArrayStreamer.hxx"
+};
