@@ -2,15 +2,17 @@
 
 #include "Eisvogel/MathUtils.hh"
 
-template <typename T, std::size_t dims, std::size_t vec_dims>
-std::size_t calculate_required_buflen(const DenseNDVecArray<T, dims, vec_dims>& arr) {  
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+std::size_t calculate_required_buflen(const ArrayT<T, dims, vec_dims>& arr) {  
   // compute worst-case buffer size for a given array
   return arr.GetNumberElements() * vec_dims + MathUtils::IntDivCeil(arr.GetNumberElements(), 2);
 }
 
 // returns elements in buffer that need to be considered
-template <std::size_t dims, std::size_t vec_dims>
-std::size_t suppress_zero(const DenseNDVecArray<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  std::size_t dims, std::size_t vec_dims>
+std::size_t suppress_zero(const ArrayT<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {
 
   uint32_t num_zeros = 0;
   auto buffer_it = buffer.begin();
@@ -61,8 +63,9 @@ std::size_t suppress_zero(const DenseNDVecArray<float, dims, vec_dims>& arr, std
   return buffer_it - buffer.begin();
 }
 
-template <std::size_t dims, std::size_t vec_dims>
-std::size_t desuppress_zero(const std::span<uint32_t>&& buffer, DenseNDVecArray<float, dims, vec_dims>& arr) {
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  std::size_t dims, std::size_t vec_dims>
+std::size_t desuppress_zero(const std::span<uint32_t>&& buffer, ArrayT<float, dims, vec_dims>& arr) {
 
   uint32_t num_zeros = 0;
   Vector<float, vec_dims> vec_buffer;

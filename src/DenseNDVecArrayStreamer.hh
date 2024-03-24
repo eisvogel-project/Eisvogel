@@ -31,7 +31,9 @@ namespace stor {
     static type deserialize_suppress_zero(std::fstream& stream);
 
     // on-disk operations
-    static void append_chunk(std::fstream& stream, const type& chunk);
+
+    // only works, if chunk_size actually labels a slice
+    static void append_slice(std::fstream& stream, const type& chunk);
 
   private:
    
