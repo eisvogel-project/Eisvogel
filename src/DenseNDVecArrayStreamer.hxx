@@ -25,7 +25,7 @@ namespace stor {
   // ----------------------------------------
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void DenseNDVecArrayStreamer<T, dims, vec_dims>::serialize_suppress_zero(std::fstream& stream, const type& val, const Vector<std::size_t, dims>& chunk_size) {
+  void DenseNDVecArrayStreamer<T, dims, vec_dims>::serialize_suppress_zero(std::fstream& stream, const type& val) {
 
     Traits<shape_t>::serialize(stream, val.m_shape);
     Traits<stride_t>::serialize(stream, val.m_strides);
@@ -37,7 +37,7 @@ namespace stor {
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  DenseNDVecArrayStreamer<T, dims, vec_dims>::type DenseNDVecArrayStreamer<T, dims, vec_dims>::deserialize_suppress_zero(std::fstream& stream, const Vector<std::size_t, dims>& chunk_size) {
+  DenseNDVecArrayStreamer<T, dims, vec_dims>::type DenseNDVecArrayStreamer<T, dims, vec_dims>::deserialize_suppress_zero(std::fstream& stream) {
     
     shape_t shape = Traits<shape_t>::deserialize(stream);
     stride_t strides = Traits<stride_t>::deserialize(stream);

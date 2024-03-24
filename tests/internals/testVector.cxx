@@ -73,12 +73,12 @@ int main(int argc, char* argv[]) {
   std::fstream ofs;
   ofs.open(testpath, std::ios::out | std::ios::binary);  
   //stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize(ofs, arr1);
-  stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize_suppress_zero(ofs, arr1, 0);
+  stor::DenseNDVecArrayStreamer<float, 3, 2>::serialize_suppress_zero(ofs, arr1);
   ofs.close();
 
   std::fstream ifs;
   ifs.open(testpath, std::ios::in | std::ios::binary);
-  DenseNDVecArray<float, 3, 2> arr1_read = stor::DenseNDVecArrayStreamer<float, 3, 2>::deserialize_suppress_zero(ifs, 0);
+  DenseNDVecArray<float, 3, 2> arr1_read = stor::DenseNDVecArrayStreamer<float, 3, 2>::deserialize_suppress_zero(ifs);
   
   auto value = arr1_read[{350u, 350u, 1u}];
   std::cout << "retrieved value =" << std::endl;

@@ -18,16 +18,24 @@ namespace stor {
     using stride_t = typename type::stride_t;   
 
   public:
+
+    DenseNDVecArrayStreamer(const shape_t& chunk_size);
     
-    static void serialize_dense(std::fstream& stream, const type& val);  
+    static void serialize_dense(std::fstream& stream, const type& val);
+    static void deserialize_dense(std::fstream& stream, type& val);
     static type deserialize_dense(std::fstream& stream);
-    
-    static void serialize_suppress_zero(std::fstream& stream, const type& val, const Vector<std::size_t, dims>& chunk_size);
-    static type deserialize_suppress_zero(std::fstream& stream, const Vector<std::size_t, dims>& chunk_size);
+
+    // chunk_size for (de)serialization
+    static void serialize_suppress_zero(std::fstream& stream, const type& val);
+    static void deserialize_suppress_zero(std::fstream& stream, type& val);
+    static type deserialize_suppress_zero(std::fstream& stream);
+
+    // on-disk operations
+    static void append_chunk(std::fstream& stream, const type& chunk);
 
   private:
    
-    // buffers
+    // (de)serialization buffers
   };
 }
 
