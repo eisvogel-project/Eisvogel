@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "DenseNDVecArrayStreamer.hh"
+#include "NDVecArrayStreamer.hh"
 
 class ChunkIndex {
 

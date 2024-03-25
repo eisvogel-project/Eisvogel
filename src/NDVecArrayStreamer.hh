@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DenseNDVecArray.hh"
+#include "NDVecArray.hh"
 
 namespace stor {
 
@@ -11,16 +11,16 @@ namespace stor {
   };
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  class DenseNDVecArrayStreamer {
+  class NDVecArrayStreamer {
 
-    using type = DenseNDVecArray<T, dims, vec_dims>;
+    using type = NDVecArray<T, dims, vec_dims>;
     using data_t = typename type::data_t;
     using shape_t = typename type::shape_t;
     using stride_t = typename type::stride_t;   
 
   public:
 
-    DenseNDVecArrayStreamer(const shape_t& chunk_size);
+    NDVecArrayStreamer(const shape_t& chunk_size);
 
     static void serialize(std::fstream& stream, const type& val, const StreamerMode& mode);
     static void deserialize(std::fstream& stream, type& val);
@@ -49,4 +49,4 @@ namespace stor {
   };
 }
 
-#include "DenseNDVecArrayStreamer.hxx"
+#include "NDVecArrayStreamer.hxx"

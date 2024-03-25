@@ -10,8 +10,8 @@
 #include "Vector.hh"
 #include "Eisvogel/MathUtils.hh"
 #include "Eisvogel/IteratorUtils.hh"
-#include "DenseNDVecArray.hh"
-#include "DenseNDVecArrayStreamer.hh"
+#include "NDVecArray.hh"
+#include "NDVecArrayStreamer.hh"
 #include "DistributedNDVecArray.hh"
 #include "Eisvogel/IteratorUtils.hh"
 
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
 
   Vector<std::size_t, 3> shape{400u, 400u, 400u};
   
-  DenseNDVecArray<float, 3, 2> arr1(shape, 0.0f);
+  NDVecArray<float, 3, 2> arr1(shape, 0.0f);
   std::cout << "volume = " << arr1.GetVolume() << std::endl;
   std::cout << "elements = " << arr1.GetNumberElements() << std::endl;
 
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     std::cout << buffer[ind] << std::endl;
   }
 
-  DenseNDVecArray<float, 3, 2> arr1_read({400u, 400u, 400u}, 10.0f);
+  NDVecArray<float, 3, 2> arr1_read({400u, 400u, 400u}, 10.0f);
   
   std::size_t elems_read = nullsup::desuppress_zero(std::span<ser_type>(buffer), arr1_read);
 

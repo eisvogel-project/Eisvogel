@@ -1,10 +1,10 @@
 #include "Eisvogel/IteratorUtils.hh"
-#include "DenseNDVecArrayCompression.hh"
+#include "NDVecArrayCompression.hh"
 
 namespace stor {
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void DenseNDVecArrayStreamer<T, dims, vec_dims>::serialize_dense(std::fstream& stream, const type& val) {
+  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_dense(std::fstream& stream, const type& val) {
     
     Traits<shape_t>::serialize(stream, val.m_shape);
     Traits<stride_t>::serialize(stream, val.m_strides);
@@ -13,7 +13,7 @@ namespace stor {
   }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  DenseNDVecArrayStreamer<T, dims, vec_dims>::type DenseNDVecArrayStreamer<T, dims, vec_dims>::deserialize_dense(std::fstream& stream) {
+  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_dense(std::fstream& stream) {
     
     shape_t shape = Traits<shape_t>::deserialize(stream);
     stride_t strides = Traits<stride_t>::deserialize(stream);
@@ -25,7 +25,7 @@ namespace stor {
   // ----------------------------------------
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void DenseNDVecArrayStreamer<T, dims, vec_dims>::serialize_suppress_zero(std::fstream& stream, const type& val) {
+  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_suppress_zero(std::fstream& stream, const type& val) {
 
     Traits<shape_t>::serialize(stream, val.m_shape);
     Traits<stride_t>::serialize(stream, val.m_strides);
@@ -37,7 +37,7 @@ namespace stor {
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  DenseNDVecArrayStreamer<T, dims, vec_dims>::type DenseNDVecArrayStreamer<T, dims, vec_dims>::deserialize_suppress_zero(std::fstream& stream) {
+  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_suppress_zero(std::fstream& stream) {
     
     shape_t shape = Traits<shape_t>::deserialize(stream);
     stride_t strides = Traits<stride_t>::deserialize(stream);
