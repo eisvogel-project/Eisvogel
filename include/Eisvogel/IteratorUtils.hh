@@ -58,7 +58,7 @@ constexpr void loop_over_elements_dimension(const Vector<std::size_t, vec_dims>&
 
 template <typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
 constexpr void loop_over_array_chunks(const NDVecArray<T, dims, vec_dims>& arr,
-				      const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
+				      const Vector<std::size_t, dims>& chunk_size, CallableT&& worker) {
   Vector<std::size_t, dims> begin(0);
   Vector<std::size_t, dims> end = arr.GetShape();
   loop_over_chunks(begin, end, chunk_size, worker);

@@ -42,7 +42,7 @@ namespace stor {
 
   private:
     
-    static void serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size);
+    void serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size);
     static void deserialize_chunk_dense(std::fstream& stream, type& val); // val here will be a view of the full array
     
     static type deserialize_chunk_dense(std::fstream& stream); // to be removed
@@ -53,6 +53,7 @@ namespace stor {
     
     static type deserialize_chunk_zero_suppressed(std::fstream& stream); // to be removed
 
+    
 
   private:
 

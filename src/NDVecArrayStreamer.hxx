@@ -1,7 +1,7 @@
 #include <stdexcept>
 
 #include "Eisvogel/IteratorUtils.hh"
-#include "NDVecArrayCompression.hh"
+#include "NDVecArraySerialization.hh"
 
 namespace stor {
 
@@ -25,10 +25,10 @@ namespace stor {
   // Metadata for each serialization chunk
   struct NDVecArrayStreamerChunkMetadata {
     
-    NDVecArrayStreamerChunkMetadata(const std::size_t ser_mode, const std::size_t chunk_size) :
+    NDVecArrayStreamerChunkMetadata(const StreamerMode ser_mode, const std::size_t chunk_size) :
       ser_mode(ser_mode), chunk_size(chunk_size) { };
     
-    std::size_t ser_mode;
+    StreamerMode ser_mode;
     std::size_t chunk_size;
   };    
   
@@ -61,12 +61,12 @@ namespace stor {
     using type = NDVecArrayStreamerChunkMetadata;
 
     static void serialize(std::iostream& stream, const type& val) {
-      Traits<std::size_t>::serialize(stream, val.ser_mode);
+      Traits<std::size_t>::serialize(stream, static_cast<std::size_t>(val.ser_mode));
       Traits<std::size_t>::serialize(stream, val.chunk_size);
     }
 
     static type deserialize(std::iostream& stream) {
-      std::size_t ser_mode = Traits<std::size_t>::deserialize(stream);
+      StreamerMode ser_mode{Traits<std::size_t>::deserialize(stream)};
       std::size_t chunk_size = Traits<std::size_t>::deserialize(stream);
 
       return type(ser_mode, chunk_size);
@@ -113,9 +113,18 @@ namespace stor {
   void NDVecArrayStreamer<T, dims, vec_dims>::deserialize(std::fstream& stream, type& val) {
 
     // deserialize array-wide metadata
+    NDVecArrayStreamerMetadata<T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<T, dims, vec_dims>>::deserialize(stream);
 
-    // 
-    
+    std::cout << "found metadata of the following kind" << std::endl;
+    std::cout << "chunk_size = " << meta.chunk_size[0] << ", " << meta.chunk_size[1] << ", " << meta.chunk_size[2] << std::endl;
+    std::cout << "array_shape = " << meta.array_shape[0] << ", " << meta.array_shape[1] << ", " << meta.array_shape[2] << std::endl;
+    std::cout << "strides = " << meta.strides[0] << ", " << meta.strides[1] << ", " << meta.strides[2] << ", " << meta.strides[2] << std::endl;
+    std::cout << "offset = " << meta.offset << std::endl;
+
+    // prepare new array of the correct shape
+    val.resize(meta.array_shape);
+
+    // loop over chunks
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -127,11 +136,26 @@ namespace stor {
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
   void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size) {
-    
-    Traits<shape_t>::serialize(stream, val.m_shape);
-    Traits<stride_t>::serialize(stream, val.m_strides);
-    Traits<std::size_t>::serialize(stream, val.m_offset);
-    Traits<data_t>::serialize(stream, *val.m_data);      
+        
+    auto chunk_serializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
+
+      // make sure serialization buffer is large enough
+      std::size_t ser_buflen = NDVecArray<T, dims, vec_dims>::ComputeVolume(chunk_end - chunk_begin);
+      
+      m_ser_buffer -> reserve(ser_buflen); 
+      
+      // fill serialization buffer
+      std::size_t elems_written = dense::to_buffer(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
+
+      // prepare and serialize chunk metadata
+      NDVecArrayStreamerChunkMetadata chunk_meta(StreamerMode::dense, elems_written);
+      Traits<NDVecArrayStreamerChunkMetadata>::serialize(stream, chunk_meta);
+
+      // serialize chunk data from buffer
+      stream.write((char*)&(*(m_ser_buffer -> begin())), elems_written);
+    };
+      
+    loop_over_array_chunks(val, chunk_size, chunk_serializer);
   }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -166,5 +190,6 @@ namespace stor {
     std::size_t offset = Traits<std::size_t>::deserialize(stream);
     data_t data = Traits<data_t>::deserialize(stream);
     return type(shape, strides, offset, std::move(data));
-  }  
+  }
 }
+

@@ -61,14 +61,14 @@ public:
     m_data = std::make_shared<data_t>(GetVolume(), value);
   }   
 
-  // resizes and uses storage of existing array
-  NDVecArray(const shape_t& shape, NDVecArray<T, dims, vec_dims>& existing) : m_offset(0), m_shape(shape) {
-    m_strides = ComputeStrides(shape);
-
-    m_data = existing.m_data;   // use existing memory allocation
-    m_data -> reserve(GetVolume());    // reserve the required memory
+  // element values are undefined after this operation (if size is increased), need to be set explicitly again
+  void resize(const shape_t& new_shape) {
+    m_shape = new_shape;
+    m_strides = ComputeStrides(new_shape);
+    m_offset = 0;
+    m_data -> reserve(GetVolume());
   }
-  
+    
   // Single-element access
   view_t operator[](const ind_t& ind) {
     return view_t(m_data -> begin() + ComputeFlatInd(ind), vec_dims);
@@ -79,7 +79,7 @@ public:
   }
   
   // Array view access
-  NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) {
+  NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) const {
     shape_t view_shape = end_ind - start_ind;
     stride_t view_strides = ComputeStrides(view_shape);        
     std::size_t view_offset = std::inner_product(start_ind.cbegin(), start_ind.cend(), m_strides.begin() + 1, m_offset);
@@ -124,6 +124,10 @@ private:
     std::reverse(std::execution::unseq, strides.begin(), strides.end());
   
     return strides;
+  }
+
+  static std::size_t ComputeVolume(const shape_t& shape) {
+    return ComputeStrides(shape)[0];
   }
   
 private:

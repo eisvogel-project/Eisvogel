@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
 
   Vector<float, 2> testvec{1.f, 2.f};
   arr1[{200u, 200u, 200u}] = testvec;
+
+  NDVecArray<float, 3, 2> arr1_view = arr1.View({200u, 200u, 200u}, {205u, 205u, 205u});
   
   using in_type = float;
   using ser_type = uint32_t;
@@ -42,30 +44,32 @@ int main(int argc, char* argv[]) {
     std::fstream iofs;
     iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
     streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
     iofs.close();
   }
 
-  NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
+  // NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
-  {
-    std::fstream iofs;
-    iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
-    streamer.deserialize(iofs, arr1_read);
-    iofs.close();
-  }  
+  // {
+  //   std::fstream iofs;
+  //   iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
+  //   streamer.deserialize(iofs, arr1_read);
+  //   iofs.close();
+  // }  
 
-  auto checker = [&](const Vector<std::size_t, 3>& ind) {
-    for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
-      if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
-	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
-	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
-      }
-    }   
-  };
+  // auto checker = [&](const Vector<std::size_t, 3>& ind) {
+  //   for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
+  //     if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
+  // 	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
+  // 	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
+  //     }
+  //   }   
+  // };
 
-  std::cout << "checking" << std::endl;
-  loop_over_array_elements(arr1, checker);
+  // std::cout << "checking" << std::endl;
+  // loop_over_array_elements(arr1, checker);
 
+  // =====
   
   // std::size_t buflen = nullsup::calculate_required_buflen(arr1);
   // std::cout << "buflen = " << buflen << std::endl;

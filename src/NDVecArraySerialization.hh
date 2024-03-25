@@ -2,6 +2,63 @@
 
 #include "Eisvogel/MathUtils.hh"
 
+namespace dense {
+
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    std::size_t dims, std::size_t vec_dims>
+  std::size_t to_buffer(const ArrayT<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {
+    auto postprocessor = [](const uint32_t& host) -> uint32_t {
+      return htonl(host);
+    };  
+    return to_buffer(arr, std::move(buffer), postprocessor);
+  }
+  
+  // returns elements in buffer that need to be considered
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims,
+	    typename SerType, class CallableT>
+  std::size_t to_buffer(const ArrayT<T, dims, vec_dims>& arr, std::span<SerType>&& buffer, CallableT&& postprocessor) {
+    
+    auto buffer_it = buffer.begin();
+    
+    auto element_copier = [&](Vector<std::size_t, dims>& ind) {
+      for(T& cur_val: arr[ind]) {
+	SerType ser_val = reinterpret_cast<const SerType&>(cur_val);
+	*buffer_it = postprocessor(ser_val);
+	buffer_it++;
+      }
+    };
+    loop_over_array_elements(arr, element_copier);
+    
+    return buffer_it - buffer.begin();      
+  }    
+}
+
+// returns elements in buffer that were read
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims,
+	  typename SerType, class CallableT>
+std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_dims>& arr, CallableT&& preprocessor) {
+  
+  Vector<T, vec_dims> vec_buffer;
+  
+  auto buffer_it = buffer.begin();
+  
+  auto element_copier = [&](Vector<std::size_t, dims>& ind) {
+    
+    for(std::size_t ind = 0; ind < vec_dims; ind++) {
+      SerType ser_val = preprocessor(*buffer_it);
+      buffer_it++;
+      std::memcpy(&vec_buffer[ind], &ser_val, sizeof(ser_val));
+    }
+    
+    arr[ind] = vec_buffer;
+  };
+  loop_over_array_elements(arr, element_copier);
+  
+  return buffer_it - buffer.begin();
+}
+
 namespace nullsup {
 
   template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -76,7 +133,7 @@ namespace nullsup {
 	}
 	
 	// copy the array element
-	for(float cur_val: arr[ind]) {
+	for(T& cur_val: arr[ind]) {
 	  SerType ser_val = reinterpret_cast<const SerType&>(cur_val);
 	  *buffer_it = postprocessor(ser_val);
 	  buffer_it++;
