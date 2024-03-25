@@ -4,10 +4,11 @@
 
 namespace stor {
 
-  // has some specialized functionality for efficient serialization / deserialization / on-disk manipulations
-  // that the normal DefaultSerializer does not have
-
-  // TODO: experimental for now, should put into different structs for dense / suppress_zero / etc.?
+  enum class StreamerMode : uint32_t {
+    automatic = 0,
+    dense = 1,
+    zero_suppressed = 2
+  };
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
   class DenseNDVecArrayStreamer {
@@ -20,6 +21,14 @@ namespace stor {
   public:
 
     DenseNDVecArrayStreamer(const shape_t& chunk_size);
+
+    static void serialize(std::fstream& stream, const type& val, const StreamerMode& mode);
+    static void deserialize(std::fstream& stream, type& val);
+
+    // only works, if chunk_size is also a slice and the passed `chunk` has the same size
+    static void append_slice(std::fstream& stream, const type& chunk);
+
+    // to be made private and called from functions above
     
     static void serialize_dense(std::fstream& stream, const type& val);
     static void deserialize_dense(std::fstream& stream, type& val);
@@ -32,12 +41,11 @@ namespace stor {
 
     // on-disk operations
 
-    // only works, if chunk_size is also a slice and the passed `chunk` has the same size
-    static void append_slice(std::fstream& stream, const type& chunk);
 
   private:
-   
-    // (de)serialization buffers
+
+    
+
   };
 }
 

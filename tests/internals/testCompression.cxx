@@ -18,8 +18,10 @@
 #include <stdlib.h>
 
 int main(int argc, char* argv[]) { 
+
+  Vector<std::size_t, 3> shape{400u, 400u, 400u};
   
-  DenseNDVecArray<float, 3, 2> arr1({400u, 400u, 400u}, 0.0f);
+  DenseNDVecArray<float, 3, 2> arr1(shape, 0.0f);
   std::cout << "volume = " << arr1.GetVolume() << std::endl;
   std::cout << "elements = " << arr1.GetNumberElements() << std::endl;
 
@@ -29,11 +31,12 @@ int main(int argc, char* argv[]) {
   using in_type = float;
   using ser_type = uint32_t;
 
-  std::size_t buflen = calculate_required_buflen(arr1);
+  std::size_t buflen = nullsup::calculate_required_buflen(arr1);
   std::cout << "buflen = " << buflen << std::endl;
+  std::cout << "buflen = " << nullsup::calculate_required_buflen(shape, 2) << std::endl;
   std::vector<ser_type> buffer(buflen, 0);
 
-  std::size_t elems_written = suppress_zero(arr1, std::span<ser_type>(buffer));
+  std::size_t elems_written = nullsup::suppress_zero(arr1, std::span<ser_type>(buffer));
 
   std::cout << "wrote " << elems_written << " elements into output buffer of length " << buflen << std::endl;
   for(std::size_t ind = 0; ind < elems_written; ind++) {
@@ -42,7 +45,7 @@ int main(int argc, char* argv[]) {
 
   DenseNDVecArray<float, 3, 2> arr1_read({400u, 400u, 400u}, 10.0f);
   
-  std::size_t elems_read = desuppress_zero(std::span<ser_type>(buffer), arr1_read);
+  std::size_t elems_read = nullsup::desuppress_zero(std::span<ser_type>(buffer), arr1_read);
 
   std::cout << "read " << elems_read << " elements from input buffer of length " << buflen << std::endl;
 
