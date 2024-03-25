@@ -31,6 +31,9 @@ struct VectorView : public std::span<T, vec_dims> {
 template <typename T, std::size_t dims, std::size_t vec_dims>
 class NDVecArray {
 
+private:
+  friend struct stor::NDVecArrayStreamer<T, dims, vec_dims>;
+  
 public:
   using ind_t = Vector<std::size_t, dims>;
   using shape_t = Vector<std::size_t, dims>;
@@ -39,9 +42,6 @@ public:
 private:
   using data_t = std::vector<T>;
   using stride_t = Vector<std::size_t, dims + 1>;
-
-private:
-  friend struct stor::NDVecArrayStreamer<T, dims, vec_dims>;
 
   // constructor used by deserializer
   // TODO: to be deprecated and removed

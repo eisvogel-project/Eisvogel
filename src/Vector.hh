@@ -37,6 +37,11 @@ public:
   Vector(const data_t&& data) {
     std::copy_n(std::execution::unseq, data.begin(), vec_dims, m_data.begin());
   }
+
+  // copy constructor
+  Vector(const Vector<T, vec_dims>& other) {
+    std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
+  }
   
   T& operator[](std::size_t ind) {
     return m_data[ind];

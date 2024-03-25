@@ -10,10 +10,16 @@ namespace stor {
     dense = 1,
     zero_suppressed = 2
   };
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  struct NDVecArrayStreamerMetadata;
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
   class NDVecArrayStreamer {
 
+  private:
+    friend struct NDVecArrayStreamerMetadata<T, dims, vec_dims>;
+    
     using type = NDVecArray<T, dims, vec_dims>;
     using data_t = typename type::data_t;
     using shape_t = typename type::shape_t;
@@ -43,7 +49,7 @@ namespace stor {
 
     // chunk_size for (de)serialization
     static void serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size);
-    static void deserialize_chunk_zero_suppressed(std::fstream& stream, type& val);  // val here will be a view of the full array
+    static void deserialize_chunk_zero_suppressed(std::fstream& stream, type& val);  // val here will be a view of the full array, called from `deserialize` through `loop_over_array_chunks`
     
     static type deserialize_chunk_zero_suppressed(std::fstream& stream); // to be removed
 
