@@ -32,7 +32,7 @@ namespace stor {
 
     // on-disk operations
 
-    // only works, if chunk_size actually labels a slice
+    // only works, if chunk_size is also a slice and the passed `chunk` has the same size
     static void append_slice(std::fstream& stream, const type& chunk);
 
   private:
