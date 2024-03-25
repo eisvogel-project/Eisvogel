@@ -108,6 +108,8 @@ namespace nullsup {
     auto zero_desuppressor = [&](Vector<std::size_t, dims>& ind) {
       
       if(num_zeros > 0) {
+	[[likely]];
+	
 	// Fill zero elements into array
 	std::fill_n(std::execution::unseq, arr[ind].begin(), vec_dims, 0);
 	num_zeros--;

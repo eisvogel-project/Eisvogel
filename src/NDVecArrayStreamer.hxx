@@ -1,10 +1,71 @@
+#include <stdexcept>
+
 #include "Eisvogel/IteratorUtils.hh"
 #include "NDVecArrayCompression.hh"
 
 namespace stor {
+
+  // Metadata structures for serialization
+  namespace {
+    struct NDVecArrayMetadata {
+      
+    };
+
+    struct NDVecArrayChunkMetadata {
+
+    };
+  }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_dense(std::fstream& stream, const type& val) {
+  NDVecArrayStreamer<T, dims, vec_dims>::NDVecArrayStreamer(std::size_t initial_buffer_size) {
+    m_ser_buffer = std::make_shared<buffer_t>(initial_buffer_size);
+  }
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode) {
+
+    // TODO: can add some more metadata if needed later
+    Traits<std::size_t>::serialize(stream, static_cast<std::size_t>(StreamerMode::dense));
+
+    // build array-wide metadata
+
+    // serialize array-wide metadata
+    
+    switch(mode) {
+      
+    case StreamerMode::dense:
+      serialize_all_chunks_dense(stream, val, chunk_size);
+      break;
+
+    case StreamerMode::zero_suppressed:
+      serialize_all_chunks_zero_suppressed(stream, val, chunk_size);
+      break;
+
+    case StreamerMode::automatic:
+      // TODO: implement this so it decides on a per-chunk basis whether to go for dense or zero-suppressed storage
+      throw std::runtime_error("Error: streamer mode 'automatic' not implemented yet.");
+      break;      
+    }    
+  }
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::deserialize(std::fstream& stream, type& val) {
+
+    // deserialize array-wide metadata
+
+    // 
+    
+  }
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode) {
+
+  }  
+
+  // --------
+  
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size) {
     
     Traits<shape_t>::serialize(stream, val.m_shape);
     Traits<stride_t>::serialize(stream, val.m_strides);
@@ -13,7 +74,7 @@ namespace stor {
   }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_dense(std::fstream& stream) {
+  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_chunk_dense(std::fstream& stream) {
     
     shape_t shape = Traits<shape_t>::deserialize(stream);
     stride_t strides = Traits<stride_t>::deserialize(stream);
@@ -25,7 +86,7 @@ namespace stor {
   // ----------------------------------------
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_suppress_zero(std::fstream& stream, const type& val) {
+  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
 
     Traits<shape_t>::serialize(stream, val.m_shape);
     Traits<stride_t>::serialize(stream, val.m_strides);
@@ -37,7 +98,7 @@ namespace stor {
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_suppress_zero(std::fstream& stream) {
+  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_chunk_zero_suppressed(std::fstream& stream) {
     
     shape_t shape = Traits<shape_t>::deserialize(stream);
     stride_t strides = Traits<stride_t>::deserialize(stream);

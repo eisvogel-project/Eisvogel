@@ -44,6 +44,7 @@ private:
   friend struct stor::NDVecArrayStreamer<T, dims, vec_dims>;
 
   // constructor used by deserializer
+  // TODO: to be deprecated and removed
   NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, data_t&& data) :
     m_shape(shape), m_strides(strides), m_offset(offset), m_data(std::make_shared<data_t>(data)) { }
 
@@ -59,6 +60,14 @@ public:
     // reserve the required memory
     m_data = std::make_shared<data_t>(GetVolume(), value);
   }   
+
+  // resizes and uses storage of existing array
+  NDVecArray(const shape_t& shape, NDVecArray<T, dims, vec_dims>& existing) : m_offset(0), m_shape(shape) {
+    m_strides = ComputeStrides(shape);
+
+    m_data = existing.m_data;   // use existing memory allocation
+    m_data -> reserve(GetVolume());    // reserve the required memory
+  }
   
   // Single-element access
   view_t operator[](const ind_t& ind) {

@@ -73,18 +73,18 @@ int main(int argc, char* argv[]) {
   std::fstream ofs;
   ofs.open(testpath, std::ios::out | std::ios::binary);  
   //stor::NDVecArrayStreamer<float, 3, 2>::serialize(ofs, arr1);
-  stor::NDVecArrayStreamer<float, 3, 2>::serialize_suppress_zero(ofs, arr1);
+  //stor::NDVecArrayStreamer<float, 3, 2>::serialize_suppress_zero(ofs, arr1);
   ofs.close();
 
   std::fstream ifs;
   ifs.open(testpath, std::ios::in | std::ios::binary);
-  NDVecArray<float, 3, 2> arr1_read = stor::NDVecArrayStreamer<float, 3, 2>::deserialize_suppress_zero(ifs);
+  // NDVecArray<float, 3, 2> arr1_read = stor::NDVecArrayStreamer<float, 3, 2>::deserialize_suppress_zero(ifs);
   
-  auto value = arr1_read[{350u, 350u, 1u}];
-  std::cout << "retrieved value =" << std::endl;
-  for(auto cur: value) {
-    std::cout << cur << std::endl;
-  }
+  // auto value = arr1_read[{350u, 350u, 1u}];
+  // std::cout << "retrieved value =" << std::endl;
+  // for(auto cur: value) {
+  //   std::cout << cur << std::endl;
+  // }
     
   std::cout << "done" << std::endl;
 }

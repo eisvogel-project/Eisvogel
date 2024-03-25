@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <limits>
 
 #include <span>
 
@@ -31,23 +32,27 @@ int main(int argc, char* argv[]) {
   using in_type = float;
   using ser_type = uint32_t;
 
-  std::size_t buflen = nullsup::calculate_required_buflen(arr1);
-  std::cout << "buflen = " << buflen << std::endl;
-  std::cout << "buflen = " << nullsup::calculate_required_buflen(shape, 2) << std::endl;
-  std::vector<ser_type> buffer(buflen, 0);
+  constexpr std::size_t maxval = std::numeric_limits<std::size_t>::max();
+  Vector<std::size_t, 3> streamer_chunk_size{1u, maxval, maxval};
+  stor::NDVecArrayStreamer<float, 3, 2> streamer;
 
-  std::size_t elems_written = nullsup::suppress_zero(arr1, std::span<ser_type>(buffer));
+  std::filesystem::path testpath = "./testVector.bin";
 
-  std::cout << "wrote " << elems_written << " elements into output buffer of length " << buflen << std::endl;
-  for(std::size_t ind = 0; ind < elems_written; ind++) {
-    std::cout << buffer[ind] << std::endl;
+  {
+    std::fstream iofs;
+    iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
+    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    iofs.close();
   }
 
-  NDVecArray<float, 3, 2> arr1_read({400u, 400u, 400u}, 10.0f);
-  
-  std::size_t elems_read = nullsup::desuppress_zero(std::span<ser_type>(buffer), arr1_read);
+  NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
-  std::cout << "read " << elems_read << " elements from input buffer of length " << buflen << std::endl;
+  {
+    std::fstream iofs;
+    iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
+    streamer.deserialize(iofs, arr1_read);
+    iofs.close();
+  }  
 
   auto checker = [&](const Vector<std::size_t, 3>& ind) {
     for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
@@ -60,6 +65,27 @@ int main(int argc, char* argv[]) {
 
   std::cout << "checking" << std::endl;
   loop_over_array_elements(arr1, checker);
+
+  
+  // std::size_t buflen = nullsup::calculate_required_buflen(arr1);
+  // std::cout << "buflen = " << buflen << std::endl;
+  // std::cout << "buflen = " << nullsup::calculate_required_buflen(shape, 2) << std::endl;
+  // std::vector<ser_type> buffer(buflen, 0);
+
+  // std::size_t elems_written = nullsup::suppress_zero(arr1, std::span<ser_type>(buffer));
+
+  // std::cout << "wrote " << elems_written << " elements into output buffer of length " << buflen << std::endl;
+  // for(std::size_t ind = 0; ind < elems_written; ind++) {
+  //   std::cout << buffer[ind] << std::endl;
+  // }
+
+  // NDVecArray<float, 3, 2> arr1_read({400u, 400u, 400u}, 10.0f);
+  
+  // std::size_t elems_read = nullsup::desuppress_zero(std::span<ser_type>(buffer), arr1_read);
+
+  // std::cout << "read " << elems_read << " elements from input buffer of length " << buflen << std::endl;
+
+  // =============
   
   // std::size_t sup_start = invec.size();
   // uint32_t num_sup = 0;

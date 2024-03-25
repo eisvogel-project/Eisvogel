@@ -1,10 +1,11 @@
 #pragma once
 
+#include <memory>
 #include "NDVecArray.hh"
 
 namespace stor {
 
-  enum class StreamerMode : uint32_t {
+  enum class StreamerMode : std::size_t {
     automatic = 0,
     dense = 1,
     zero_suppressed = 2
@@ -16,35 +17,40 @@ namespace stor {
     using type = NDVecArray<T, dims, vec_dims>;
     using data_t = typename type::data_t;
     using shape_t = typename type::shape_t;
-    using stride_t = typename type::stride_t;   
+    using stride_t = typename type::stride_t;
 
+    // The type of the serialized data
+    using ser_type = Traits<T>::ser_type;    
+    using buffer_t = std::vector<ser_type>;
+    
   public:
 
-    NDVecArrayStreamer(const shape_t& chunk_size);
+    NDVecArrayStreamer(std::size_t initial_buffer_size = 10000);
 
-    static void serialize(std::fstream& stream, const type& val, const StreamerMode& mode);
-    static void deserialize(std::fstream& stream, type& val);
+    void serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode);
+    void deserialize(std::fstream& stream, type& val);
 
-    // only works, if chunk_size is also a slice and the passed `chunk` has the same size
-    static void append_slice(std::fstream& stream, const type& chunk);
+    // appends slice to the end of the corresponding axis
+    // only works if chunk_size is also a slice and the passed `chunk` has the same size
+    void append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode);
 
-    // to be made private and called from functions above
+  private:
     
-    static void serialize_dense(std::fstream& stream, const type& val);
-    static void deserialize_dense(std::fstream& stream, type& val);
-    static type deserialize_dense(std::fstream& stream);
+    static void serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size);
+    static void deserialize_chunk_dense(std::fstream& stream, type& val); // val here will be a view of the full array
+    
+    static type deserialize_chunk_dense(std::fstream& stream); // to be removed
 
     // chunk_size for (de)serialization
-    static void serialize_suppress_zero(std::fstream& stream, const type& val);
-    static void deserialize_suppress_zero(std::fstream& stream, type& val);
-    static type deserialize_suppress_zero(std::fstream& stream);
-
-    // on-disk operations
+    static void serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size);
+    static void deserialize_chunk_zero_suppressed(std::fstream& stream, type& val);  // val here will be a view of the full array
+    
+    static type deserialize_chunk_zero_suppressed(std::fstream& stream); // to be removed
 
 
   private:
 
-    
+    std::shared_ptr<buffer_t> m_ser_buffer;
 
   };
 }
