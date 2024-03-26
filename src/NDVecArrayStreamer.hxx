@@ -1,4 +1,5 @@
 #include <stdexcept>
+#include <cassert>
 
 #include "Eisvogel/IteratorUtils.hh"
 #include "NDVecArraySerialization.hh"
@@ -141,8 +142,21 @@ namespace stor {
       read_into_buffer(chunk_meta.chunk_size, stream);
 
       // deserialize data and fill into array
-      type val_view = val.View(chunk_begin, chunk_end);      
-      std::size_t elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
+      type val_view = val.View(chunk_begin, chunk_end);
+
+      switch(chunk_meta.ser_mode) {
+
+      case StreamerMode::dense:
+	{
+	  std::size_t elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
+	  assert(elems_read == chunk_meta.chunk_size);
+	}
+	break;
+
+      case StreamerMode::zero_suppressed:
+	break;
+	
+      }
     };
 
     loop_over_array_chunks(val, meta.chunk_size, chunk_deserializer);    
