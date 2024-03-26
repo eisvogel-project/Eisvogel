@@ -181,7 +181,7 @@ namespace stor {
       NDVecArrayStreamerChunkMetadata chunk_meta = Traits<NDVecArrayStreamerChunkMetadata>::deserialize(stream);
 
       // make sure buffer is large enough and read data
-      m_ser_buffer -> reserve(chunk_meta.chunk_size);
+      m_ser_buffer -> reserve(chunk_meta.chunk_size);  // TODO: this needs to be fixed!
       read_into_buffer(chunk_meta.chunk_size, stream);
       
       // deserialize data and fill into array
@@ -325,7 +325,7 @@ namespace stor {
 
       // make sure serialization buffer is large enough
       std::size_t ser_buflen = NDVecArray<T, dims, vec_dims>::ComputeVolume(chunk_end - chunk_begin);
-      m_ser_buffer -> reserve(ser_buflen); 
+      m_ser_buffer -> reserve(ser_buflen);    // TODO: this needs to be fixed!
       
       // fill serialization buffer
       std::size_t elems_written = dense::to_buffer(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
@@ -349,7 +349,7 @@ namespace stor {
 
       // make sure serialization buffer is large enough
       std::size_t ser_buflen = nullsup::calculate_required_buflen(chunk_end - chunk_begin, vec_dims);
-      m_ser_buffer -> reserve(ser_buflen);
+      m_ser_buffer -> reserve(ser_buflen);   // TODO: this needs to be fixed!
 
       // fill serialization buffer
       std::size_t elems_written = nullsup::suppress_null(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
