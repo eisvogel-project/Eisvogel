@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
   Vector<float, 2> testvec{1.f, 2.f};
   arr1[{200u, 200u, 200u}] = testvec;
 
-  NDVecArray<float, 3, 2> arr1_view = arr1.View({200u, 200u, 200u}, {205u, 205u, 205u});
+  NDVecArray<float, 3, 2> arr1_view = arr1.View({200u, 200u, 200u}, {202u, 202u, 202u});
   
   using in_type = float;
   using ser_type = uint32_t;
@@ -43,8 +43,8 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
-    //streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
-    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();
   }
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]) {
   };
 
   std::cout << "checking" << std::endl;
-  // loop_over_array_elements(arr1_view, checker);
+  loop_over_array_elements(arr1_view, checker);
 
   // =====
   

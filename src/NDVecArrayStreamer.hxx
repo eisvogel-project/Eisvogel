@@ -127,12 +127,6 @@ namespace stor {
     // deserialize array-wide metadata
     NDVecArrayStreamerMetadata<T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<T, dims, vec_dims>>::deserialize(stream);
 
-    std::cout << "found metadata of the following kind" << std::endl;
-    std::cout << "chunk_size = " << meta.chunk_size[0] << ", " << meta.chunk_size[1] << ", " << meta.chunk_size[2] << std::endl;
-    std::cout << "array_shape = " << meta.array_shape[0] << ", " << meta.array_shape[1] << ", " << meta.array_shape[2] << std::endl;
-    std::cout << "strides = " << meta.strides[0] << ", " << meta.strides[1] << ", " << meta.strides[2] << ", " << meta.strides[2] << std::endl;
-    std::cout << "offset = " << meta.offset << std::endl;
-
     // prepare new array of the correct shape
     val.resize(meta.array_shape);
 
@@ -141,31 +135,14 @@ namespace stor {
 
       // get chunk metadata
       NDVecArrayStreamerChunkMetadata chunk_meta = Traits<NDVecArrayStreamerChunkMetadata>::deserialize(stream);
-      std::cout << "found storage chunk with ser_mode = " << (std::size_t)(chunk_meta.ser_mode) << ", chunk_size = " << chunk_meta.chunk_size << std::endl;
-      std::cout << "chunk_begin = " << chunk_begin[0] << ", " << chunk_begin[1] << ", " << chunk_begin[2] << std::endl;
-      std::cout << "chunk_end = " << chunk_end[0] << ", " << chunk_end[1] << ", " << chunk_end[2] << std::endl;
 
       // make sure buffer is large enough and read data
       m_ser_buffer -> reserve(chunk_meta.chunk_size);
       read_into_buffer(chunk_meta.chunk_size, stream);
 
       // deserialize data and fill into array
-      type val_view = val.View(chunk_begin, chunk_end);
-
-      auto printer = [&](const Vector<std::size_t, dims>& ind) {
-	std::cout << "ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << ": (" << val_view[ind][0] << ", " << val_view[ind][1] << ")" << std::endl;
-      };
-      std::cout << "before chunk filling" << std::endl;
-      loop_over_array_elements(val_view, printer);
-      
+      type val_view = val.View(chunk_begin, chunk_end);      
       std::size_t elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
-
-      std::cout << "after chunk filling" << std::endl;
-      loop_over_array_elements(val_view, printer);
-
-      std::cout << "val after chunk filling" << std::endl;
-      loop_over_array_elements(val, printer);
-
     };
 
     loop_over_array_chunks(val, meta.chunk_size, chunk_deserializer);    

@@ -43,14 +43,9 @@ private:
   using data_t = std::vector<T>;
   using stride_t = Vector<std::size_t, dims + 1>;
 
-  // constructor used by deserializer
-  // TODO: to be deprecated and removed
-  NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, data_t&& data) :
-    m_shape(shape), m_strides(strides), m_offset(offset), m_data(std::make_shared<data_t>(data)) { }
-
   // used in creation of view
   NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, std::shared_ptr<data_t> data) :
-    m_shape(shape), m_strides(strides), m_offset(offset), m_data(data) { }
+    m_data(data), m_strides(strides), m_offset(offset), m_shape(shape) { }
   
 public:
   
@@ -95,8 +90,8 @@ public:
   }
   
   const shape_t GetShape() const {return m_shape;}
-  const std::size_t GetVolume() const {return m_strides[0];}
-  const std::size_t GetNumberElements() const {return m_strides[0] / vec_dims;}
+  const std::size_t GetVolume() const {return ComputeVolume(m_shape);}
+  const std::size_t GetNumberElements() const {return GetVolume() / vec_dims;}
   
 private:
 
