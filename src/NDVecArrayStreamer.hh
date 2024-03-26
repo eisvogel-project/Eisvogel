@@ -11,16 +11,18 @@ namespace stor {
     zero_suppressed = 2
   };
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
   struct NDVecArrayStreamerMetadata;
   
-  template <typename T, std::size_t dims, std::size_t vec_dims>
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
   class NDVecArrayStreamer {
 
   private:
-    friend struct NDVecArrayStreamerMetadata<T, dims, vec_dims>;
-    
-    using type = NDVecArray<T, dims, vec_dims>;
+    friend struct NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>;
+
+    using type = ArrayT<T, dims, vec_dims>;
     using data_t = typename type::data_t;
     using shape_t = typename type::shape_t;
     using stride_t = typename type::stride_t;

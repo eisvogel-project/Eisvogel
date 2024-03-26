@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
 
   constexpr std::size_t maxval = std::numeric_limits<std::size_t>::max();
   Vector<std::size_t, 3> streamer_chunk_size{1u, maxval, maxval};
-  stor::NDVecArrayStreamer<float, 3, 2> streamer;
+  stor::NDVecArrayStreamer<NDVecArray, float, 3, 2> streamer;
 
   std::filesystem::path testpath = "./testVector.bin";
 

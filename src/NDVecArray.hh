@@ -12,8 +12,9 @@
 
 // Forward declaration of (de)serializer
 namespace stor {
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  struct NDVecArrayStreamer;
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  class NDVecArrayStreamer;
 }
 
 template <typename T, std::size_t vec_dims>
@@ -32,7 +33,7 @@ template <typename T, std::size_t dims, std::size_t vec_dims>
 class NDVecArray {
 
 private:
-  friend struct stor::NDVecArrayStreamer<T, dims, vec_dims>;
+  friend class stor::NDVecArrayStreamer<NDVecArray, T, dims, vec_dims>;
   
 public:
   using ind_t = Vector<std::size_t, dims>;

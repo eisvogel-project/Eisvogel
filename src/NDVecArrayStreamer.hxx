@@ -8,11 +8,12 @@ namespace stor {
 
   // Metadata structures for serialization
   // Metadata for array
-  template <typename T, std::size_t dims, std::size_t vec_dims>
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
   struct NDVecArrayStreamerMetadata {
     
-    using shape_t = typename NDVecArrayStreamer<T, dims, vec_dims>::shape_t;
-    using stride_t = typename NDVecArrayStreamer<T, dims, vec_dims>::stride_t;   
+    using shape_t = typename NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::shape_t;
+    using stride_t = typename NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::stride_t;   
     
     NDVecArrayStreamerMetadata(const shape_t chunk_size, const shape_t array_shape, const stride_t strides, const std::size_t offset) :
       chunk_size(chunk_size), array_shape(array_shape), strides(strides), offset(offset) { };
@@ -34,9 +35,10 @@ namespace stor {
   };    
   
   // Prescriptions for serializing metadata
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  struct Traits<NDVecArrayStreamerMetadata<T, dims, vec_dims>> {    
-    using type = NDVecArrayStreamerMetadata<T, dims, vec_dims>;
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  struct Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>> {    
+    using type = NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>;
     using shape_t = typename type::shape_t;
     using stride_t = typename type::stride_t;
     
@@ -74,25 +76,29 @@ namespace stor {
     }
   };
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::write_buffer(std::size_t num_elems, std::fstream& stream) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::write_buffer(std::size_t num_elems, std::fstream& stream) {
     std::span<ser_type> to_write(m_ser_buffer -> begin(), num_elems);
     stream.write((char*)(&to_write[0]), to_write.size_bytes());
   }
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::read_into_buffer(std::size_t num_elems, std::fstream& stream) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::read_into_buffer(std::size_t num_elems, std::fstream& stream) {
     std::span<ser_type> to_read(m_ser_buffer -> begin(), num_elems);
     stream.read((char*)(&to_read[0]), to_read.size_bytes());
   }
   
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  NDVecArrayStreamer<T, dims, vec_dims>::NDVecArrayStreamer(std::size_t initial_buffer_size) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::NDVecArrayStreamer(std::size_t initial_buffer_size) {
     m_ser_buffer = std::make_shared<buffer_t>(initial_buffer_size);
   }
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode) {
 
     // build array-wide metadata
     // don't directly use the strides the array comes with: these may refer to a view!
@@ -100,10 +106,10 @@ namespace stor {
     stride_t array_strides = type::ComputeStrides(array_shape);
     std::size_t offset = 0;
     
-    NDVecArrayStreamerMetadata<T, dims, vec_dims> meta(chunk_size, array_shape, array_strides, offset);
+    NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta(chunk_size, array_shape, array_strides, offset);
 
     // serialize array-wide metadata
-    Traits<NDVecArrayStreamerMetadata<T, dims, vec_dims>>::serialize(stream, meta);
+    Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::serialize(stream, meta);
     
     switch(mode) {
       
@@ -122,11 +128,12 @@ namespace stor {
     }    
   }
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::deserialize(std::fstream& stream, type& val) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::deserialize(std::fstream& stream, type& val) {
 
     // deserialize array-wide metadata
-    NDVecArrayStreamerMetadata<T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<T, dims, vec_dims>>::deserialize(stream);
+    NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::deserialize(stream);
 
     // prepare new array of the correct shape
     val.resize(meta.array_shape);
@@ -161,15 +168,17 @@ namespace stor {
     loop_over_array_chunks(val, meta.chunk_size, chunk_deserializer);    
   }
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode) {
 
   }  
 
   // --------
   
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size) {
         
     auto chunk_serializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
 
@@ -191,8 +200,9 @@ namespace stor {
     loop_over_array_chunks(val, chunk_size, chunk_serializer);
   }
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
 
     auto chunk_serializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
 
