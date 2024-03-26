@@ -26,6 +26,9 @@ int main(int argc, char* argv[]) {
   std::cout << "volume = " << arr1.GetVolume() << std::endl;
   std::cout << "elements = " << arr1.GetNumberElements() << std::endl;
 
+  Vector<std::size_t, 3> slice_shape{1u, 400u, 400u};
+  NDVecArray<float, 3, 2> slice1(slice_shape, 10.0f);
+  
   Vector<float, 2> testvec{1.f, 2.f};
   arr1[{200u, 200u, 200u}] = testvec;
 
@@ -48,26 +51,42 @@ int main(int argc, char* argv[]) {
     iofs.close();
   }
 
-  NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
-
+  // {
+  //   std::fstream iofs;
+  //   iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
+  //   streamer.mark_as_final(iofs);
+  //   std::cout << "done marking as final" << std::endl;
+  //   iofs.close();
+  // }
+  
   {
     std::fstream iofs;
-    iofs.open(testpath, std::ios::in | std::ios::binary);    
-    streamer.deserialize(iofs, arr1_read);
+    iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);
+    streamer.append_slice(iofs, slice1, stor::StreamerMode::dense);
+    std::cout << "done appending slice" << std::endl;
     iofs.close();
-  }  
+  }
+  
+  // NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
-  auto checker = [&](const Vector<std::size_t, 3>& ind) {
-    for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
-      if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
-	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
-	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
-      }
-    }   
-  };
+  // {
+  //   std::fstream iofs;
+  //   iofs.open(testpath, std::ios::in | std::ios::binary);    
+  //   streamer.deserialize(iofs, arr1_read);
+  //   iofs.close();
+  // }  
 
-  std::cout << "checking" << std::endl;
-  loop_over_array_elements(arr1_view, checker);
+  // auto checker = [&](const Vector<std::size_t, 3>& ind) {
+  //   for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
+  //     if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
+  // 	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
+  // 	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
+  //     }
+  //   }   
+  // };
+
+  // std::cout << "checking" << std::endl;
+  // loop_over_array_elements(arr1_view, checker);
 
   // =====
   

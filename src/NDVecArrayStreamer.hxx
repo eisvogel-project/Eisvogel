@@ -15,13 +15,11 @@ namespace stor {
     using shape_t = typename NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::shape_t;
     using stride_t = typename NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::stride_t;   
     
-    NDVecArrayStreamerMetadata(const shape_t chunk_size, const shape_t array_shape, const stride_t strides, const std::size_t offset, const AccessMode access_mode) :
-      chunk_size(chunk_size), array_shape(array_shape), strides(strides), offset(offset), access_mode(access_mode) { };
+    NDVecArrayStreamerMetadata(const shape_t chunk_size, const shape_t array_shape, const AccessMode access_mode) :
+      chunk_size(chunk_size), array_shape(array_shape), access_mode(access_mode) { };
     
     shape_t chunk_size;
     shape_t array_shape;
-    stride_t strides;
-    std::size_t offset;
     AccessMode access_mode;
   };
   
@@ -46,19 +44,15 @@ namespace stor {
     static void serialize(std::iostream& stream, const type& val) {
       Traits<shape_t>::serialize(stream, val.chunk_size);
       Traits<shape_t>::serialize(stream, val.array_shape);
-      Traits<stride_t>::serialize(stream, val.strides);
-      Traits<std::size_t>::serialize(stream, val.offset);
       Traits<std::size_t>::serialize(stream, static_cast<std::size_t>(val.access_mode));
     }
 
     static type deserialize(std::iostream& stream) {
       shape_t chunk_size(Traits<shape_t>::deserialize(stream));
       shape_t array_shape(Traits<shape_t>::deserialize(stream));
-      stride_t strides(Traits<stride_t>::deserialize(stream));
-      std::size_t offset = Traits<std::size_t>::deserialize(stream);
       AccessMode access_mode{Traits<std::size_t>::deserialize(stream)};
 
-      return type(chunk_size, array_shape, strides, offset, access_mode);
+      return type(chunk_size, array_shape, access_mode);
     }
   };
 
@@ -111,6 +105,8 @@ namespace stor {
     return num_dimensions_specified >= 1;
   }
 
+  // tests if during the serialization of an array with `array_shape` all serialization chunks will have the same shape (as specified by the requested `chunk_size`,
+  // which will be different from the actual serialization chunk size in case stor::INFTY is used in its specification)
   template <std::size_t dims>
   bool permits_equally_sized_serialization_chunks(const Vector<std::size_t, dims>& array_shape, const Vector<std::size_t, dims>& chunk_size) {
     for(std::size_t ind = 0; ind < dims; ind++) {
@@ -137,10 +133,7 @@ namespace stor {
     // build array-wide metadata
     // don't directly use the strides the array comes with: these may refer to a view!
     shape_t array_shape = val.m_shape;
-    stride_t array_strides = type::ComputeStrides(array_shape);
-    std::size_t offset = 0;
-    
-    NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta(chunk_size, array_shape, array_strides, offset, access_mode);
+    NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta(chunk_size, array_shape, access_mode);
 
     // serialize array-wide metadata
     Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::serialize(stream, meta);
@@ -220,14 +213,47 @@ namespace stor {
 	    typename T, std::size_t dims, std::size_t vec_dims>
   void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode) {
 
+    // keep track of current (i.e. beginning) location on stream
+    std::streampos init_pos = stream.tellg();
+    
     // deserialize array-wide metadata
     NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::deserialize(stream);
 
-    // check if the serialization chunk is also a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
+    if(meta.access_mode == AccessMode::modification_not_allowed) {
+      throw std::runtime_error("Error: trying to modify an array that cannot be modified!");
+    }
 
-    // check if the passed `chunk` fits exactly into one or more serialization chunks
+    // check if the serialization chunk is also a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
+    if(!chunk_is_slice(meta.array_shape, chunk.m_shape)) {
+      throw std::runtime_error("Error: passed array chunk is not a slice, cannot append!");
+    }
+
+    // update metadata
+    // check if the passed `chunk` fits exactly into one or more serialization chunks; no further modifications are allowed if it doesn't
+    meta.access_mode = permits_equally_sized_serialization_chunks(chunk.m_shape, meta.chunk_size) ? AccessMode::modification_allowed : AccessMode::modification_not_allowed;
+
+    // update array size after `chunk` is appended
+    meta.array_shape += chunk.m_shape;
   }  
 
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::mark_as_final(std::fstream& stream) {
+
+    // keep track of current (i.e. beginning) location on stream
+    std::streampos init_pos = stream.tellg();
+
+    // deserialize array-wide metadata
+    NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::deserialize(stream);
+
+    // mark as final if not done already
+    if(meta.access_mode != AccessMode::modification_not_allowed) {
+      meta.access_mode = AccessMode::modification_not_allowed;
+      stream.seekp(init_pos);
+      Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::serialize(stream, meta);
+    }
+  }
+  
   // --------
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,

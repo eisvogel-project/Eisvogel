@@ -12,6 +12,9 @@ namespace stor {
     null_suppressed = 2
   };
 
+  // Controls whether or not the on-disk representation of the array can be modified or not
+  // Modifications may be disallowed for various reasons, e.g. because the on-disk array has been marked as `final`,
+  // or because unequal serialization chunks have been used
   enum class AccessMode : std::size_t {
     modification_allowed = 0,
     modification_not_allowed = 1
@@ -43,11 +46,11 @@ namespace stor {
 
     NDVecArrayStreamer(std::size_t initial_buffer_size = 10000);
 
+    void mark_as_final(std::fstream& stream);
+    
     void serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode);
     void deserialize(std::fstream& stream, type& val);
 
-    // appends slice to the end of the corresponding axis
-    // only works if chunk_size is also a slice and the passed `chunk` has the same size
     void append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode);
 
   private:
