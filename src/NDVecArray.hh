@@ -80,9 +80,9 @@ public:
     std::size_t view_offset = ComputeFlatInd(start_ind);
     return NDVecArray<T, dims, vec_dims>(view_shape, m_strides, view_offset, m_data);
   }
-
+  
   bool IsNull(const ind_t& ind) const {
-    for(scalar_t& cur : this -> operator[](ind)) {
+    for(T& cur : this -> operator[](ind)) {
       if(cur != 0) {
 	return false;
       }
@@ -93,6 +93,14 @@ public:
   const shape_t GetShape() const {return m_shape;}
   const std::size_t GetVolume() const {return ComputeVolume(m_shape);}
   const std::size_t GetNumberElements() const {return GetVolume() / vec_dims;}
+
+  // -----------------------------
+  // operations on `NDVecArrays`
+  // -----------------------------
+
+  // Copy range from other array
+  // friend void CopyRange(const NDVecArray<T, dims, vec_dims>& source, const ind_t& source_start_ind, const ind_t& source_end_ind,
+  //                       NDVecArray<T, dims, vec_dims>& target, const ind_t& target_start_ind) {  }
   
 private:
 
