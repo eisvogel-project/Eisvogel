@@ -21,7 +21,7 @@ template <typename T, std::size_t vec_dims>
 struct VectorView : public std::span<T, vec_dims> {
 
   template <class It>
-  constexpr VectorView(It first, std::size_t count) : std::span<T, vec_dims>(first, count) { }; 
+  constexpr VectorView(It first) : std::span<T, vec_dims>(first, vec_dims) { }; 
 
   VectorView& operator=(const Vector<T, vec_dims>& other) {
     std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this -> begin());
@@ -67,11 +67,11 @@ public:
     
   // Single-element access
   view_t operator[](const ind_t& ind) {
-    return view_t(m_data -> begin() + ComputeFlatInd(ind), vec_dims);
+    return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
 
   const view_t operator[](const ind_t& ind) const {
-    return view_t(m_data -> begin() + ComputeFlatInd(ind), vec_dims);
+    return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
   
   // Array view access
