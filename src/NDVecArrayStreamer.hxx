@@ -117,12 +117,12 @@ namespace stor {
       serialize_all_chunks_dense(stream, val, chunk_size);
       break;
 
-    case StreamerMode::zero_suppressed:
-      serialize_all_chunks_zero_suppressed(stream, val, chunk_size);
+    case StreamerMode::null_suppressed:
+      serialize_all_chunks_null_suppressed(stream, val, chunk_size);
       break;
 
     case StreamerMode::automatic:
-      // TODO: implement this so it decides on a per-chunk basis whether to go for dense or zero-suppressed storage
+      // TODO: implement this so it decides on a per-chunk basis whether to go for dense or null-suppressed storage
       throw std::runtime_error("Error: streamer mode 'automatic' not implemented yet.");
       break;      
     }    
@@ -158,8 +158,8 @@ namespace stor {
 	  elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
 	  break;
 	
-      case StreamerMode::zero_suppressed:
-	  elems_read = nullsup::desuppress_zero(std::span<ser_type>(*m_ser_buffer), val_view);
+      case StreamerMode::null_suppressed:
+	  elems_read = nullsup::desuppress_null(std::span<ser_type>(*m_ser_buffer), val_view);
 	  break;	
       }
       assert(elems_read == chunk_meta.chunk_size);
@@ -172,6 +172,8 @@ namespace stor {
 	    typename T, std::size_t dims, std::size_t vec_dims>
   void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode) {
 
+    
+    
   }  
 
   // --------
@@ -202,7 +204,7 @@ namespace stor {
 
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::serialize_all_chunks_null_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
 
     auto chunk_serializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
 
@@ -211,10 +213,10 @@ namespace stor {
       m_ser_buffer -> reserve(ser_buflen);
 
       // fill serialization buffer
-      std::size_t elems_written = nullsup::suppress_zero(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
+      std::size_t elems_written = nullsup::suppress_null(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
 
       // prepare and serialize chunk metadata
-      NDVecArrayStreamerChunkMetadata chunk_meta(StreamerMode::zero_suppressed, elems_written);
+      NDVecArrayStreamerChunkMetadata chunk_meta(StreamerMode::null_suppressed, elems_written);
       Traits<NDVecArrayStreamerChunkMetadata>::serialize(stream, chunk_meta);
 
       // serialize chunk data from buffer

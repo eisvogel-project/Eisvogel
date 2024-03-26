@@ -88,20 +88,20 @@ namespace nullsup {
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    std::size_t dims, std::size_t vec_dims>
-  std::size_t suppress_zero(const ArrayT<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {  
+  std::size_t suppress_null(const ArrayT<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {  
     auto postprocessor = [](const uint32_t& host) -> uint32_t {
       return htonl(host);
     };  
-    return suppress_zero(arr, std::move(buffer), postprocessor);
+    return suppress_null(arr, std::move(buffer), postprocessor);
   }
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    std::size_t dims, std::size_t vec_dims>
-  std::size_t desuppress_zero(const std::span<uint32_t>&& buffer, ArrayT<float, dims, vec_dims>& arr) {
+  std::size_t desuppress_null(const std::span<uint32_t>&& buffer, ArrayT<float, dims, vec_dims>& arr) {
     auto preprocessor = [](const uint32_t& network) -> uint32_t {
       return ntohl(network);
     };
-    return desuppress_zero(std::move(buffer), arr, preprocessor);
+    return desuppress_null(std::move(buffer), arr, preprocessor);
   }
   
   // ---------
@@ -110,35 +110,35 @@ namespace nullsup {
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims,
 	    typename SerType, class CallableT>
-  std::size_t suppress_zero(const ArrayT<T, dims, vec_dims>& arr, std::span<SerType>&& buffer, CallableT&& postprocessor) {
+  std::size_t suppress_null(const ArrayT<T, dims, vec_dims>& arr, std::span<SerType>&& buffer, CallableT&& postprocessor) {
     
-    SerType num_zeros = 0;
+    SerType num_nulls = 0;
     auto buffer_it = buffer.begin();
     
-    auto zero_suppressor = [&](Vector<std::size_t, dims>& ind) {
+    auto null_suppressor = [&](Vector<std::size_t, dims>& ind) {
       
-      if(arr.IsZero(ind)) {      
-	// if compression is triggered, assume that this array has may zeroes
+      if(arr.IsNull(ind)) {      
+	// if compression is triggered, assume that this array has may nulls
 	[[likely]];
 	
-	if(num_zeros == 0) {
+	if(num_nulls == 0) {
 	  [[unlikely]];
 	  
-	  // first zero, put into buffer
+	  // first null, put into buffer
 	  std::fill_n(std::execution::unseq, buffer_it, vec_dims, postprocessor(0));
 	  buffer_it += vec_dims;
 	}
 	
-	// keep counting the streak of zeros
-	num_zeros++;
+	// keep counting the streak of nulls
+	num_nulls++;
       }
       else {
-	if(num_zeros > 0) {	
-	  // first non-zero after a streak of zeros: write number count of zeros
-	  std::fill_n(std::execution::unseq, buffer_it, 1, postprocessor(num_zeros));
+	if(num_nulls > 0) {	
+	  // first non-null after a streak of nulls: write number count of nulls
+	  std::fill_n(std::execution::unseq, buffer_it, 1, postprocessor(num_nulls));
 	  buffer_it++;
 	  
-	  num_zeros = 0;
+	  num_nulls = 0;
 	}
 	
 	// copy the array element
@@ -150,11 +150,11 @@ namespace nullsup {
       }
     };
     
-    loop_over_array_elements(arr, zero_suppressor);
+    loop_over_array_elements(arr, null_suppressor);
     
-    // close any remaining open zeroes
-    if(num_zeros > 0) {
-      std::fill_n(std::execution::unseq, buffer_it, 1, htonl(num_zeros));
+    // close any remaining open nulls
+    if(num_nulls > 0) {
+      std::fill_n(std::execution::unseq, buffer_it, 1, htonl(num_nulls));
       buffer_it += 1;
     }
     
@@ -164,21 +164,21 @@ namespace nullsup {
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims,
 	    typename SerType, class CallableT>
-  std::size_t desuppress_zero(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_dims>& arr, CallableT&& preprocessor) {
+  std::size_t desuppress_null(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_dims>& arr, CallableT&& preprocessor) {
     
-    SerType num_zeros = 0;
+    SerType num_nulls = 0;
     Vector<T, vec_dims> vec_buffer;
     
     auto buffer_it = buffer.begin();
     
-    auto zero_desuppressor = [&](Vector<std::size_t, dims>& ind) {
+    auto null_desuppressor = [&](Vector<std::size_t, dims>& ind) {
       
-      if(num_zeros > 0) {
+      if(num_nulls > 0) {
 	[[likely]];
 	
-	// Fill zero elements into array
+	// Fill null elements into array
 	std::fill_n(std::execution::unseq, arr[ind].begin(), vec_dims, 0);
-	num_zeros--;
+	num_nulls--;
       }
       else {
 	
@@ -191,14 +191,14 @@ namespace nullsup {
 	
 	arr[ind] = vec_buffer;
 	
-	if(arr.IsZero(ind)) {
-	  num_zeros = preprocessor(*buffer_it) - 1; // the first zero has already been written into the array
+	if(arr.IsNull(ind)) {
+	  num_nulls = preprocessor(*buffer_it) - 1; // the first null has already been written into the array
 	  buffer_it++;
 	}
       }    
     };
     
-    loop_over_array_elements(arr, zero_desuppressor);
+    loop_over_array_elements(arr, null_desuppressor);
     
     return buffer_it - buffer.begin();
   }

@@ -81,7 +81,7 @@ public:
     return NDVecArray<T, dims, vec_dims>(view_shape, m_strides, view_offset, m_data);
   }
 
-  bool IsZero(const ind_t& ind) const {
+  bool IsNull(const ind_t& ind) const {
     for(scalar_t& cur : this -> operator[](ind)) {
       if(cur != 0) {
 	return false;
@@ -135,8 +135,8 @@ private:
 };
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
-class NDVecArrayZeroAware : public NDVecArray<T, dims, vec_dims> {
+class NDVecArrayNullAware : public NDVecArray<T, dims, vec_dims> {
 
-  // with faster IsZero overload / bookkeeping of fraction of zero'ed elements -> to be used in compression step
+  // with faster IsNull overload / bookkeeping of fraction of null'ed elements -> to be used in compression step
   
 };

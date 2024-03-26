@@ -8,7 +8,7 @@ namespace stor {
   enum class StreamerMode : std::size_t {
     automatic = 0,
     dense = 1,
-    zero_suppressed = 2
+    null_suppressed = 2
   };
 
   template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -45,7 +45,7 @@ namespace stor {
   private:
     
     void serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size);
-    void serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size);
+    void serialize_all_chunks_null_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size);
 
   private:
 
