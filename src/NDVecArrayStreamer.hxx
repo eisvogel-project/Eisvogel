@@ -170,8 +170,6 @@ namespace stor {
 
     // deserialize array-wide metadata
     NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::deserialize(stream);
-
-    std::cout << "found array with shape = " << meta.array_shape[0] << ", " << meta.array_shape[1] << ", " << meta.array_shape[2] << std::endl;
     
     // prepare new array of the correct shape
     val.resize(meta.array_shape, T());
@@ -182,20 +180,12 @@ namespace stor {
       // get chunk metadata
       NDVecArrayStreamerChunkMetadata chunk_meta = Traits<NDVecArrayStreamerChunkMetadata>::deserialize(stream);
 
-      std::cout << "chunk_begin = " << chunk_begin[0] << ", " << chunk_begin[1] << ", " << chunk_begin[2] << std::endl;
-      std::cout << "chunk_end = " << chunk_end[0] << ", " << chunk_end[1] << ", " << chunk_end[2] << std::endl;
-      std::cout << "found serialization chunk with size = " << chunk_meta.chunk_size << ", mode = " << reinterpret_cast<std::size_t&>(chunk_meta.ser_mode) << std::endl;
-
       // make sure buffer is large enough and read data
       m_ser_buffer -> reserve(chunk_meta.chunk_size);
       read_into_buffer(chunk_meta.chunk_size, stream);
-
-      std::cout << "read complete" << std::endl;
       
       // deserialize data and fill into array
       type val_view = val.View(chunk_begin, chunk_end);
-
-      std::cout << "output arr shape = " << val.GetShape()[0] << ", " << val.GetShape()[1] << ", " << val.GetShape()[2] << std::endl;
       
       std::size_t elems_read;
       switch(chunk_meta.ser_mode) {

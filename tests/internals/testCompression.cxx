@@ -20,19 +20,21 @@
 
 int main(int argc, char* argv[]) { 
 
-  Vector<std::size_t, 3> shape{400u, 400u, 400u};
+  static constexpr std::size_t len = 400;
   
-  NDVecArray<float, 3, 2> arr1(shape, 0.0f);
+  Vector<std::size_t, 3> shape{401u, 400u, 400u};
+  
+  NDVecArray<float, 3, 2> arr1(shape, 150.0f);
   std::cout << "volume = " << arr1.GetVolume() << std::endl;
   std::cout << "elements = " << arr1.GetNumberElements() << std::endl;
 
-  Vector<std::size_t, 3> slice_shape{1u, 400u, 400u};
-  NDVecArray<float, 3, 2> slice1(slice_shape, 10.0f);
+  // Vector<std::size_t, 3> slice_shape{1u, 400u, 400u};
+  NDVecArray<float, 3, 2> slice1 = arr1.View({400u, 0u, 0u}, {401u, 400u, 400u});
   
   Vector<float, 2> testvec{1.f, 2.f};
-  arr1[{200u, 200u, 200u}] = testvec;
+  arr1[{250u, 250u, 250u}] = testvec;
 
-  NDVecArray<float, 3, 2> arr1_view = arr1.View({200u, 200u, 200u}, {202u, 202u, 202u});
+  NDVecArray<float, 3, 2> arr1_view = arr1.View({0u, 0u, 0u}, {400u, 400u, 400u});
   
   using in_type = float;
   using ser_type = uint32_t;
@@ -45,8 +47,8 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
-    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
-    //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    //streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();
   }
@@ -67,8 +69,8 @@ int main(int argc, char* argv[]) {
     iofs.close();
   }
 
-  Vector<std::size_t, 3> bigger_shape{402u, 400u, 400u};
-  NDVecArray<float, 3, 2> arr1_read(bigger_shape, 1.0f);
+  //Vector<std::size_t, 3> bigger_shape{4u, len, len};
+  NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
   {
     std::fstream iofs;
