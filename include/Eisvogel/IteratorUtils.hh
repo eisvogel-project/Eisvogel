@@ -1,18 +1,16 @@
-#ifndef __ITERATOR_UTILS_HH
-#define __ITERATOR_UTILS_HH
+#pragma once
 
 #include <cuchar>
 #include "DenseNDArray.hh"
-
-#include "NDVecArray.hh"
 #include "Vector.hh"
 
 // -----------------------------------------------
 
 // Iterator for static (i.e. known at compile time) number of dimensions
 
-template <typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
-constexpr void loop_over_array_elements(const NDVecArray<T, dims, vec_dims>& arr, CallableT&& worker) {
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_array_elements(const ArrayT<T, dims, vec_dims>& arr, CallableT&& worker) {
   Vector<std::size_t, dims> begin(0);
   Vector<std::size_t, dims> end = arr.GetShape();
   loop_over_elements(begin, end, worker);
@@ -56,8 +54,9 @@ constexpr void loop_over_elements_dimension(const Vector<std::size_t, vec_dims>&
 
 // Iterator over chunks with certain size
 
-template <typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
-constexpr void loop_over_array_chunks(const NDVecArray<T, dims, vec_dims>& arr,
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
+constexpr void loop_over_array_chunks(const ArrayT<T, dims, vec_dims>& arr,
 				      const Vector<std::size_t, dims>& chunk_size, CallableT&& worker) {
   Vector<std::size_t, dims> begin(0);
   Vector<std::size_t, dims> end = arr.GetShape();
@@ -141,5 +140,3 @@ using GridCounter = VectorCounter<GridVector>;
 
 // some additional utility functions
 bool isInIndexRange(const IndexVector& inds, const IndexVector& start_inds, const IndexVector& stop_inds);
-
-#endif
