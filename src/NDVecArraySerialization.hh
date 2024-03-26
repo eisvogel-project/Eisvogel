@@ -37,7 +37,7 @@ namespace dense {
 	buffer_it++;
       }
     };
-    loop_over_array_elements(arr, element_copier);
+    index_loop_over_array_elements(arr, element_copier);
     
     return buffer_it - buffer.begin();      
   }    
@@ -63,7 +63,7 @@ std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_d
 
     arr[ind] = vec_buffer;
   };
-  loop_over_array_elements(arr, element_copier);
+  index_loop_over_array_elements(arr, element_copier);
   
   return buffer_it - buffer.begin();
 }
@@ -150,7 +150,7 @@ namespace nullsup {
       }
     };
     
-    loop_over_array_elements(arr, null_suppressor);
+    index_loop_over_array_elements(arr, null_suppressor);
     
     // close any remaining open nulls
     if(num_nulls > 0) {
@@ -198,7 +198,7 @@ namespace nullsup {
       }    
     };
     
-    loop_over_array_elements(arr, null_desuppressor);
+    index_loop_over_array_elements(arr, null_desuppressor);
     
     return buffer_it - buffer.begin();
   }

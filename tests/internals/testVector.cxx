@@ -31,8 +31,8 @@ int main(int argc, char* argv[]) {
   //   std::cout << cur[0] << ", " << cur[1]  << std::endl;
   // };
   
-  // loop_over_chunks(start, end, chunk_size, print_chunk);
-  // loop_over_elements(start, end, printer);
+  // index_loop_over_chunks(start, end, chunk_size, print_chunk);
+  // index_loop_over_elements(start, end, printer);
   
   Vector<float, 2> vec1{1.f, 2.f};
   
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
   auto printer = [](Vector<std::size_t, 3>& cur) {
     std::cout << cur[0] << ", " << cur[1] << ", " << cur[2] << std::endl;
   };
-  loop_over_elements(start, end, printer);
+  index_loop_over_elements(start, end, printer);
   
   std::filesystem::path testpath = "./testVector.bin";   
   std::fstream ofs;

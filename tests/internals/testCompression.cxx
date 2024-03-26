@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
   };
 
   std::cout << "checking" << std::endl;
-  loop_over_array_elements(arr1_view, checker);
+  index_loop_over_array_elements(arr1_view, checker);
 
   // =====
   

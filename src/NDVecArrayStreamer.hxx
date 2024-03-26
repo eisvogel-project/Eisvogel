@@ -201,7 +201,7 @@ namespace stor {
       assert(elems_read == chunk_meta.chunk_size);
     };
 
-    loop_over_array_chunks(val, meta.ser_chunk_shape, chunk_deserializer);    
+    index_loop_over_array_chunks(val, meta.ser_chunk_shape, chunk_deserializer);    
   }
 
   // tests if a chunk with `ser_chunk_shape` is a `slice` of the array with shape `array_shape`
@@ -338,7 +338,7 @@ namespace stor {
       write_buffer(elems_written, stream);
     };
       
-    loop_over_array_chunks(val, ser_chunk_shape, chunk_serializer);
+    index_loop_over_array_chunks(val, ser_chunk_shape, chunk_serializer);
   }
 
   template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -362,7 +362,7 @@ namespace stor {
       write_buffer(elems_written, stream);      
     };
     
-    loop_over_array_chunks(val, ser_chunk_shape, chunk_serializer);    
+    index_loop_over_array_chunks(val, ser_chunk_shape, chunk_serializer);    
   }  
 }
 
