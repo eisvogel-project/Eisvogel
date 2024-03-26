@@ -31,7 +31,7 @@ template <std::size_t vec_dims, class CallableT>
 constexpr void index_loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
 				  CallableT&& worker) {
   Vector<std::size_t, vec_dims> cur;
-  index_loop_over_elements_dimension<vec_dims - 1, vec_dims, CallableT>(begin, end, cur, worker);
+  index_loop_over_elements_dimension<0, vec_dims, CallableT>(begin, end, cur, worker);
 }
 
 template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
@@ -41,11 +41,12 @@ constexpr void index_loop_over_elements_dimension(const Vector<std::size_t, vec_
   static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
 
   for(cur[cur_dim] = begin[cur_dim]; cur[cur_dim] < end[cur_dim]; cur[cur_dim]++) {  
-    if constexpr(cur_dim == 0) {
+    if constexpr(cur_dim == vec_dims - 1) {
       worker(cur);
     }
     else {
-      index_loop_over_elements_dimension<cur_dim - 1>(begin, end, cur, worker);
+      // continue with iteration over the next-innermost index
+      index_loop_over_elements_dimension<cur_dim + 1>(begin, end, cur, worker);
     }
   }  
 }
@@ -68,7 +69,7 @@ constexpr void index_loop_over_chunks(const Vector<std::size_t, vec_dims>& begin
 				const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
   Vector<std::size_t, vec_dims> chunk_begin;
   Vector<std::size_t, vec_dims> chunk_end;
-  index_loop_over_chunks_dimension<vec_dims - 1, vec_dims, CallableT>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
+  index_loop_over_chunks_dimension<0, vec_dims, CallableT>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
 }
 
 template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
@@ -83,11 +84,11 @@ constexpr void index_loop_over_chunks_dimension(const Vector<std::size_t, vec_di
   while(chunk_begin[cur_dim] < end[cur_dim]) {
     chunk_end[cur_dim] = std::min(chunk_begin[cur_dim] + chunk_size[cur_dim], end[cur_dim]);
 
-    if constexpr(cur_dim == 0) {
+    if constexpr(cur_dim == vec_dims - 1) {
       worker(chunk_begin, chunk_end);
     }
     else {
-      index_loop_over_chunks_dimension<cur_dim - 1>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
+      index_loop_over_chunks_dimension<cur_dim + 1>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
     }
 
     chunk_begin[cur_dim] = chunk_end[cur_dim];
