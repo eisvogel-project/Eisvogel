@@ -53,8 +53,11 @@ namespace stor {
     
     static type deserialize_chunk_zero_suppressed(std::fstream& stream); // to be removed
 
-    
+  private:
 
+    void write_buffer(std::size_t num_elems, std::fstream& stream);
+    void read_into_buffer(std::size_t num_elems, std::fstream& stream);
+    
   private:
 
     std::shared_ptr<buffer_t> m_ser_buffer;

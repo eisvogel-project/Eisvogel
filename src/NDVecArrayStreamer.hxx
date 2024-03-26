@@ -72,6 +72,18 @@ namespace stor {
       return type(ser_mode, chunk_size);
     }
   };
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::write_buffer(std::size_t num_elems, std::fstream& stream) {
+    std::span<ser_type> to_write(m_ser_buffer -> begin(), num_elems);
+    stream.write((char*)(&to_write[0]), to_write.size_bytes());
+  }
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  void NDVecArrayStreamer<T, dims, vec_dims>::read_into_buffer(std::size_t num_elems, std::fstream& stream) {
+    std::span<ser_type> to_read(m_ser_buffer -> begin(), num_elems);
+    stream.read((char*)(&to_read[0]), to_read.size_bytes());
+  }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
   NDVecArrayStreamer<T, dims, vec_dims>::NDVecArrayStreamer(std::size_t initial_buffer_size) {
@@ -125,6 +137,38 @@ namespace stor {
     val.resize(meta.array_shape);
 
     // loop over chunks
+    auto chunk_deserializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
+
+      // get chunk metadata
+      NDVecArrayStreamerChunkMetadata chunk_meta = Traits<NDVecArrayStreamerChunkMetadata>::deserialize(stream);
+      std::cout << "found storage chunk with ser_mode = " << (std::size_t)(chunk_meta.ser_mode) << ", chunk_size = " << chunk_meta.chunk_size << std::endl;
+      std::cout << "chunk_begin = " << chunk_begin[0] << ", " << chunk_begin[1] << ", " << chunk_begin[2] << std::endl;
+      std::cout << "chunk_end = " << chunk_end[0] << ", " << chunk_end[1] << ", " << chunk_end[2] << std::endl;
+
+      // make sure buffer is large enough and read data
+      m_ser_buffer -> reserve(chunk_meta.chunk_size);
+      read_into_buffer(chunk_meta.chunk_size, stream);
+
+      // deserialize data and fill into array
+      type val_view = val.View(chunk_begin, chunk_end);
+
+      auto printer = [&](const Vector<std::size_t, dims>& ind) {
+	std::cout << "ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << ": (" << val_view[ind][0] << ", " << val_view[ind][1] << ")" << std::endl;
+      };
+      std::cout << "before chunk filling" << std::endl;
+      loop_over_array_elements(val_view, printer);
+      
+      std::size_t elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
+
+      std::cout << "after chunk filling" << std::endl;
+      loop_over_array_elements(val_view, printer);
+
+      std::cout << "val after chunk filling" << std::endl;
+      loop_over_array_elements(val, printer);
+
+    };
+
+    loop_over_array_chunks(val, meta.chunk_size, chunk_deserializer);    
   }
 
   template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -141,7 +185,6 @@ namespace stor {
 
       // make sure serialization buffer is large enough
       std::size_t ser_buflen = NDVecArray<T, dims, vec_dims>::ComputeVolume(chunk_end - chunk_begin);
-      
       m_ser_buffer -> reserve(ser_buflen); 
       
       // fill serialization buffer
@@ -150,9 +193,9 @@ namespace stor {
       // prepare and serialize chunk metadata
       NDVecArrayStreamerChunkMetadata chunk_meta(StreamerMode::dense, elems_written);
       Traits<NDVecArrayStreamerChunkMetadata>::serialize(stream, chunk_meta);
-
+      
       // serialize chunk data from buffer
-      stream.write((char*)&(*(m_ser_buffer -> begin())), elems_written);
+      write_buffer(elems_written, stream);
     };
       
     loop_over_array_chunks(val, chunk_size, chunk_serializer);

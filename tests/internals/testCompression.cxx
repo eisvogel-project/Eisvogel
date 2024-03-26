@@ -42,32 +42,33 @@ int main(int argc, char* argv[]) {
 
   {
     std::fstream iofs;
-    iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
-    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
-    //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    iofs.open(testpath, std::ios::out | std::ios::binary);    
+    //streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    std::cout << "done writing" << std::endl;
     iofs.close();
   }
 
-  // NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
+  NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
-  // {
-  //   std::fstream iofs;
-  //   iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
-  //   streamer.deserialize(iofs, arr1_read);
-  //   iofs.close();
-  // }  
+  {
+    std::fstream iofs;
+    iofs.open(testpath, std::ios::in | std::ios::binary);    
+    streamer.deserialize(iofs, arr1_read);
+    iofs.close();
+  }  
 
-  // auto checker = [&](const Vector<std::size_t, 3>& ind) {
-  //   for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
-  //     if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
-  // 	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
-  // 	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
-  //     }
-  //   }   
-  // };
+  auto checker = [&](const Vector<std::size_t, 3>& ind) {
+    for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
+      if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
+	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
+	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
+      }
+    }   
+  };
 
-  // std::cout << "checking" << std::endl;
-  // loop_over_array_elements(arr1, checker);
+  std::cout << "checking" << std::endl;
+  // loop_over_array_elements(arr1_view, checker);
 
   // =====
   

@@ -81,10 +81,8 @@ public:
   // Array view access
   NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) const {
     shape_t view_shape = end_ind - start_ind;
-    stride_t view_strides = ComputeStrides(view_shape);        
-    std::size_t view_offset = std::inner_product(start_ind.cbegin(), start_ind.cend(), m_strides.begin() + 1, m_offset);
-
-    return NDVecArray<T, dims, vec_dims>(view_shape, view_strides, view_offset, m_data);
+    std::size_t view_offset = ComputeFlatInd(start_ind);
+    return NDVecArray<T, dims, vec_dims>(view_shape, m_strides, view_offset, m_data);
   }
 
   bool IsZero(const ind_t& ind) const {

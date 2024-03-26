@@ -12,6 +12,15 @@ namespace dense {
     };  
     return to_buffer(arr, std::move(buffer), postprocessor);
   }
+
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    std::size_t dims, std::size_t vec_dims>
+  std::size_t from_buffer(ArrayT<float, dims, vec_dims>& arr, std::span<uint32_t>&& buffer) {
+    auto preprocessor = [](const uint32_t& network) -> uint32_t {
+      return ntohl(network);
+    };
+    return from_buffer(std::move(buffer), arr, preprocessor);
+  }
   
   // returns elements in buffer that need to be considered
   template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -51,7 +60,7 @@ std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_d
       buffer_it++;
       std::memcpy(&vec_buffer[ind], &ser_val, sizeof(ser_val));
     }
-    
+
     arr[ind] = vec_buffer;
   };
   loop_over_array_elements(arr, element_copier);
