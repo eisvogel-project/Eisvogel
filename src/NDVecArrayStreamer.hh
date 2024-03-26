@@ -51,10 +51,11 @@ namespace stor {
     void serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode);
     void deserialize(std::fstream& stream, type& val);
 
-    void append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode);
+    void append_slice(std::fstream& stream, const type& chunk, std::size_t axis, const StreamerMode& mode);
 
   private:
-    
+
+    void serialize_all_chunks(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode);
     void serialize_all_chunks_dense(std::fstream& stream, const type& val, const shape_t& chunk_size);
     void serialize_all_chunks_null_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size);
 

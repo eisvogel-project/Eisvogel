@@ -60,6 +60,23 @@ public:
   }
 
   // -----------------------------
+  // logic operations
+  // -----------------------------
+
+  friend bool operator==(const Vector<T, vec_dims>& lhs, const Vector<T, vec_dims>& rhs) {
+    for(std::size_t ind = 0; ind < vec_dims; ind++) {
+      if(lhs[ind] != rhs[ind]) {
+	return false;
+      }
+    }
+    return true;
+  }
+
+  friend bool operator!=(const Vector<T, vec_dims>& lhs, const Vector<T, vec_dims>& rhs) {
+    return !(lhs == rhs);
+  }
+  
+  // -----------------------------
   // arithmetic operations
   // -----------------------------
 

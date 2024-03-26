@@ -94,6 +94,24 @@ public:
   const std::size_t GetVolume() const {return ComputeVolume(m_shape);}
   const std::size_t GetNumberElements() const {return GetVolume() / vec_dims;}
 
+  // determines whether array with shape `arr_shape` can be concatenated with an array with shape `other_shape` along `axis`
+  static bool ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape, std::size_t axis) {
+    
+    // array axis out of bounds
+    if(axis >= dims) {
+      return false;
+    }
+
+    // dimension along all directions need to match with the exception of the concatenation axis
+    for(std::size_t ind = 0; ind < dims; ind++) {
+      if(ind == axis) {	continue; }
+      if(arr_shape[ind] != other_shape[ind]) {
+	return false;
+      }
+    }
+    return true;
+  }
+  
   // -----------------------------
   // operations on `NDVecArrays`
   // -----------------------------
