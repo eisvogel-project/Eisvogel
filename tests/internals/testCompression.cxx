@@ -66,16 +66,20 @@ int main(int argc, char* argv[]) {
     std::cout << "done appending slice" << std::endl;
     iofs.close();
   }
+
+  Vector<std::size_t, 3> bigger_shape{402u, 400u, 400u};
+  NDVecArray<float, 3, 2> arr1_read(bigger_shape, 1.0f);
+
+  {
+    std::fstream iofs;
+    iofs.open(testpath, std::ios::in | std::ios::binary);    
+    streamer.deserialize(iofs, arr1_read);
+    std::cout << "returned" << std::endl;
+    iofs.close();
+  }  
+
+  std::cout << "read array with shape = " << arr1_read.GetShape()[0] << ", " << arr1_read.GetShape()[1] << ", " << arr1_read.GetShape()[2] << std::endl;
   
-  // NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
-
-  // {
-  //   std::fstream iofs;
-  //   iofs.open(testpath, std::ios::in | std::ios::binary);    
-  //   streamer.deserialize(iofs, arr1_read);
-  //   iofs.close();
-  // }  
-
   // auto checker = [&](const Vector<std::size_t, 3>& ind) {
   //   for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
   //     if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {

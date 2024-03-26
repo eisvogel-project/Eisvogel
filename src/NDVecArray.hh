@@ -58,11 +58,11 @@ public:
   }   
 
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
-  void resize(const shape_t& new_shape) {
+  void resize(const shape_t& new_shape, const T& value) {
     m_shape = new_shape;
     m_strides = ComputeStrides(new_shape);
     m_offset = 0;
-    m_data -> reserve(GetVolume());
+    m_data -> resize(GetVolume(), value);
   }
     
   // Single-element access
