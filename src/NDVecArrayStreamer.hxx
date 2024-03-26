@@ -144,19 +144,18 @@ namespace stor {
       // deserialize data and fill into array
       type val_view = val.View(chunk_begin, chunk_end);
 
+      std::size_t elems_read;
       switch(chunk_meta.ser_mode) {
-
-      case StreamerMode::dense:
-	{
-	  std::size_t elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
-	  assert(elems_read == chunk_meta.chunk_size);
-	}
-	break;
-
-      case StreamerMode::zero_suppressed:
-	break;
 	
+      case StreamerMode::dense:
+	  elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
+	  break;
+	
+      case StreamerMode::zero_suppressed:
+	  elems_read = nullsup::desuppress_zero(std::span<ser_type>(*m_ser_buffer), val_view);
+	  break;	
       }
+      assert(elems_read == chunk_meta.chunk_size);
     };
 
     loop_over_array_chunks(val, meta.chunk_size, chunk_deserializer);    
@@ -191,39 +190,28 @@ namespace stor {
       
     loop_over_array_chunks(val, chunk_size, chunk_serializer);
   }
-  
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_chunk_dense(std::fstream& stream) {
-    
-    shape_t shape = Traits<shape_t>::deserialize(stream);
-    stride_t strides = Traits<stride_t>::deserialize(stream);
-    std::size_t offset = Traits<std::size_t>::deserialize(stream);
-    data_t data = Traits<data_t>::deserialize(stream);
-    return type(shape, strides, offset, std::move(data));
-  }
 
-  // ----------------------------------------
-  
   template <typename T, std::size_t dims, std::size_t vec_dims>
   void NDVecArrayStreamer<T, dims, vec_dims>::serialize_all_chunks_zero_suppressed(std::fstream& stream, const type& val, const shape_t& chunk_size) {
 
-    Traits<shape_t>::serialize(stream, val.m_shape);
-    Traits<stride_t>::serialize(stream, val.m_strides);
-    Traits<std::size_t>::serialize(stream, val.m_offset);
-    Traits<data_t>::serialize(stream, *val.m_data);
-    
-    // loop_over_elements();
-    
-  }
+    auto chunk_serializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {
 
-  template <typename T, std::size_t dims, std::size_t vec_dims>
-  NDVecArrayStreamer<T, dims, vec_dims>::type NDVecArrayStreamer<T, dims, vec_dims>::deserialize_chunk_zero_suppressed(std::fstream& stream) {
+      // make sure serialization buffer is large enough
+      std::size_t ser_buflen = nullsup::calculate_required_buflen(chunk_end - chunk_begin, vec_dims);
+      m_ser_buffer -> reserve(ser_buflen);
+
+      // fill serialization buffer
+      std::size_t elems_written = nullsup::suppress_zero(val.View(chunk_begin, chunk_end), std::span<ser_type>(*m_ser_buffer));
+
+      // prepare and serialize chunk metadata
+      NDVecArrayStreamerChunkMetadata chunk_meta(StreamerMode::zero_suppressed, elems_written);
+      Traits<NDVecArrayStreamerChunkMetadata>::serialize(stream, chunk_meta);
+
+      // serialize chunk data from buffer
+      write_buffer(elems_written, stream);      
+    };
     
-    shape_t shape = Traits<shape_t>::deserialize(stream);
-    stride_t strides = Traits<stride_t>::deserialize(stream);
-    std::size_t offset = Traits<std::size_t>::deserialize(stream);
-    data_t data = Traits<data_t>::deserialize(stream);
-    return type(shape, strides, offset, std::move(data));
-  }
+    loop_over_array_chunks(val, chunk_size, chunk_serializer);    
+  }  
 }
 

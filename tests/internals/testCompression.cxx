@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
-    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::zero_suppressed);
     //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();
