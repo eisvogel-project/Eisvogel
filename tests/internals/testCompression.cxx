@@ -34,8 +34,7 @@ int main(int argc, char* argv[]) {
   using in_type = float;
   using ser_type = uint32_t;
 
-  constexpr std::size_t maxval = std::numeric_limits<std::size_t>::max();
-  Vector<std::size_t, 3> streamer_chunk_size{1u, maxval, maxval};
+  Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
   stor::NDVecArrayStreamer<NDVecArray, float, 3, 2> streamer;
 
   std::filesystem::path testpath = "./testVector.bin";
@@ -43,7 +42,7 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
-    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::null_suppressed);
+    streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
     //streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();

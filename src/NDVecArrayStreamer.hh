@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <limits>
 #include "NDVecArray.hh"
 
 namespace stor {
@@ -11,9 +12,16 @@ namespace stor {
     null_suppressed = 2
   };
 
+  enum class AccessMode : std::size_t {
+    modification_allowed = 0,
+    modification_not_allowed = 1
+  };
+  
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
   struct NDVecArrayStreamerMetadata;
+
+  static constexpr std::size_t INFTY = std::numeric_limits<std::size_t>::max();
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
