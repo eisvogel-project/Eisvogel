@@ -275,6 +275,17 @@ namespace stor {
     // TODO: This needs to be refined more ... not sure all of these are necessary
     // Only need to make sure that serialization and concatenation along the requested axis commute for the chosen serialization chunk size
     // (need not even be the same for all serialized chunks in the end!)
+    // -----
+    // Conditions:
+    // 1) dimension along which to concatenate must be the outermost changing dimension in the iteration over chunks
+    // 2) chunk size along the concatenation dimension must fit snugly, i.e. no gaps must remain
+
+    // must satisfy that it(part1) + it(part2) === it(part1 + part2) for the given chunk size and dimensions of part1, part2
+
+    // Better conditions:
+    // 1) must have no gaps and no automatically-growing chunks along concatenation dimension: i.e. must not have partial chunks along concat dimension
+    //       (ser_chunk_shape[concat_dim] <= array_shape[concat_dim]) && (array_shape[concat_dim] % ser_chunk_shape[concat_dim] == 0)
+    // 2) concat dimension must not be after the outermost changing dimension
     // --------
     
     // check if the serialization chunk is a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
