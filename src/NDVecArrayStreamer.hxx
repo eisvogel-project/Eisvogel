@@ -261,26 +261,34 @@ namespace stor {
       throw std::runtime_error("Error: trying to modify an array that cannot be modified!");
     }
 
-    // check if the serialization chunk is a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
-    if(!chunk_is_slice(meta.array_shape, meta.ser_chunk_shape)) {
-      throw std::runtime_error("Error: serialization chunk is not a slice, cannot append!");
-    }
-    
     // check if the passed slice is actually a `slice`
     if(!chunk_is_slice(meta.array_shape, slice.m_shape)) {
       throw std::runtime_error("Error: passed array chunk is not a slice, cannot append!");
     }
 
-    // need to make sure that the serialization axis is the same as the axis for appending the new slice
-    if(!ser_axis_matches_insertion_axis(meta.array_shape, meta.ser_chunk_shape, axis)) {
-      throw std::runtime_error("Error: serialization axis does not match requested insertion axis!");
-    }
-    
     // need to make sure that the new slice has the right dimensions for appending to the array along the prescribed axis
     if(!ArrayT<T, dims, vec_dims>::ShapeAllowsConcatenation(meta.array_shape, slice.m_shape, axis)) {
       throw std::runtime_error("Error: dimensions not compatible for concatenation!");
     }
+
+    // --------
+    // TODO: This needs to be refined more ... not sure all of these are necessary
+    // Only need to make sure that serialization and concatenation along the requested axis commute for the chosen serialization chunk size
+    // (need not even be the same for all serialized chunks in the end!)
+    // --------
     
+    // check if the serialization chunk is a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
+    if(!chunk_is_slice(meta.array_shape, meta.ser_chunk_shape)) {
+      throw std::runtime_error("Error: serialization chunk is not a slice, cannot append!");
+    }
+    
+    // need to make sure that the serialization axis is the same as the axis for appending the new slice
+    if(!ser_axis_matches_insertion_axis(meta.array_shape, meta.ser_chunk_shape, axis)) {
+      throw std::runtime_error("Error: serialization axis does not match requested insertion axis!");
+    }
+
+    // --------
+        
     // update metadata
     // check if the passed `slice` fits exactly into one or more serialization chunks; no further modifications are allowed if it doesn't
     meta.access_mode = permits_equally_sized_serialization_chunks(slice.m_shape, meta.ser_chunk_shape) ? AccessMode::modification_allowed : AccessMode::modification_not_allowed;
