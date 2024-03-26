@@ -5,6 +5,7 @@
 #include <fstream>
 #include <algorithm>
 #include <limits>
+#include <chrono>
 
 #include <span>
 
@@ -44,9 +45,11 @@ int main(int argc, char* argv[]) {
 
   Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
   stor::NDVecArrayStreamer<NDVecArray, float, 3, 2> streamer;
-
+  
   std::filesystem::path testpath = "./testVector.bin";
 
+  auto start = std::chrono::high_resolution_clock::now();
+  
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
@@ -57,6 +60,11 @@ int main(int argc, char* argv[]) {
     iofs.close();
   }
 
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+  std::cout << "wrote 512MB in " << duration << std::endl;
+  
   // {
   //   std::fstream iofs;
   //   iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);    
