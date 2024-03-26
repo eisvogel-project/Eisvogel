@@ -24,12 +24,15 @@ int main(int argc, char* argv[]) {
   
   Vector<std::size_t, 3> shape{401u, 400u, 400u};
   
-  NDVecArray<float, 3, 2> arr1(shape, 150.0f);
+  NDVecArray<float, 3, 2> arr1(shape, 150.0f);  
   std::cout << "volume = " << arr1.GetVolume() << std::endl;
   std::cout << "elements = " << arr1.GetNumberElements() << std::endl;
 
-  // Vector<std::size_t, 3> slice_shape{1u, 400u, 400u};
+  Vector<std::size_t, 3> slice_shape{1u, 400u, 400u};
+  
   NDVecArray<float, 3, 2> slice1 = arr1.View({400u, 0u, 0u}, {401u, 400u, 400u});
+
+  // std::cout << slice1[{0u, 0u, 0u}][0] << std::endl;
   
   Vector<float, 2> testvec{1.f, 2.f};
   arr1[{250u, 250u, 250u}] = testvec;
@@ -48,7 +51,8 @@ int main(int argc, char* argv[]) {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
     //streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
-    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::null_suppressed);
+    //streamer.serialize(iofs, slice1, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();
   }
@@ -69,7 +73,7 @@ int main(int argc, char* argv[]) {
     iofs.close();
   }
 
-  //Vector<std::size_t, 3> bigger_shape{4u, len, len};
+  // //Vector<std::size_t, 3> bigger_shape{4u, len, len};
   NDVecArray<float, 3, 2> arr1_read(shape, 1.0f);
 
   {
@@ -82,17 +86,17 @@ int main(int argc, char* argv[]) {
 
   std::cout << "read array with shape = " << arr1_read.GetShape()[0] << ", " << arr1_read.GetShape()[1] << ", " << arr1_read.GetShape()[2] << std::endl;
   
-  // auto checker = [&](const Vector<std::size_t, 3>& ind) {
-  //   for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
-  //     if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
-  // 	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
-  // 	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
-  //     }
-  //   }   
-  // };
+  auto checker = [&](const Vector<std::size_t, 3>& ind) {
+    for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
+      if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
+	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
+	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
+      }
+    }   
+  };
 
-  // std::cout << "checking" << std::endl;
-  // loop_over_array_elements(arr1_view, checker);
+  std::cout << "checking" << std::endl;
+  loop_over_array_elements(arr1_view, checker);
 
   // =====
   

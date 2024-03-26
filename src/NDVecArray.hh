@@ -32,6 +32,9 @@ struct VectorView : public std::span<T, vec_dims> {
 template <typename T, std::size_t dims, std::size_t vec_dims>
 class NDVecArray {
 
+  static_assert(dims > 0);
+  static_assert(vec_dims > 0);
+  
 private:
   friend class stor::NDVecArrayStreamer<NDVecArray, T, dims, vec_dims>;
   
@@ -42,16 +45,21 @@ public:
   
 private:
   using data_t = std::vector<T>;
-  using stride_t = Vector<std::size_t, dims + 1>;
+  using stride_t = Vector<std::size_t, dims>;
 
   // used in creation of view
   NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, std::shared_ptr<data_t> data) :
-    m_data(data), m_strides(strides), m_offset(offset), m_shape(shape) { }
+    m_data(data), m_strides(strides), m_offset(offset), m_shape(shape) {
+    m_number_elements =ComputeNumberElements(shape);
+    m_volume = ComputeVolume(shape);
+  }
   
 public:
   
   NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
     m_strides = ComputeStrides(shape);
+    m_number_elements = ComputeNumberElements(shape);
+    m_volume = ComputeVolume(shape);
     
     // reserve the required memory
     m_data = std::make_shared<data_t>(GetVolume(), value);
@@ -76,9 +84,9 @@ public:
   
   // Array view access
   NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) const {
-    shape_t view_shape = end_ind - start_ind;
     std::size_t view_offset = ComputeFlatInd(start_ind);
-    return NDVecArray<T, dims, vec_dims>(view_shape, m_strides, view_offset, m_data);
+    return NDVecArray<T, dims, vec_dims>(end_ind - start_ind, // shape of the view
+					 m_strides, view_offset, m_data);
   }
   
   bool IsNull(const ind_t& ind) const {
@@ -91,8 +99,8 @@ public:
   }
   
   const shape_t GetShape() const {return m_shape;}
-  const std::size_t GetVolume() const {return ComputeVolume(m_shape);}
-  const std::size_t GetNumberElements() const {return GetVolume() / vec_dims;}
+  const std::size_t GetVolume() const {return m_volume;}
+  const std::size_t GetNumberElements() const {return m_number_elements;}
 
   // determines whether array with shape `arr_shape` can be concatenated with an array with shape `other_shape` along `axis`
   static bool ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape, std::size_t axis) {
@@ -123,31 +131,50 @@ public:
 private:
 
   std::size_t ComputeFlatInd(const ind_t& ind) const {
-    return std::inner_product(ind.cbegin(), ind.cend(), m_strides.begin() + 1, m_offset);
+    return std::inner_product(ind.cbegin(), ind.cend(), m_strides.cbegin(), m_offset);
+  }
+
+  std::size_t ComputeFlatInd(const ind_t& ind) const requires(dims == 1) {
+    return m_offset + ind[0] * m_strides[0];
   }
   
   std::size_t ComputeFlatInd(const ind_t& ind) const requires(dims == 2) {
-    return m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2];
+    return m_offset + ind[0] * m_strides[0] + ind[1] * m_strides[1];
   }
 
   std::size_t ComputeFlatInd(const ind_t& ind) const requires(dims == 3) {
-    return m_offset + ind[0] * m_strides[1] + ind[1] * m_strides[2] + ind[2] * m_strides[3];
+    return m_offset + ind[0] * m_strides[0] + ind[1] * m_strides[1] + ind[2] * m_strides[2];
   }
-  
-  static stride_t ComputeStrides(const shape_t& shape) {
-    stride_t strides;
-    strides[0] = 1;
-    std::partial_sum(shape.begin(), shape.end(), strides.begin() + 1, std::multiplies<std::size_t>());
-    strides *= vec_dims;
 
-    // reverse strides so that slowest-changing index is the last one
-    std::reverse(std::execution::unseq, strides.begin(), strides.end());
-  
+  static stride_t ComputeStrides(const shape_t& shape) requires(dims == 1) {
+    stride_t strides{vec_dims};
     return strides;
   }
 
+  static stride_t ComputeStrides(const shape_t& shape) requires(dims == 2) {
+    stride_t strides{shape[1] * vec_dims, vec_dims};
+    return strides;
+  }
+  
+  static stride_t ComputeStrides(const shape_t& shape) requires(dims > 2) {
+    
+    stride_t strides;
+    std::size_t stride_accum = 1;
+    for(std::size_t ind = dims - 1; ind != (std::size_t)(-1); ind--) {
+      strides[ind] = stride_accum;
+      stride_accum *= shape[ind];
+    }    
+    strides *= vec_dims;
+    
+    return strides;
+  }
+
+  static std::size_t ComputeNumberElements(const shape_t& shape) {
+    return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
+  }
+
   static std::size_t ComputeVolume(const shape_t& shape) {
-    return ComputeStrides(shape)[0];
+    return ComputeNumberElements(shape) * vec_dims;
   }
   
 private:
@@ -156,6 +183,8 @@ private:
   
   stride_t m_strides;
   std::size_t m_offset;
+  std::size_t m_number_elements;
+  std::size_t m_volume;
   shape_t m_shape;
   
 };
