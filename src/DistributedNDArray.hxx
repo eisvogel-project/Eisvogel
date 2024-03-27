@@ -18,7 +18,7 @@ namespace stor {
     }
 
     static type deserialize(std::iostream& stream) {
-      ChunkType chunk_type{Traits<uint32_t>::deserialize(stream)};
+      ChunkTypeOld chunk_type{Traits<uint32_t>::deserialize(stream)};
       std::string filename = Traits<std::string>::deserialize(stream);
       IndexVector start_ind = Traits<IndexVector>::deserialize(stream);
       IndexVector stop_ind = Traits<IndexVector>::deserialize(stream);
@@ -91,7 +91,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
   IndexVector stop_ind = start_ind + chunk.shape();
 
   // prepare chunk metadata
-  ChunkMetadataOld meta(chunk_filename, start_ind, stop_ind, ChunkType::dense);
+  ChunkMetadataOld meta(chunk_filename, start_ind, stop_ind, ChunkTypeOld::dense);
 
   // prepare output file
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
@@ -112,7 +112,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
       return value != 0.0;
     };        
     sparse_t sparse_chunk = sparse_t::From(chunk, to_keep, 0.0);    
-    meta.chunk_type = ChunkType::sparse;
+    meta.chunk_type = ChunkTypeOld::sparse;
     
     m_ser.template serialize<ChunkMetadataOld>(ofs, meta);   
     m_ser.template serialize<sparse_t>(ofs, sparse_chunk);
@@ -455,10 +455,10 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
     ChunkMetadataOld meta = m_ser.template deserialize<ChunkMetadataOld>(ifs);
 
-    if(meta.chunk_type == ChunkType::dense) {
+    if(meta.chunk_type == ChunkTypeOld::dense) {
       m_chunk_cache.insert({chunk_ind, m_ser.template deserialize<dense_t>(ifs)});
     }
-    else if(meta.chunk_type == ChunkType::sparse) {
+    else if(meta.chunk_type == ChunkTypeOld::sparse) {
       m_chunk_cache.insert({chunk_ind, dense_t::FromSparseFile(ifs)});
     }
     else {

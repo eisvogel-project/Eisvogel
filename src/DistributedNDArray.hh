@@ -16,7 +16,7 @@
 #include "Serialization.hh"
 
 // global TODO: remove SparseT and DenseT and instead have a generic type argument for the to-be-saved chunk
-enum class ChunkType : uint32_t {
+enum class ChunkTypeOld : uint32_t {
   dense = 0,
   sparse = 1
 };
@@ -27,7 +27,7 @@ struct ChunkNotFoundError : public std::runtime_error {
 
 struct ChunkMetadataOld {
 
-  ChunkMetadataOld(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
+  ChunkMetadataOld(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkTypeOld& chunk_type) :
     filename(filename), start_ind(start_ind), stop_ind(stop_ind), chunk_type(chunk_type) { } 
 
   bool operator==(const ChunkMetadataOld& rhs) {
@@ -41,7 +41,7 @@ struct ChunkMetadataOld {
   std::string filename;
   IndexVector start_ind;
   IndexVector stop_ind;
-  ChunkType chunk_type;
+  ChunkTypeOld chunk_type;
 };
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template <class, std::size_t> class SparseT, class SerializerT>
