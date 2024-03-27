@@ -43,33 +43,19 @@ public:
   template <typename ... ConstructorArgs>
   ChunkBuffer(std::size_t depth, ConstructorArgs&&... args); 
 
-  // marks element in slot `ind` as unused, creating an empty slot
-  void free(std::size_t ind);
+  // // marks element in slot `ind` as unused, creating an empty slot
+  // void free(std::size_t ind);
 
-  // inserts new element, returns slot where the insertion happened
-  // the insertion either happens in an empty slot (if there are any), or, if no free slots are available,
-  // at the oldest occupied slot
-  // in the latter case, if T.descope() exists, it will be called before the insertion takes place
-  // ----
-  // template<class T>
-  // std::string optionalToString(T* obj)
-  // {
-  //     constexpr bool has_toString = requires(const T& t) {
-  //         t.toString();
-  //     };
+  // // inserts new element at `slot`
+  // void insert_at(T& element, std::size_t slot);
 
-  //     if constexpr (has_toString)
-  //         return obj->toString();
-  //     else
-  //         return "toString not defined";
-  // }
-  // ----
-  
-  template <class CallableT>
-  std::size_t insert(T& element, CallableT&& descoper);
+  // finds the best slot for the next insertion: this is either an empty slot (if one exists),
+  // or the slot of the oldest element
+  T& get_slot_for_insertion();
 
-  // returns reference to contents of buffer location with index `ind`
-  const T& get(std::size_t ind) const;
+  // // returns reference to contents of buffer location with index `ind`
+  // // this turns the requested slot into the most-recently accessed one
+  // const T& get(std::size_t slot) const;
   
 private:
 
@@ -150,15 +136,15 @@ public:
   // assumes that this is a new chunk and does not already exist
   void RegisterChunk(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
   // {
-  //    1) insert chunk together with its metadata into the buffer
+  //    1) insert chunk together with its metadata into the buffer: `insert_into_cache()`
   //    2) update the cache slot mapping
   // }
 
   // gets an existing chunk based on its metadata `chunk_meta`
   const chunk_t& RetrieveChunk(const chunk_meta_t& chunk_meta);
   // {
-  //    1) check if this chunk is already contained in the cache
-  //    2) if no, load chunk into the buffer and update the cache slot mapping
+  //    1) check if this chunk is already contained in the cache: check the cache slot mapping
+  //    2) if no, load chunk into the buffer (`load_into_cache`) and update the cache slot mapping
   //    3) if yes, prepare element for read with `sync_cache_element_for_read` (no need to update cache slot mapping)
   //    4) return reference to thus prepared cache element
   // }
@@ -172,33 +158,49 @@ public:
   //    3) if yes:
   //         -> if the cache entry also has `append` as status, update the metadata and perform the concatenation in the cache, keep `append` as status
   //         -> if the cache entry has `serialize` as status, update the metadata and perform the concatenation in the cache, keep `serialize` as status
-  //         -> if the cache entry has `nothing` as status, `free` it (so that it does not trigger any further lookups) and proceed as in 2)
+  //         -> if the cache entry has `nothing` as status, `free` it (so that it does not trigger any further lookups), remove its entry in the cache slot mapping
+  //                   and proceed as in 2)
   // }
 
 private:
 
-  // load chunk from file and insert into the cache
+  // deserialize chunk (and its metadata) from file and insert into the cache
   // returns the buffer slot of the inserted element
   std::size_t load_into_cache(const chunk_meta_t& chunk_meta);
+  // {
+  //     1) generate ifstream and deserialize
+  //     2) call `insert_into_cache` with the deserialized data
+  // }
 
   // inserts a new cache element into the oldest slot
-  // returns the buffer slot of the inserted element
-  std::size_t insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data); 
-    
+  // returns the buffer slot of the inserted element  
+  std::size_t insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
+  // {
+  //     1) insertion_slot = `get_slot_for_insertion`
+  //     2) `descope_cache_entry` using the obtained cache entry
+  //     3) use obtained reference to set new cache slot contents
+  // }
+
+  void descope_cache_entry(/* cache_entry */);
+  // {
+  //     1) handle descoping according to cache status (see notes above `CacheStatus` declaration)
+  //     2) move status to `nothing` so that nothing happens to it when it is selected for another descope
+  // }
+  
   // makes sure cache element with index `ind` is up-to date and ready for retrieval of values
   void sync_cache_element_for_read(std::size_t slot);
   // {
   //    proceed according to `op_to_perform` found at this cache slot:
-  //      0) `get` the element at the given cache slot
+  //      0) `get` the element at the given cache slot (turns it into the most-recently accessed one)
   //      1) `nothing`: do nothing
   //      2) `serialize`: this is already the full chunk, do nothing
-  //      3) `append`: perform appending to disk, then reread into this slot
+  //      3) `append`: perform appending to disk, then reread into this slot (using the reference obtained at step 0)
   // }
   
 private:
 
   // fast chunk_id -> cache slot mapping to check if needed chunk is already in cache
-  // std::unordered_map<chunk_id, buffer_ind> cache
+  // std::unordered_map<chunk_id, CacheEntry&> cache
 
   // where everything is actually cached
   // ChunkBuffer<chunk_t>  
