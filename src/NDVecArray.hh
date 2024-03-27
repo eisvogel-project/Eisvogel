@@ -70,7 +70,9 @@ public:
     m_shape = new_shape;
     m_strides = ComputeStrides(new_shape);
     m_offset = 0;
-    m_data -> resize(GetVolume(), value);
+
+    // if this ever becomes the bottleneck, use a different data container that can be resized without having to initialize all elements
+    m_data -> resize(GetVolume(), value); 
   }
     
   // Single-element access
