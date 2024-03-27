@@ -7,8 +7,8 @@
 
 namespace stor {
   template <>
-  struct Traits<ChunkMetadata> {
-    using type = ChunkMetadata;
+  struct Traits<ChunkMetadataOld> {
+    using type = ChunkMetadataOld;
 
     static void serialize(std::iostream& stream, const type& val) {
       Traits<uint32_t>::serialize(stream, static_cast<uint32_t>(val.chunk_type));
@@ -22,7 +22,7 @@ namespace stor {
       std::string filename = Traits<std::string>::deserialize(stream);
       IndexVector start_ind = Traits<IndexVector>::deserialize(stream);
       IndexVector stop_ind = Traits<IndexVector>::deserialize(stream);
-      return ChunkMetadata(filename, start_ind, stop_ind, chunk_type);
+      return ChunkMetadataOld(filename, start_ind, stop_ind, chunk_type);
     }    
   };
 }
@@ -91,7 +91,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
   IndexVector stop_ind = start_ind + chunk.shape();
 
   // prepare chunk metadata
-  ChunkMetadata meta(chunk_filename, start_ind, stop_ind, ChunkType::dense);
+  ChunkMetadataOld meta(chunk_filename, start_ind, stop_ind, ChunkType::dense);
 
   // prepare output file
   std::string chunk_path = m_dirpath + "/" + chunk_filename;
@@ -114,11 +114,11 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::WriteChunk(const
     sparse_t sparse_chunk = sparse_t::From(chunk, to_keep, 0.0);    
     meta.chunk_type = ChunkType::sparse;
     
-    m_ser.template serialize<ChunkMetadata>(ofs, meta);   
+    m_ser.template serialize<ChunkMetadataOld>(ofs, meta);   
     m_ser.template serialize<sparse_t>(ofs, sparse_chunk);
   }
   else {
-    m_ser.template serialize<ChunkMetadata>(ofs, meta);   
+    m_ser.template serialize<ChunkMetadataOld>(ofs, meta);   
     m_ser.template serialize<dense_t>(ofs, chunk);
   }
   
@@ -157,7 +157,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::rebuildIndex() {
   for(auto const& dir_entry : std::filesystem::directory_iterator(m_dirpath)) {
     std::fstream ifs;
     ifs.open(dir_entry.path(), std::ios::in | std::ios::binary);
-    ChunkMetadata meta = m_ser.template deserialize<ChunkMetadata>(ifs);
+    ChunkMetadataOld meta = m_ser.template deserialize<ChunkMetadataOld>(ifs);
     ifs.close();
     
     m_chunk_index.push_back(meta);
@@ -212,11 +212,11 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::RebuildChunks(co
   }
 
   std::cout << "now cleaning up old chunks" << std::endl;
-  for(ChunkMetadata& to_keep : chunks_to_keep) {
+  for(ChunkMetadataOld& to_keep : chunks_to_keep) {
     std::erase(m_chunk_index, to_keep);
   }
     
-  for(ChunkMetadata& cur_meta : m_chunk_index) {
+  for(ChunkMetadataOld& cur_meta : m_chunk_index) {
     std::string chunk_path = m_dirpath + "/" + cur_meta.filename;
     std::cout << "now removing " << chunk_path << std::endl;
     std::filesystem::remove(chunk_path);
@@ -256,7 +256,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
   // Now operate on the ordered list of chunks until everything is done
   while(chunk_order.size() > 0) {
     std::size_t cur_chunk_index = chunk_order.back();
-    ChunkMetadata& cur_chunk_meta = m_chunk_index[cur_chunk_index];  
+    ChunkMetadataOld& cur_chunk_meta = m_chunk_index[cur_chunk_index];  
     IndexVector chunk_size = cur_chunk_meta.stop_ind - cur_chunk_meta.start_ind;
 
     // after we're done, this chunk will conform to all requirements, so remove it from future consideration
@@ -301,11 +301,11 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
   // remove all the chunks in the old index that should not be kept around
   std::cout << "now cleaning up old chunks" << std::endl;
 
-  for(ChunkMetadata& to_keep : chunks_to_keep) {
+  for(ChunkMetadataOld& to_keep : chunks_to_keep) {
     std::erase(m_chunk_index, to_keep);
   }
   
-  for(ChunkMetadata& cur_meta : m_chunk_index) {
+  for(ChunkMetadataOld& cur_meta : m_chunk_index) {
     std::string chunk_path = m_dirpath + "/" + cur_meta.filename;
     std::cout << "now removing " << chunk_path << std::endl;
     std::filesystem::remove(chunk_path);
@@ -319,7 +319,7 @@ void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::MergeChunks(std:
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
 void DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::printChunks() {
 
-  for(ChunkMetadata& cur_meta : m_chunk_index) {
+  for(ChunkMetadataOld& cur_meta : m_chunk_index) {
     std::cout << "-----------------------" << std::endl;
     std::cout << "chunk: " << cur_meta.filename << std::endl;
     std::cout << "start_ind: " << std::endl;
@@ -338,7 +338,7 @@ std::size_t DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::getNeighb
     throw std::runtime_error("Trying to look for neighbours of out-of-bounds chunk: " + std::to_string(chunk_index) + "/" + std::to_string(m_chunk_index.size()));
   }
   
-  ChunkMetadata& chunk_meta = m_chunk_index[chunk_index];  
+  ChunkMetadataOld& chunk_meta = m_chunk_index[chunk_index];  
   IndexVector chunk_size_along_dim(dims, 0);
   chunk_size_along_dim(dim) = chunk_meta.stop_ind(dim) - chunk_meta.start_ind(dim);
   IndexVector neighbour_chunk_start_ind = chunk_meta.start_ind + chunk_size_along_dim;
@@ -389,7 +389,7 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t DistributedND
 }
 
 template <class T, std::size_t dims, template<class, std::size_t> class DenseT, template<class, std::size_t> class SparseT, class SerializerT>
-bool DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds) {
+bool DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::chunkContainsInds(const ChunkMetadataOld& chunk_meta, const IndexVector& inds) {
   return isInIndexRange(inds, chunk_meta.start_ind, chunk_meta.stop_ind);
 }
 
@@ -432,7 +432,7 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
     throw std::runtime_error("Trying to retrieve out-of-bounds chunk: " + std::to_string(chunk_ind) + "/" + std::to_string(m_chunk_index.size()));
   }
   
-  ChunkMetadata& chunk_meta = m_chunk_index[chunk_ind];
+  ChunkMetadataOld& chunk_meta = m_chunk_index[chunk_ind];
 
   if(!m_chunk_cache.contains(chunk_ind)) {
     
@@ -453,7 +453,7 @@ DistributedNDArray<T, dims, DenseT, SparseT, SerializerT>::dense_t& DistributedN
     }
     
     ifs.open(chunk_path, std::ios::in | std::ios::binary);
-    ChunkMetadata meta = m_ser.template deserialize<ChunkMetadata>(ifs);
+    ChunkMetadataOld meta = m_ser.template deserialize<ChunkMetadataOld>(ifs);
 
     if(meta.chunk_type == ChunkType::dense) {
       m_chunk_cache.insert({chunk_ind, m_ser.template deserialize<dense_t>(ifs)});

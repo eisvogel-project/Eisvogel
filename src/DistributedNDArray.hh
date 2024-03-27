@@ -25,12 +25,12 @@ struct ChunkNotFoundError : public std::runtime_error {
   ChunkNotFoundError() : std::runtime_error("No chunk provides these indices!") { };
 };
 
-struct ChunkMetadata {
+struct ChunkMetadataOld {
 
-  ChunkMetadata(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
+  ChunkMetadataOld(const std::string filename, const IndexVector& start_ind, const IndexVector& stop_ind, const ChunkType& chunk_type) :
     filename(filename), start_ind(start_ind), stop_ind(stop_ind), chunk_type(chunk_type) { } 
 
-  bool operator==(const ChunkMetadata& rhs) {
+  bool operator==(const ChunkMetadataOld& rhs) {
     if(chunk_type != rhs.chunk_type) return false;
     if(filename != rhs.filename) return false;
     if(start_ind != rhs.start_ind) return false;
@@ -84,7 +84,7 @@ private:
   template <class ChunkT>
   void WriteChunk(const ChunkT& chunk, const IndexVector start_ind, bool add_to_index = true);
   
-  bool chunkContainsInds(const ChunkMetadata& chunk_meta, const IndexVector& inds);
+  bool chunkContainsInds(const ChunkMetadataOld& chunk_meta, const IndexVector& inds);
   std::size_t getChunkIndex(const IndexVector& inds);
   std::size_t getNeighbouringChunkIndex(std::size_t chunk_index, std::size_t dim);
   dense_t& retrieveChunk(std::size_t chunk_ind);
@@ -103,7 +103,7 @@ private:
   const std::size_t m_max_cache_size;
 
   // Keeps track of the chunks this DistributedNDArray is composed of
-  using index_t = std::vector<ChunkMetadata>;
+  using index_t = std::vector<ChunkMetadataOld>;
   // TODO: maybe later when we need fancier things (e.g. predictive loading of additional neighbouring chunks),
   // can think about turning this into a class
   index_t m_chunk_index;
