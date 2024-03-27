@@ -39,7 +39,12 @@ namespace stor {
     using stride_t = typename type::stride_t;
 
     // The type of the serialized data
-    using ser_type = Traits<T>::ser_type;    
+    using ser_type = Traits<T>::ser_type;
+
+    // Note: if the calls to std::vector<ser_type>::resize ever become the bottleneck due to
+    // repeated zero initialization of all ements, replace with something else
+    // (the initial values are overwritten anyways on any read from disk, so no
+    // explicit zero initialization is ever required)
     using buffer_t = std::vector<ser_type>;
     
   public:
