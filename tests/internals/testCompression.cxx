@@ -33,10 +33,13 @@ int main(int argc, char* argv[]) {
   
   NDVecArray<float, 3, 2> slice1 = arr1.View({400u, 0u, 0u}, {401u, 400u, 400u});
 
-  // std::cout << slice1[{0u, 0u, 0u}][0] << std::endl;
+  std::cout << slice1[{0u, 0u, 0u}][0] << std::endl;
   
   Vector<float, 2> testvec{1.f, 2.f};
   arr1[{250u, 250u, 250u}] = testvec;
+
+  std::cout << arr1[{250u, 250u, 250u}][0] << std::endl;
+  std::cout << arr1[{250u, 250u, 250u}][1] << std::endl;
 
   NDVecArray<float, 3, 2> arr1_view = arr1.View({0u, 0u, 0u}, {400u, 400u, 400u});
   
@@ -96,6 +99,9 @@ int main(int argc, char* argv[]) {
   
   auto checker = [&](const Vector<std::size_t, 3>& ind) {
     for(std::size_t vec_ind = 0; vec_ind < 2; vec_ind++) {
+
+      // std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;
+      
       if(arr1[ind][vec_ind] != arr1_read[ind][vec_ind]) {
 	std::cout << "Problem at ind = " << ind[0] << ", " << ind[1] << ", " << ind[2] << " and vec_ind = " << vec_ind <<" !" << std::endl;
 	std::cout << "Have " << arr1[ind][vec_ind] << " vs " << arr1_read[ind][vec_ind] << std::endl;

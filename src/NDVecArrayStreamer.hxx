@@ -172,7 +172,7 @@ namespace stor {
     NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims> meta = Traits<NDVecArrayStreamerMetadata<ArrayT, T, dims, vec_dims>>::deserialize(stream);
     
     // prepare new array of the correct shape
-    val.resize(meta.array_shape, T());
+    val.resize(meta.array_shape);
 
     // loop over chunks
     auto chunk_deserializer = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) -> void {

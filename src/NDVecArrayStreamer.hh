@@ -3,6 +3,7 @@
 #include <memory>
 #include <limits>
 #include "NDVecArray.hh"
+#include "MemoryUtils.hh"
 
 namespace stor {
 
@@ -45,7 +46,7 @@ namespace stor {
     // repeated zero initialization of all ements, replace with something else
     // (the initial values are overwritten anyways on any read from disk, so no
     // explicit zero initialization is ever required)
-    using buffer_t = std::vector<ser_type>;
+    using buffer_t = std::vector<ser_type, no_init_alloc<ser_type>>;
     
   public:
 

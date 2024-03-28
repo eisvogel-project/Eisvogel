@@ -9,6 +9,7 @@
 
 #include "Serialization.hh"
 #include "Vector.hh"
+#include "MemoryUtils.hh"
 
 // Forward declaration of (de)serializer
 namespace stor {
@@ -44,7 +45,7 @@ public:
   using view_t = VectorView<T, vec_dims>;
   
 private:
-  using data_t = std::vector<T>;
+  using data_t = std::vector<T, no_init_alloc<T>>;
   using stride_t = Vector<std::size_t, dims>;
 
   // used in creation of view
@@ -62,22 +63,29 @@ public:
     m_volume = ComputeVolume(shape);
     
     // reserve the required memory
-    m_data = std::make_shared<data_t>(GetVolume(), value);
+    m_data = std::make_shared<data_t>(GetVolume());
+
+    // initialize properly
+    std::fill(m_data -> begin(), m_data -> end(), value);
   }   
 
-  // overload copy-assignment operator
+  // copy-assignment operator
   
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
-  void resize(const shape_t& new_shape, const T& value) {
+  void resize(const shape_t& new_shape) {
     m_shape = new_shape;
     m_strides = ComputeStrides(new_shape);
     m_offset = 0;
 
-    // if this ever becomes the bottleneck, use a different data container that can be resized without having to initialize all elements
-    m_data -> resize(GetVolume(), value); 
+    m_data -> resize(GetVolume()); 
   }
-    
+
+  void resize(const shape_t& new_shape, const T& value) {    
+    resize(new_shape);
+    std::fill(m_data -> begin(), m_data -> end(), value);
+  }
+  
   // Single-element access
   view_t operator[](const ind_t& ind) {
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
