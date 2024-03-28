@@ -30,42 +30,41 @@ namespace dense {
     
     auto buffer_it = buffer.begin();
     
-    auto element_copier = [&](Vector<std::size_t, dims>& ind) {
-      for(T& cur_val: arr[ind]) {
+    auto element_copier = [&](const VectorView<T, vec_dims>& array_elem) {
+      for(T& cur_val: array_elem) {
 	SerType ser_val = reinterpret_cast<const SerType&>(cur_val);
 	*buffer_it = postprocessor(ser_val);
 	buffer_it++;
       }
     };
-    index_loop_over_array_elements(arr, element_copier);
+    arr.loop_over_elements(element_copier);
     
     return buffer_it - buffer.begin();      
   }    
-}
 
-// returns elements in buffer that were read
-template <template<typename, std::size_t, std::size_t> class ArrayT,
-	  typename T, std::size_t dims, std::size_t vec_dims,
-	  typename SerType, class CallableT>
-std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_dims>& arr, CallableT&& preprocessor) {
-  
-  Vector<T, vec_dims> vec_buffer;
-  
-  auto buffer_it = buffer.begin();
-  
-  auto element_copier = [&](Vector<std::size_t, dims>& ind) {
+  // returns elements in buffer that were read
+  template <template<typename, std::size_t, std::size_t> class ArrayT,
+	    typename T, std::size_t dims, std::size_t vec_dims,
+	    typename SerType, class CallableT>
+  std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_dims>& arr, CallableT&& preprocessor) {
     
-    for(std::size_t vec_ind = 0; vec_ind < vec_dims; vec_ind++) {
-      SerType ser_val = preprocessor(*buffer_it);
-      buffer_it++;
-      std::memcpy(&vec_buffer[vec_ind], &ser_val, sizeof(ser_val));
-    }
-
-    arr[ind] = vec_buffer;
-  };
-  index_loop_over_array_elements(arr, element_copier);
-  
-  return buffer_it - buffer.begin();
+    Vector<T, vec_dims> vec_buffer;
+    
+    auto buffer_it = buffer.begin();
+    
+    auto element_copier = [&](VectorView<T, vec_dims>&& array_elem) {
+      
+      for(std::size_t vec_ind = 0; vec_ind < vec_dims; vec_ind++) {
+	SerType ser_val = preprocessor(*buffer_it);
+	buffer_it++;
+	std::memcpy(&vec_buffer[vec_ind], &ser_val, sizeof(ser_val));
+      }
+      array_elem = vec_buffer;
+    };
+    arr.loop_over_elements(element_copier);
+    
+    return buffer_it - buffer.begin();
+  }
 }
 
 namespace nullsup {
@@ -118,7 +117,7 @@ namespace nullsup {
     auto null_suppressor = [&](Vector<std::size_t, dims>& ind) {
       
       if(arr.IsNull(ind)) {      
-	// if compression is triggered, assume that this array has may nulls
+	// if compression is triggered, assume that this array has many nulls
 	[[likely]];
 	
 	if(num_nulls == 0) {
@@ -149,7 +148,8 @@ namespace nullsup {
 	}
       }
     };
-    
+
+    // if performance becomes a problem, could consider moving this to `arr.loop_over_elements` which iterates move efficiently
     index_loop_over_array_elements(arr, null_suppressor);
     
     // close any remaining open nulls
@@ -183,10 +183,10 @@ namespace nullsup {
       else {
 	
 	// Read and fill next element
-	for(std::size_t ind = 0; ind < vec_dims; ind++) {	
+	for(std::size_t vec_ind = 0; vec_ind < vec_dims; vec_ind++) {	
 	  SerType ser_val = preprocessor(*buffer_it);
 	  buffer_it++;	
-	  std::memcpy(&vec_buffer[ind], &ser_val, sizeof(ser_val));
+	  std::memcpy(&vec_buffer[vec_ind], &ser_val, sizeof(ser_val));
 	}
 	
 	arr[ind] = vec_buffer;
@@ -197,7 +197,8 @@ namespace nullsup {
 	}
       }    
     };
-    
+
+    // if performance becomes a problem, could consider moving this to `arr.loop_over_elements` which iterates move efficiently
     index_loop_over_array_elements(arr, null_desuppressor);
     
     return buffer_it - buffer.begin();

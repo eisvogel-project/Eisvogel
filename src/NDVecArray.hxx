@@ -28,7 +28,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T&
 // loop over elements
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
-constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& worker) {
+constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& worker) const {
 
   // manual handling of the loop over the contiguous memory region
   auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
