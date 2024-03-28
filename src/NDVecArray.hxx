@@ -1,6 +1,8 @@
+#include <iostream>
+
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
-NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {  
   m_strides = ComputeStrides(shape);
   m_number_elements = ComputeNumberElements(shape);
   m_volume = ComputeVolume(shape);
@@ -11,6 +13,17 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
   // initialize properly
   this -> operator=(value);
 }   
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
+  m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume) {
+  
+  // reserve the required memory
+  m_data = std::make_shared<data_t>(GetVolume());
+  
+  // copy data
+  this -> operator=(other);
+}
 
 // resizing operations
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -31,6 +44,9 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& va
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
+
+  std::cout << "NDVecArray copy-assignment" << std::endl;
+  
   resize(other.m_shape);
 
   // copy a region of memory that is guaranteed to be contiguous in both `other` and `this`

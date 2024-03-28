@@ -59,6 +59,9 @@ private:
 public:
   
   NDVecArray(const shape_t& shape, const T& value);
+
+  // copy constructor
+  NDVecArray(const NDVecArray<T, dims, vec_dims>& other);
   
   // copy-assignment operators
   NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other);
