@@ -33,7 +33,8 @@ Cache<IndexT, PayloadT>::Cache(std::size_t depth, PayloadConstructorArgs&& ... a
 }
 
 template <class IndexT, class PayloadT>
-void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const PayloadT& payload) {
+template <class DataT>
+void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const DataT& payload) {
 
   // an element with the new index must not already exist
   assert(!contains(index));

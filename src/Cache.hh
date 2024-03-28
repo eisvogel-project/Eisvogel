@@ -19,7 +19,8 @@ public:
   const PayloadT& get(const IndexT& elem);
 
   // inserts a new element into the cache, assuming there is an empty slot
-  void insert_no_overwrite(const IndexT& index, const PayloadT& payload);
+  template <class DataT>
+  void insert_no_overwrite(const IndexT& index, const DataT& payload);
 
   // removes this element from the cache, creating a free slot
   const PayloadT& evict(const IndexT& elem);

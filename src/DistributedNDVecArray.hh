@@ -16,6 +16,10 @@ template <std::size_t dims>
 struct ChunkMetadata {
 
   using id_t = std::size_t;
+
+  // default constructor
+  ChunkMetadata() :
+    chunk_type(ChunkType::all_null), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0) { }
   
   // type of this chunk
   ChunkType chunk_type;
@@ -34,41 +38,10 @@ struct ChunkMetadata {
   Vector<std::size_t, dims> end_ind;  
 };
 
-// Implements a chunk buffer that avoids destructing old and allocating new elements
-template <class T>
-class ChunkBuffer {
-  
-public:
-
-  template <typename ... ConstructorArgs>
-  ChunkBuffer(std::size_t depth, ConstructorArgs&&... args); 
-
-  // marks element in slot `ind` as unused, creating an empty slot
-  void free(std::size_t ind);
-
-  // inserts new element at `slot`
-  void insert_at(T& element, std::size_t slot);
-
-  // finds the best slot for the next insertion: this is either an empty slot (if one exists),
-  // or the slot of the oldest element
-  std::size_t get_slot_for_insertion();
-
-  // // returns reference to contents of buffer location with index `ind`
-  // // this turns the requested slot into the most-recently accessed one
-  // const T& get(std::size_t slot) const;
-  
-private:
-
-  std::vector<T> m_data;
-  std::size_t m_write_ind;
-};
-
 // provides fast coordinate-indexed lookup of chunks
 template <template<std::size_t> class MetadataT,
 	  std::size_t dims>
 class ChunkIndex {
-
-  // for now, do simple linear search and remember to check last-accessed chunk first
   
 public:
 
@@ -83,7 +56,7 @@ public:
   
 private:
 
-  // R-Tree
+  // for now, do simple linear search and remember to check last-accessed chunk first; use an R-tree later
     
 };
 
@@ -108,9 +81,17 @@ enum class CacheStatus : std::size_t {
 // The elements stored in the cache
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-struct CachePayload {  
+struct CacheEntry {  
 
-  // overload copy assignment operator here
+  using shape_t = typename ArrayT<T, dims, vec_dims>::shape_t;
+  
+  CacheEntry(const shape_t& default_shape, const T& default_value) :
+    chunk_data(default_shape, default_value), op_to_perform(CacheStatus::nothing) { }
+  
+  CacheEntry& operator=(std::size_t testval) {
+    std::cout << "ultra special insertion assignment copy" << std::endl;
+    return *this;
+  }
   
   ChunkMetadata<dims> chunk_meta;
   CacheStatus op_to_perform;
