@@ -33,33 +33,34 @@ public:
   
 private:
 
-  struct CacheEntry {
+  struct CacheElement {
     
     template <typename ... PayloadConstructorArgs>
-    CacheEntry(PayloadConstructorArgs&& ... args) : payload(args ...), occupied(false), next(nullptr), prev(nullptr) { };
+    CacheElement(PayloadConstructorArgs&& ... args) :
+      payload(std::forward<PayloadConstructorArgs&&>(args)...), occupied(false), next(nullptr), prev(nullptr) { };
     
     PayloadT payload;
     IndexT index;
     bool occupied;
     
-    CacheEntry* next;
-    CacheEntry* prev;
+    CacheElement* next;
+    CacheElement* prev;
   }; 
 
   // moves to the "oldestmost" position of the list
-  void mark_as_oldest(CacheEntry* element);
+  void mark_as_oldest(CacheElement* element);
 
   // moves to the "newestmost" position of the list
-  void mark_as_newest(CacheEntry* element);
+  void mark_as_newest(CacheElement* element);
 
 private:
 
   std::size_t m_depth;
   
-  std::unordered_map<IndexT, CacheEntry*> m_accessor;
-  std::vector<CacheEntry> m_storage;
-  CacheEntry* m_oldest;
-  CacheEntry* m_newest;
+  std::unordered_map<IndexT, CacheElement*> m_accessor;
+  std::vector<CacheElement> m_storage;
+  CacheElement* m_oldest;
+  CacheElement* m_newest;
 };
 
 #include "Cache.hxx"
