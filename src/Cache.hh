@@ -1,18 +1,20 @@
 #pragma once
 
+#include <vector>
 #include <unordered_map>
 
 template <class IndexT, class PayloadT>
 struct CacheEntry {
 
-  template <typename ... ConstructorArgs>
-  CacheEntry(ConstructorArgs&& ... args) : payload(args ...) { };
+  template <typename ... PayloadConstructorArgs>
+  CacheEntry(PayloadConstructorArgs&& ... args) : payload(args ...), occupied(false), next(nullptr), prev(nullptr) { };
   
   PayloadT payload;
   IndexT index;
+  bool occupied;
 
-  CacheEntry<IndexT, PayloadT>* newer;
-  CacheEntry<IndexT, PayloadT>* older;
+  CacheEntry<IndexT, PayloadT>* next;
+  CacheEntry<IndexT, PayloadT>* prev;
 };
 
 template <class IndexT, class PayloadT>
@@ -23,45 +25,28 @@ class Cache {
 public:  
   
   template <typename ... PayloadArgs>
-  Cache(std::size_t depth, PayloadArgs&& ... args) {
-    for(std::size_t ind = 0; ind < depth; ind++) {
-      // build vector of CacheEntries and link them
-    }
-  }
+  Cache(std::size_t depth, PayloadArgs&& ... args);
 
-  // fast cache entry lookup
-  const PayloadT& get(IndexT& elem) {
-    // cache_entry_t* accessed_element = accessor[elem]
-    // move to front of list
-    // return accessed_element -> payload;
-  }
+  bool has_free_slot();
 
-  bool has_free_slot() {
-    // return accessor.size() < m_depth;
-    return false;
-  }
-
-  void insert(const PayloadT& payload) {
-    // cache_entry_t* insert_location = oldest;
-    // insert_location -> payload = payload; // need to properly overload assignment to copy the things that need to be copied
-    
-    // insert into list
-    // mark_as_newest(insert_location);
-  }
-
-  // removes oldest entry from the cache and returns it so that it can be properly descoped
-  const PayloadT& remove_oldest() {
-    // cache_entry_t* removed_entry = oldest;
-    // return removed_entry -> payload;
-  }
+  bool contains(IndexT& elem);
   
-  // removes this element from the cache, creating a free slot
-  void free(IndexT& elem) {
-    // cache_entry_t* this_entry = accessor[elem];
-    // accessor.erase(this_entry -> index); // remove from accessor
-    // mark_as_oldest(this_entry);
-  }
+  // fast cache entry lookup
+  const PayloadT& get(IndexT& elem);
 
+  // inserts a new element into the cache, assuming there is an empty slot
+  void insert_no_overwrite(const IndexT& index, const PayloadT& payload);
+
+  // removes this element from the cache, creating a free slot
+  const PayloadT& evict(IndexT& elem);
+  
+  // assumes that the cache is full, evicts the oldest entry and returns it so that
+  // it can be properly descoped
+  const PayloadT& evict_oldest_full_cache();
+  
+  void print_old_to_new();
+  void print_new_to_old();
+  
 private:
 
   // moves to the "oldestmost" position of the list
@@ -72,11 +57,12 @@ private:
 
 private:
 
-  // Cache size
   std::size_t m_depth;
   
-  std::unordered_map<IndexT, cache_entry_t*> accessor;
-  std::vector<cache_entry_t> storage;
-  cache_entry_t* oldest;
-  cache_entry_t* newest;
+  std::unordered_map<IndexT, cache_entry_t*> m_accessor;
+  std::vector<cache_entry_t> m_storage;
+  cache_entry_t* m_oldest;
+  cache_entry_t* m_newest;
 };
+
+#include "Cache.hxx"

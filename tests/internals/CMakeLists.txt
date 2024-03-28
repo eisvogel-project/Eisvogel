@@ -19,3 +19,6 @@ target_link_libraries(testCompression eisvogel)
 
 add_executable(testDistributedNDVecArray testDistributedNDVecArray.cxx)
 target_link_libraries(testDistributedNDVecArray eisvogel)
+
+add_executable(testCache testCache.cxx)
+target_link_libraries(testCache eisvogel)
