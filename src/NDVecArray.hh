@@ -66,7 +66,7 @@ public:
     m_data = std::make_shared<data_t>(GetVolume());
 
     // initialize properly
-    std::fill(m_data -> begin(), m_data -> end(), value);
+    this -> operator=(value);
   }   
 
   // copy-assignment operator
@@ -75,6 +75,8 @@ public:
   }
 
   NDVecArray<T, dims, vec_dims>& operator=(const T& other) {
+    std::cout << "filling in copy assignment" << std::endl;
+    std::fill(m_data -> begin(), m_data -> end(), other);
     return *this;
   }
   
@@ -89,7 +91,7 @@ public:
 
   void resize(const shape_t& new_shape, const T& value) {    
     resize(new_shape);
-    std::fill(m_data -> begin(), m_data -> end(), value);
+    this -> operator=(value);
   }
   
   // Single-element access
