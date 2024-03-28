@@ -31,13 +31,27 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& va
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
+  resize(other.m_shape);
+
+  // copy a region of memory that is guaranteed to be contiguous in both `other` and `this`
+  auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+    
+    std::size_t offset = ComputeFlatInd(chunk_begin);
+    auto src = other.m_data -> begin() + offset;
+    auto dest = m_data -> begin() + offset;
+    
+    std::copy_n(std::execution::unseq, src, m_shape[dims - 1] * vec_dims, dest);
+  };
+
+  Vector<std::size_t, dims> chunk_size(1);
+  chunk_size[dims - 1] = m_shape[dims - 1];
+  index_loop_over_array_chunks(*this, chunk_size, copy_chunk_contiguous);
   
   return *this;
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T& other) {
-  std::cout << "filling in copy assignment" << std::endl;
   std::fill(m_data -> begin(), m_data -> end(), other);
   return *this;
 }
