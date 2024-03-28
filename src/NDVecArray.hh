@@ -7,6 +7,7 @@
 #include <vector>
 #include <span>
 
+#include "Eisvogel/IteratorUtils.hh"
 #include "Serialization.hh"
 #include "Vector.hh"
 #include "MemoryUtils.hh"
@@ -57,28 +58,11 @@ private:
   
 public:
   
-  NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
-    m_strides = ComputeStrides(shape);
-    m_number_elements = ComputeNumberElements(shape);
-    m_volume = ComputeVolume(shape);
-    
-    // reserve the required memory
-    m_data = std::make_shared<data_t>(GetVolume());
-
-    // initialize properly
-    this -> operator=(value);
-  }   
-
-  // copy-assignment operator
-  NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other) {
-    return *this;
-  }
-
-  NDVecArray<T, dims, vec_dims>& operator=(const T& other) {
-    std::cout << "filling in copy assignment" << std::endl;
-    std::fill(m_data -> begin(), m_data -> end(), other);
-    return *this;
-  }
+  NDVecArray(const shape_t& shape, const T& value);
+  
+  // copy-assignment operators
+  NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other);
+  NDVecArray<T, dims, vec_dims>& operator=(const T& other);
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape) {
@@ -102,6 +86,10 @@ public:
   const view_t operator[](const ind_t& ind) const {
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
+
+  // Loop over elements
+  template <class CallableT>
+  constexpr void loop_over_elements(CallableT&& worker);
   
   // Array view access
   NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) const {
@@ -216,3 +204,5 @@ class NDVecArrayNullAware : public NDVecArray<T, dims, vec_dims> {
   // with faster IsNull overload / bookkeeping of fraction of null'ed elements -> to be used in compression step
   
 };
+
+#include "NDVecArray.hxx"

@@ -14,6 +14,9 @@ target_link_libraries(testArrayOps eisvogel)
 add_executable(testVector testVector.cxx)
 target_link_libraries(testVector eisvogel)
 
+add_executable(testNDVecArray testNDVecArray.cxx)
+target_link_libraries(testNDVecArray eisvogel)
+
 add_executable(testCompression testCompression.cxx)
 target_link_libraries(testCompression eisvogel)
 
