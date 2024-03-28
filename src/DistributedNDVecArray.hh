@@ -43,15 +43,15 @@ public:
   template <typename ... ConstructorArgs>
   ChunkBuffer(std::size_t depth, ConstructorArgs&&... args); 
 
-  // // marks element in slot `ind` as unused, creating an empty slot
-  // void free(std::size_t ind);
+  // marks element in slot `ind` as unused, creating an empty slot
+  void free(std::size_t ind);
 
-  // // inserts new element at `slot`
-  // void insert_at(T& element, std::size_t slot);
+  // inserts new element at `slot`
+  void insert_at(T& element, std::size_t slot);
 
   // finds the best slot for the next insertion: this is either an empty slot (if one exists),
   // or the slot of the oldest element
-  T& get_slot_for_insertion();
+  std::size_t get_slot_for_insertion();
 
   // // returns reference to contents of buffer location with index `ind`
   // // this turns the requested slot into the most-recently accessed one
@@ -68,6 +68,8 @@ template <template<std::size_t> class MetadataT,
 	  std::size_t dims>
 class ChunkIndex {
 
+  // for now, do simple linear search and remember to check last-accessed chunk first
+  
 public:
 
   // build from stored index file
@@ -106,7 +108,9 @@ enum class CacheStatus : std::size_t {
 // The elements stored in the cache
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-struct CacheEntry {  
+struct CachePayload {  
+
+  // overload copy assignment operator here
   
   ChunkMetadata<dims> chunk_meta;
   CacheStatus op_to_perform;

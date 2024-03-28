@@ -65,6 +65,9 @@ public:
     m_data = std::make_shared<data_t>(GetVolume(), value);
   }   
 
+  // overload copy-assignment operator
+  
+  
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape, const T& value) {
     m_shape = new_shape;
