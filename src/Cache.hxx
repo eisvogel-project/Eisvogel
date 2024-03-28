@@ -35,6 +35,9 @@ Cache<IndexT, PayloadT>::Cache(std::size_t depth, PayloadConstructorArgs&& ... a
 template <class IndexT, class PayloadT>
 void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const PayloadT& payload) {
 
+  // an element with the new index must not already exist
+  assert(!contains(index));
+  
   // try to insert new element into the oldest slot
   cache_entry_t* insert_location = m_oldest;
   assert(!(insert_location -> occupied));
@@ -57,12 +60,12 @@ bool Cache<IndexT, PayloadT>::has_free_slot() {
 }
 
 template <class IndexT, class PayloadT>
-bool Cache<IndexT, PayloadT>::contains(IndexT& elem) {
+bool Cache<IndexT, PayloadT>::contains(const IndexT& elem) {
   return m_accessor.contains(elem);
 }
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::get(IndexT& elem) {
+const PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
     
   cache_entry_t* accessed_element = m_accessor.at(elem);
 
@@ -89,7 +92,7 @@ const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_full_cache() {
 }  
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::evict(IndexT& elem) {
+const PayloadT& Cache<IndexT, PayloadT>::evict(const IndexT& elem) {
 
   // this function assumes that the element actually exists in the cache
   assert(contains(elem));

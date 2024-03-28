@@ -29,16 +29,16 @@ public:
 
   bool has_free_slot();
 
-  bool contains(IndexT& elem);
+  bool contains(const IndexT& elem);
   
   // fast cache entry lookup
-  const PayloadT& get(IndexT& elem);
+  const PayloadT& get(const IndexT& elem);
 
   // inserts a new element into the cache, assuming there is an empty slot
   void insert_no_overwrite(const IndexT& index, const PayloadT& payload);
 
   // removes this element from the cache, creating a free slot
-  const PayloadT& evict(IndexT& elem);
+  const PayloadT& evict(const IndexT& elem);
   
   // assumes that the cache is full, evicts the oldest entry and returns it so that
   // it can be properly descoped
