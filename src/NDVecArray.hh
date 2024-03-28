@@ -65,18 +65,8 @@ public:
   NDVecArray<T, dims, vec_dims>& operator=(const T& other);
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
-  void resize(const shape_t& new_shape) {
-    m_shape = new_shape;
-    m_strides = ComputeStrides(new_shape);
-    m_offset = 0;
-
-    m_data -> resize(GetVolume()); 
-  }
-
-  void resize(const shape_t& new_shape, const T& value) {    
-    resize(new_shape);
-    this -> operator=(value);
-  }
+  void resize(const shape_t& new_shape);
+  void resize(const shape_t& new_shape, const T& value);
   
   // Single-element access
   view_t operator[](const ind_t& ind) {

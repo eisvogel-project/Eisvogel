@@ -12,9 +12,26 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
   this -> operator=(value);
 }   
 
+// resizing operations
+template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
+  m_shape = new_shape;
+  m_strides = ComputeStrides(new_shape);
+  m_offset = 0;
+  
+  m_data -> resize(GetVolume()); 
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& value) {    
+  resize(new_shape);
+  this -> operator=(value);
+}
+
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
+  
   return *this;
 }
 
