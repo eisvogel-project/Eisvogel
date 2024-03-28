@@ -42,7 +42,19 @@ public:
   Vector(const Vector<T, vec_dims>& other) {
     std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
   }
+
+  // copy assignment
+  Vector<T, vec_dims>& operator=(const Vector<T, vec_dims>& other) {
+    std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
+    return *this;
+  }
+
+  Vector<T, vec_dims>& operator=(const T& other) {
+    std::fill_n(std::execution::unseq, m_data.begin(), vec_dims, other);
+    return *this;
+  }
   
+  // Element access
   T& operator[](std::size_t ind) {
     return m_data[ind];
   }
