@@ -1,4 +1,4 @@
-#include "Eisvogel/WeightingFieldUtils.hh"
+#include "Eisvogel/WeightingFieldUtilsOld.hh"
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/IteratorUtils.hh"
 #include "Eisvogel/CoordUtils.hh"
@@ -10,7 +10,7 @@
 
 namespace C = CoordUtils;
 
-namespace WeightingFieldUtils {
+namespace WeightingFieldUtilsOld {
 
   void CreateElectricDipoleWeightingField(std::string wf_path,
 					  const CoordVector& start_coords, const CoordVector& end_coords,

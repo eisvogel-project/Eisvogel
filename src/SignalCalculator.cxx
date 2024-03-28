@@ -15,3 +15,7 @@ scalar_t SignalCalculator::ComputeSignal(const Current0D& track, scalar_t t_sig)
 scalar_t SignalCalculator::ComputeSignal(const SparseCurrentDensity3D& current_distribution, scalar_t t_sig) {
   return integrate<CylindricalWeightingField>(*m_wf, t_sig, current_distribution);  
 }
+
+void SignalCalculator::AccumulateSignal(const Current0D& track, std::vector<scalar_t>& ts, std::vector<scalar_t>& signal) {
+  return accumulate_integral<CylindricalWeightingField>(*m_wf, ts, track, signal);
+}
