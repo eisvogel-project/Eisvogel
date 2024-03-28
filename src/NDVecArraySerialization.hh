@@ -55,10 +55,10 @@ std::size_t from_buffer(const std::span<SerType>&& buffer, ArrayT<T, dims, vec_d
   
   auto element_copier = [&](Vector<std::size_t, dims>& ind) {
     
-    for(std::size_t ind = 0; ind < vec_dims; ind++) {
+    for(std::size_t vec_ind = 0; vec_ind < vec_dims; vec_ind++) {
       SerType ser_val = preprocessor(*buffer_it);
       buffer_it++;
-      std::memcpy(&vec_buffer[ind], &ser_val, sizeof(ser_val));
+      std::memcpy(&vec_buffer[vec_ind], &ser_val, sizeof(ser_val));
     }
 
     arr[ind] = vec_buffer;
