@@ -4,23 +4,7 @@
 #include <unordered_map>
 
 template <class IndexT, class PayloadT>
-struct CacheEntry {
-
-  template <typename ... PayloadConstructorArgs>
-  CacheEntry(PayloadConstructorArgs&& ... args) : payload(args ...), occupied(false), next(nullptr), prev(nullptr) { };
-  
-  PayloadT payload;
-  IndexT index;
-  bool occupied;
-
-  CacheEntry<IndexT, PayloadT>* next;
-  CacheEntry<IndexT, PayloadT>* prev;
-};
-
-template <class IndexT, class PayloadT>
 class Cache {
-
-  using cache_entry_t = CacheEntry<IndexT, PayloadT>;
   
 public:  
   
@@ -49,20 +33,33 @@ public:
   
 private:
 
+  struct CacheEntry {
+    
+    template <typename ... PayloadConstructorArgs>
+    CacheEntry(PayloadConstructorArgs&& ... args) : payload(args ...), occupied(false), next(nullptr), prev(nullptr) { };
+    
+    PayloadT payload;
+    IndexT index;
+    bool occupied;
+    
+    CacheEntry* next;
+    CacheEntry* prev;
+  }; 
+
   // moves to the "oldestmost" position of the list
-  void mark_as_oldest(cache_entry_t* element);
+  void mark_as_oldest(CacheEntry* element);
 
   // moves to the "newestmost" position of the list
-  void mark_as_newest(cache_entry_t* element);
+  void mark_as_newest(CacheEntry* element);
 
 private:
 
   std::size_t m_depth;
   
-  std::unordered_map<IndexT, cache_entry_t*> m_accessor;
-  std::vector<cache_entry_t> m_storage;
-  cache_entry_t* m_oldest;
-  cache_entry_t* m_newest;
+  std::unordered_map<IndexT, CacheEntry*> m_accessor;
+  std::vector<CacheEntry> m_storage;
+  CacheEntry* m_oldest;
+  CacheEntry* m_newest;
 };
 
 #include "Cache.hxx"

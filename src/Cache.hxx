@@ -13,8 +13,8 @@ Cache<IndexT, PayloadT>::Cache(std::size_t depth, PayloadConstructorArgs&& ... a
   }
 
   // link them together
-  cache_entry_t* prev_element = nullptr;
-  for(cache_entry_t& cur_element : m_storage) {
+  CacheEntry* prev_element = nullptr;
+  for(CacheEntry& cur_element : m_storage) {
     
     // link current entry to previous one ...
     cur_element.prev = prev_element;
@@ -39,7 +39,7 @@ void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const Pay
   assert(!contains(index));
   
   // try to insert new element into the oldest slot
-  cache_entry_t* insert_location = m_oldest;
+  CacheEntry* insert_location = m_oldest;
   assert(!(insert_location -> occupied));
 
   // insert the new payload ...
@@ -67,7 +67,7 @@ bool Cache<IndexT, PayloadT>::contains(const IndexT& elem) {
 template <class IndexT, class PayloadT>
 const PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
     
-  cache_entry_t* accessed_element = m_accessor.at(elem);
+  CacheEntry* accessed_element = m_accessor.at(elem);
 
   // mark this as the most-recently accessed element
   mark_as_newest(accessed_element);
@@ -82,7 +82,7 @@ const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_full_cache() {
   assert(!has_free_slot());
   
   // (don't need to move it, is already at the location of the oldest cache element)
-  cache_entry_t* evicted_entry = m_oldest;
+  CacheEntry* evicted_entry = m_oldest;
   evicted_entry -> occupied = false;
 
   // remove its entry from the index mapping
@@ -97,7 +97,7 @@ const PayloadT& Cache<IndexT, PayloadT>::evict(const IndexT& elem) {
   // this function assumes that the element actually exists in the cache
   assert(contains(elem));
   
-  cache_entry_t* evicted_entry = m_accessor.at(elem);
+  CacheEntry* evicted_entry = m_accessor.at(elem);
   evicted_entry -> occupied = false;
 
   // move it to the insert location at the "oldest" side of the cache
@@ -112,7 +112,7 @@ const PayloadT& Cache<IndexT, PayloadT>::evict(const IndexT& elem) {
 // ------
 
 template <class IndexT, class PayloadT>
-void Cache<IndexT, PayloadT>::mark_as_oldest(cache_entry_t* element) {
+void Cache<IndexT, PayloadT>::mark_as_oldest(CacheEntry* element) {
 
   // this is already the oldest element, nothing needs to be done
   if(element -> prev == nullptr) {
@@ -140,7 +140,7 @@ void Cache<IndexT, PayloadT>::mark_as_oldest(cache_entry_t* element) {
 }
 
 template <class IndexT, class PayloadT>
-void Cache<IndexT, PayloadT>::mark_as_newest(cache_entry_t* element) {
+void Cache<IndexT, PayloadT>::mark_as_newest(CacheEntry* element) {
 
   // this is already the newest element, nothing needs to be done
   if(element -> next == nullptr) {
@@ -170,7 +170,7 @@ void Cache<IndexT, PayloadT>::mark_as_newest(cache_entry_t* element) {
 template <class IndexT, class PayloadT>
 void Cache<IndexT, PayloadT>::print_old_to_new() {
 
-  cache_entry_t* cur_element = m_oldest;
+  CacheEntry* cur_element = m_oldest;
   while(cur_element != nullptr) {
     std::cout << "--------" << std::endl;
     std::cout << "cache entry at " << cur_element << std::endl;
@@ -186,7 +186,7 @@ void Cache<IndexT, PayloadT>::print_old_to_new() {
 template <class IndexT, class PayloadT>
 void Cache<IndexT, PayloadT>::print_new_to_old() {
 
-  cache_entry_t* cur_element = m_newest;
+  CacheEntry* cur_element = m_newest;
   while(cur_element != nullptr) {
     std::cout << "--------" << std::endl;
     std::cout << "cache entry at " << cur_element << std::endl;
