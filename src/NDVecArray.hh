@@ -70,7 +70,13 @@ public:
   }   
 
   // copy-assignment operator
-  
+  NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other) {
+    return *this;
+  }
+
+  NDVecArray<T, dims, vec_dims>& operator=(const T& other) {
+    return *this;
+  }
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape) {
