@@ -84,14 +84,13 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 struct CacheEntry {  
 
   using shape_t = typename ArrayT<T, dims, vec_dims>::shape_t;
-  
+
+  // Constructor for a new, empty, cache element
   CacheEntry(const shape_t& default_shape, const T& default_value) :
     chunk_data(default_shape, default_value), op_to_perform(CacheStatus::nothing) { }
-  
-  CacheEntry& operator=(std::size_t testval) {
-    std::cout << "ultra special insertion assignment copy" << std::endl;
-    return *this;
-  }
+
+  // Fill this cache element with data
+  CacheEntry& operator=(std::size_t testval);
   
   ChunkMetadata<dims> chunk_meta;
   CacheStatus op_to_perform;
