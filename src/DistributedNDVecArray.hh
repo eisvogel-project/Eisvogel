@@ -21,7 +21,14 @@ struct ChunkMetadata {
 
   // default constructor
   ChunkMetadata() :
-    chunk_type(ChunkType::all_null), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0) { }
+    chunk_type(ChunkType::all_null), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
+
+  // Accessor that grows the recorded shape of a chunk
+  template <std::size_t axis>
+  void GrowChunk(std::size_t shape_growth) {
+    end_ind[axis] += shape_growth;
+    shape[axis] += shape_growth;
+  }
   
   // type of this chunk
   ChunkType chunk_type;
@@ -35,9 +42,12 @@ struct ChunkMetadata {
   // offset within the file where this chunk lives
   std::streampos start_pos;
 
-  // indices of the elements marking the start and end element in the chunk
+  // indices of the elements marking the start and end element in the chunk ...
   Vector<std::size_t, dims> start_ind;
-  Vector<std::size_t, dims> end_ind;  
+  Vector<std::size_t, dims> end_ind;
+
+  // ... as well as the (precalculated) shape
+  Vector<std::size_t, dims> shape;
 };
 
 // provides fast coordinate-indexed lookup of chunks
@@ -126,8 +136,9 @@ public:
   const chunk_t& RetrieveChunk(const chunk_meta_t& chunk_meta);
 
   // appends a slice `slice` to the existing chunk with metadata `chunk_meta`,
-  // returns metadata describing the new chunk resulting from the operation
-  chunk_meta_t AppendSlice(const chunk_meta_t& chunk_meta, const chunk_t& slice);
+  // updates the metadata
+  template <std::size_t axis>
+  void AppendSlice(chunk_meta_t& chunk_meta, const chunk_t& slice);
 
 private:
 
@@ -139,7 +150,7 @@ private:
   void insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const CacheStatus& stat);
   
   // makes sure cache element with index `ind` is up-to date and ready for retrieval of values
-  void sync_cache_element_for_read(cache_entry_t& cache_element);
+  void sync_cache_element_for_read(cache_entry_t& cache_entry);
   // {
   //    proceed according to `op_to_perform` found at this cache slot:
   //      0) `get` the element at the given cache slot (turns it into the most-recently accessed one)

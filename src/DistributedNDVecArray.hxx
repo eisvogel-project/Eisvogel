@@ -55,28 +55,46 @@ const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkCache<ArrayT, T, dims, vec_dims>::chunk_meta_t ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(const chunk_meta_t& chunk_meta, const chunk_t& slice) {
+template <std::size_t axis>
+void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta, const chunk_t& slice) {
 
+  // Check if the concatenation along `axis` is compatible with the shape of the existing chunk and the slice
+  if(!ArrayT<T, dims, vec_dims>::template ShapeAllowsConcatenation<axis>(chunk_meta.shape, slice.GetShape())) {
+    throw std::runtime_error("Error: dimensions not compatible for concatenation!");
+  }
+
+  // Update the metadata
+  std::size_t shape_growth = slice.GetShape()[axis];
+  chunk_meta.template GrowChunk<axis>(shape_growth);
+  
   id_t index = chunk_meta.chunk_id;
   if(!m_cache.contains(index)) {
     
-    // Cache does not have the chunk to which the new slice should be appended; simply insert the slice as a new element into the cache using the `append` mode
+    // Cache does not have the chunk to which the new slice should be appended; simply insert the slice as a new element into the cache using the `append` status
     // so that it will be appended to disk whenever it goes out of scope
-    
+    insert_into_cache(chunk_meta, slice, CacheStatus::append);
   }
+  else {
 
-  // 
-  
-  // {
-  //    1) check if the chunk the slice should be appended to is already contained in the cache
-  //    2) if no, take the slice and insert it into the cache with the new metadata and `append` as status
-  //    3) if yes:
-  //         -> if the cache entry also has `append` as status, update the metadata and perform the concatenation in the cache, keep `append` as status
-  //         -> if the cache entry has `serialize` as status, update the metadata and perform the concatenation in the cache, keep `serialize` as status
-  //         -> if the cache entry has `nothing` as status, `free` it (so that it does not trigger any further lookups), remove its entry in the cache slot mapping
-  //                   and proceed as in 2)
-  // }
+    // Cache already contains the chunk, how to proceed depends on its status
+    cache_entry_t& cached_chunk = m_cache.get(index);
 
+    switch(cached_chunk.op_to_perform) {
+      
+    case CacheStatus::append:
+      // -> if the cache entry also has `append` as status, update the metadata and perform the concatenation in the cache, keep `append` as status
+      break;
+
+    case CacheStatus::serialize:
+      // -> if the cache entry has `serialize` as status, update the metadata and perform the concatenation in the cache, keep `serialize` as status
+      break;
+
+    case CacheStatus::nothing:
+      // -> if the cache entry has `nothing` as status, `free` it (so that it does not trigger any further lookups), remove its entry in the cache slot mapping
+      //    and proceed as in 2)
+      break;
+    }
+  } 
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -97,6 +115,8 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   insert_location.op_to_perform = CacheStatus::nothing;  // this chunk is freshly read into the cache, nothing left to be done when it goes out of scope
 
   // Directly deserialize into the cache element
+  assert(std::filesystem::exists(chunk_meta.filepath));
+  
   std::fstream ifs;
   ifs.open(chunk_meta.filepath, std::ios::in | std::ios::binary);
   m_streamer.deserialize(ifs, insert_location.chunk_data);
@@ -122,9 +142,9 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::insert_into_cache(const chunk_meta_t
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_entry_t& cache_element) {
+void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_entry_t& cache_entry) {
 
-  if(cache_element.op_to_perform == CacheStatus::append) {
+  if(cache_entry.op_to_perform == CacheStatus::append) {
     // 3) `append`: perform appending to disk using the streamer, then reread into this slot (using the reference obtained at step 0)
   }
 }
