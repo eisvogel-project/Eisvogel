@@ -51,7 +51,7 @@ private:
 
   // used in creation of view
   NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, std::shared_ptr<data_t> data) :
-    m_data(data), m_strides(strides), m_offset(offset), m_shape(shape) {
+    m_data(data), m_owns_data(false), m_strides(strides), m_offset(offset), m_shape(shape) {
     m_number_elements =ComputeNumberElements(shape);
     m_volume = ComputeVolume(shape);
   }
@@ -175,6 +175,7 @@ private:
 private:
   
   std::shared_ptr<data_t> m_data;
+  const bool m_owns_data;
   
   stride_t m_strides;
   std::size_t m_offset;

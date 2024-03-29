@@ -1,8 +1,9 @@
 #include <iostream>
+#include <cassert>
 
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
-NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape), m_owns_data(true) {
 
   std::cout << "NDVecArray normal constructor" << std::endl;
   
@@ -19,7 +20,7 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
-  m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume) {
+  m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume), m_owns_data(true) {
 
   std::cout << "NDVecArray copy constructor" << std::endl;
   
@@ -33,6 +34,10 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& o
 // resizing operations
 template <typename T, std::size_t dims, std::size_t vec_dims>
 void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
+
+  // Need to own our own data for this to make sense
+  assert(m_owns_data);
+  
   m_shape = new_shape;
   m_strides = ComputeStrides(new_shape);
   m_offset = 0;
@@ -41,7 +46,7 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
-void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& value) {    
+void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& value) {  
   resize(new_shape);
   this -> operator=(value);
 }
@@ -75,15 +80,31 @@ template <typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
 void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other) requires(axis == 0) {
 
-  // Appending along the outermost index is efficient and fast
+  // Need to own our own data for this to make sense
+  assert(m_owns_data);
+  
+  // some sanity checks
+  static_assert(axis < dims);
+  assert(ShapeAllowsConcatenation<axis>(m_shape, other.m_shape));
+  
+  // new elements will be appended at the very back
+  std::size_t app_offset = m_data.size();
+  
+  // compute new shape and resize
+  shape_t new_shape = m_shape;
+  new_shape[axis] += other.m_shape[axis];
+  resize(new_shape);
 
-  std::cout << "super fast and super efficient appending" << std::endl;
+  // copy the new data
+  auto it_app = m_data.begin() + app_offset;
+  std::copy(std::execution::unseq, other.m_data.begin(), other.m_data.end(), it_app);
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
 void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other) {
   static_assert(axis < dims);
+  assert(m_owns_data);
   throw std::logic_error("Not implemented yet!");
 }
 
@@ -129,7 +150,7 @@ bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_
   
   // dimension along all directions need to match with the exception of the concatenation axis
   for(std::size_t ind = 0; ind < dims; ind++) {
-    if(ind == axis) {	continue; }
+    if(ind == axis) { continue; }
     if(arr_shape[ind] != other_shape[ind]) {
       return false;
     }
