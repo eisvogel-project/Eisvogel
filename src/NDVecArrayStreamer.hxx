@@ -249,7 +249,8 @@ namespace stor {
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
-  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& slice, std::size_t axis, const StreamerMode& mode) {
+  template <std::size_t axis>
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& slice, const StreamerMode& mode) {
 
     // keep track of current (i.e. beginning) location on stream
     std::streampos init_pos = stream.tellg();
@@ -261,25 +262,13 @@ namespace stor {
       throw std::runtime_error("Error: trying to modify an array that cannot be modified!");
     }
 
-    // check if the passed slice is actually a `slice`
-    if(!chunk_is_slice(meta.array_shape, slice.m_shape)) {
-      throw std::runtime_error("Error: passed array chunk is not a slice, cannot append!");
-    }
-
     // need to make sure that the new slice has the right dimensions for appending to the array along the prescribed axis
-    if(!ArrayT<T, dims, vec_dims>::ShapeAllowsConcatenation(meta.array_shape, slice.m_shape, axis)) {
+    if(!ArrayT<T, dims, vec_dims>::template ShapeAllowsConcatenation<axis>(meta.array_shape, slice.m_shape)) {
       throw std::runtime_error("Error: dimensions not compatible for concatenation!");
     }
 
     // --------
-    // TODO: This needs to be refined more ... not sure all of these are necessary
-    // Only need to make sure that serialization and concatenation along the requested axis commute for the chosen serialization chunk size
-    // (need not even be the same for all serialized chunks in the end!)
-    // -----
-    // Conditions:
-    // 1) dimension along which to concatenate must be the outermost changing dimension in the iteration over chunks
-    // 2) chunk size along the concatenation dimension must fit snugly, i.e. no gaps must remain
-
+    // TODO: Finish implementing checks
     // must satisfy that it(part1) + it(part2) === it(part1 + part2) for the given chunk size and dimensions of part1, part2
 
     // Better conditions:
@@ -288,15 +277,15 @@ namespace stor {
     // 2) concat dimension must not be after the outermost changing dimension
     // --------
     
-    // check if the serialization chunk is a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
-    if(!chunk_is_slice(meta.array_shape, meta.ser_chunk_shape)) {
-      throw std::runtime_error("Error: serialization chunk is not a slice, cannot append!");
-    }
+    // // check if the serialization chunk is a `slice`, i.e. the chunk fully "slices through" the array along a particular dimension
+    // if(!chunk_is_slice(meta.array_shape, meta.ser_chunk_shape)) {
+    //   throw std::runtime_error("Error: serialization chunk is not a slice, cannot append!");
+    // }
     
-    // need to make sure that the serialization axis is the same as the axis for appending the new slice
-    if(!ser_axis_matches_insertion_axis(meta.array_shape, meta.ser_chunk_shape, axis)) {
-      throw std::runtime_error("Error: serialization axis does not match requested insertion axis!");
-    }
+    // // need to make sure that the serialization axis is the same as the axis for appending the new slice
+    // if(!ser_axis_matches_insertion_axis(meta.array_shape, meta.ser_chunk_shape, axis)) {
+    //   throw std::runtime_error("Error: serialization axis does not match requested insertion axis!");
+    // }
 
     // --------
         

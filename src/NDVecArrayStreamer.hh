@@ -57,7 +57,8 @@ namespace stor {
     void serialize(std::fstream& stream, const type& val, const shape_t& chunk_size, const StreamerMode& mode);
     void deserialize(std::fstream& stream, type& val);
 
-    void append_slice(std::fstream& stream, const type& chunk, std::size_t axis, const StreamerMode& mode);
+    template <std::size_t axis>
+    void append_slice(std::fstream& stream, const type& chunk, const StreamerMode& mode);
 
   private:
 
