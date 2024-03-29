@@ -13,7 +13,6 @@ int main(int argc, char* argv[]) {
   vec1 = vec2;
   
   std::cout << vec1[0] << ", " << vec1[1] << ", " << vec1[2] << std::endl;
-  return 1;
   
   // ----
   
@@ -43,5 +42,20 @@ int main(int argc, char* argv[]) {
   arr2.loop_over_elements(print_element);
   
   std::cout << "----" << std::endl;
+
+  // ----
+
+  NDVecArray<float, 3, 2> apparr_1({2u, 2u, 2u}, 1.0f);
+  NDVecArray<float, 3, 2> apparr_2({2u, 2u, 2u}, 2.0f);
+
+  std::cout << "before appending" << std::endl;
+
+  apparr_1.loop_over_elements(print_element);
+  
+  apparr_1.Append<1>(apparr_2);
+
+  std::cout << "after appending" << std::endl;
+
+  apparr_1.loop_over_elements(print_element);
   
 }
