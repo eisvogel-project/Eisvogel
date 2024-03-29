@@ -75,7 +75,7 @@ bool Cache<IndexT, PayloadT>::contains(const IndexT& elem) {
 }
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
+PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
     
   CacheElement* accessed_element = m_accessor.at(elem);
 
@@ -86,7 +86,7 @@ const PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
 }
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_from_full_cache() {
+PayloadT& Cache<IndexT, PayloadT>::evict_oldest_from_full_cache() {
 
   // this function assumes that the cache is full, i.e. that the oldest cache slot is actually occupied
   assert(!has_free_slot());
@@ -102,7 +102,7 @@ const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_from_full_cache() {
 }  
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::evict(const IndexT& elem) {
+PayloadT& Cache<IndexT, PayloadT>::evict(const IndexT& elem) {
 
   // this function assumes that the element actually exists in the cache
   assert(contains(elem));

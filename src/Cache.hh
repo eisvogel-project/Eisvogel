@@ -16,7 +16,7 @@ public:
   bool contains(const IndexT& elem);
   
   // fast cache entry lookup
-  const PayloadT& get(const IndexT& elem);
+  PayloadT& get(const IndexT& elem);
 
   // inserts a new element into the cache, assuming there is an empty slot
   template <class DataT>
@@ -25,12 +25,16 @@ public:
   // reserves a new element in the cache and returns a reference to that clients can directly write to it
   PayloadT& insert_ref_no_overwrite(const IndexT& index);
 
-  // removes this element from the cache, creating a free slot
-  const PayloadT& evict(const IndexT& elem);
+  // removes this element from the cache, creating a free slot and returning a reference to the element at this location
+  // cache slot can be overwritten at the next insert call
+  // is now the responsibility of the caller to do anything that needs to be done to not lose the information
+  PayloadT& evict(const IndexT& elem);
   
   // assumes that the cache is full, evicts the oldest entry and returns it so that
   // it can be properly descoped
-  const PayloadT& evict_oldest_from_full_cache();
+  // cache slot can be overwritten at the next insert call
+  // is now the responsibility of the caller to do anything that needs to be done to not lose the information
+  PayloadT& evict_oldest_from_full_cache();
 
   template <class CallableT>
   void print_old_to_new(CallableT&& printer);
