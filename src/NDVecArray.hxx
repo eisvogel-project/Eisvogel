@@ -2,7 +2,10 @@
 
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
-NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {  
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape) {
+
+  std::cout << "NDVecArray normal constructor" << std::endl;
+  
   m_strides = ComputeStrides(shape);
   m_number_elements = ComputeNumberElements(shape);
   m_volume = ComputeVolume(shape);
@@ -17,6 +20,8 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
   m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume) {
+
+  std::cout << "NDVecArray copy constructor" << std::endl;
   
   // reserve the required memory
   m_data = std::make_shared<data_t>(GetVolume());
@@ -97,4 +102,21 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = m_shape[dims - 1];
   index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape) {
+    
+  // array axis out of bounds
+  static_assert(axis < dims);
+  
+  // dimension along all directions need to match with the exception of the concatenation axis
+  for(std::size_t ind = 0; ind < dims; ind++) {
+    if(ind == axis) {	continue; }
+    if(arr_shape[ind] != other_shape[ind]) {
+      return false;
+    }
+  }
+  return true;
 }
