@@ -1,4 +1,5 @@
 #include <iostream>
+#include <tuple>
 
 #include "Cache.hh"
 #include "NDVecArray.hh"
@@ -11,17 +12,29 @@ int main(int argc, char* argv[]) {
   };
   
   Vector<std::size_t, 3> shape{2u, 2u, 2u};
-  using cache_entry_t = CacheEntry<NDVecArray, float, 3, 2>;
 
+  ChunkCache<NDVecArray, float, 3, 2> chunk_cache(4, shape);
 
-  float init_val = 0.0;
-  Cache<std::size_t, cache_entry_t> testCache(4, shape, 0.0f);  
+  ChunkMetadata<3> test_meta;
 
-  std::cout << "inserting into cache" << std::endl;
+  chunk_cache.RetrieveChunk(test_meta);
   
-  testCache.insert_no_overwrite(10, 123);
-    
-  // 
+  // using cache_entry_t = CacheEntry<NDVecArray, float, 3, 2>;
+
+
+  
+  // Cache<std::size_t, cache_entry_t> testCache(4, shape, 0.0f);  
+
+  // std::cout << "creating local buffer" << std::endl;
+
+  // ChunkMetadata<3> meta;
+  // NDVecArray<float, 3, 2> buffer(shape, 1.0f);
+  // CacheStatus stat = CacheStatus::nothing;
+  
+  // std::cout << "inserting into cache" << std::endl;
+
+  // testCache.insert_no_overwrite(10, std::forward_as_tuple(meta, buffer, stat));
+   
 
   // CacheEntry<NDVecArray, float, 3, 2> another_entry(shape, 10.0f);
 

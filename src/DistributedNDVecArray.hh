@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 
+#include "Cache.hh"
 #include "Vector.hh"
 #include "NDVecArrayStreamer.hh"
 
@@ -61,13 +62,7 @@ private:
     
 };
 
-// describes what to do with this cache entry when
-// 1) it becomes the oldest element in the cache and goes out of scope: determines what needs to be done to bring the 
-//    cache in sync with the on-disk representation of this chunk
-//    -> this is cleanly handled in the `descoper`
-//    *) nothing: can simply let it go out of scope,
-//    *) serialize: create the file listed in the metadata and serialize the cache entry into it, together with the metadata
-//    *) append: the file listed in the metadata already exists, append the chunk data and update the file metadata
+// describes the status of this cache entry relative to the status on disk
 // 2) it is encountered in a cache lookup: determines what needs to be done before the cache entry becomes valid for
 //    the lookup
 //    *) nothing: cache entry is up to date and elements can directly be retrieved
@@ -99,7 +94,7 @@ struct CacheEntry {
   chunk_t chunk_data;
   CacheStatus op_to_perform;
 
-  void descope();
+  void descope_entry();
 };
 
 // acts like a cached version of `NDVecArrayStreamer`
@@ -113,6 +108,10 @@ public:
   using chunk_shape_t = typename chunk_t::shape_t;
   using chunk_meta_t = ChunkMetadata<dims>;
 
+private:
+
+  using cache_entry_t = CacheEntry<ArrayT, T, dims, vec_dims>;
+  
 public:
 
   // `cache_size` ... number of chunks that can be kept in the cache
@@ -121,61 +120,26 @@ public:
 
   // adds a new chunk with contents `chunk_data` and metadata `chunk_meta`
   // assumes that this is a new chunk and does not already exist
-  void RegisterChunk(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
-  // {
-  //    1) insert chunk together with its metadata into the buffer: `insert_into_cache()`
-  //    2) update the cache slot mapping
-  // }
+  void RegisterNewChunk(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
 
   // gets an existing chunk based on its metadata `chunk_meta`
   const chunk_t& RetrieveChunk(const chunk_meta_t& chunk_meta);
-  // {
-  //    1) check if this chunk is already contained in the cache: check the cache slot mapping
-  //    2) if no, load chunk into the buffer (`load_into_cache`) and update the cache slot mapping
-  //    3) if yes, prepare element for read with `sync_cache_element_for_read` (no need to update cache slot mapping)
-  //    4) return reference to thus prepared cache element
-  // }
 
   // appends a slice `slice` to the existing chunk with metadata `chunk_meta`,
   // returns metadata describing the new chunk resulting from the operation
   chunk_meta_t AppendSlice(const chunk_meta_t& chunk_meta, const chunk_t& slice);
-  // {
-  //    1) check if the chunk the slice should be appended to is already contained in the cache
-  //    2) if no, take the slice and insert it into the cache with the new metadata and `append` as status
-  //    3) if yes:
-  //         -> if the cache entry also has `append` as status, update the metadata and perform the concatenation in the cache, keep `append` as status
-  //         -> if the cache entry has `serialize` as status, update the metadata and perform the concatenation in the cache, keep `serialize` as status
-  //         -> if the cache entry has `nothing` as status, `free` it (so that it does not trigger any further lookups), remove its entry in the cache slot mapping
-  //                   and proceed as in 2)
-  // }
 
 private:
 
   // deserialize chunk (and its metadata) from file and insert into the cache
   // returns the buffer slot of the inserted element
-  std::size_t load_into_cache(const chunk_meta_t& chunk_meta);
-  // {
-  //     1) generate ifstream and deserialize
-  //     2) call `insert_into_cache` with the deserialized data
-  // }
+  cache_entry_t& deserialize_into_cache(const chunk_meta_t& chunk_meta);
 
-  // inserts a new cache element into the oldest slot
-  // returns the buffer slot of the inserted element  
-  std::size_t insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
-  // {
-  //     1) insertion_slot = `get_slot_for_insertion`
-  //     2) `descope_cache_entry` using the obtained cache entry
-  //     3) use obtained reference to set new cache slot contents
-  // }
-
-  void descope_cache_entry(/* cache_entry */);
-  // {
-  //     1) handle descoping according to cache status (see notes above `CacheStatus` declaration)
-  //     2) move status to `nothing` so that nothing happens to it when it is selected for another descope
-  // }
+  // inserts a new cache element into the cache
+  void insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const CacheStatus& stat);
   
   // makes sure cache element with index `ind` is up-to date and ready for retrieval of values
-  void sync_cache_element_for_read(std::size_t slot);
+  void sync_cache_element_for_read(cache_entry_t& cache_element);
   // {
   //    proceed according to `op_to_perform` found at this cache slot:
   //      0) `get` the element at the given cache slot (turns it into the most-recently accessed one)
@@ -186,11 +150,9 @@ private:
   
 private:
 
-  // fast chunk_id -> cache slot mapping to check if needed chunk is already in cache
-  // std::unordered_map<chunk_id, CacheEntry&> cache
-
-  // where everything is actually cached
-  // ChunkBuffer<chunk_t>  
+  stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
+  Cache<std::size_t, cache_entry_t> m_cache;
+  
 };
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
