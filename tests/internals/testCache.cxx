@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
   };
   
   std::cout << "empty cache" << std::endl;
-  testCache.print_old_to_new(printer);
+  testCache.loop_over_elements_old_to_new(printer);
 
   testCache.insert_no_overwrite(13, 3);
   testCache.insert_no_overwrite(14, 4);
@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
   testCache.insert_no_overwrite(16, 6);
   
   std::cout << "after insert" << std::endl;
-  testCache.print_old_to_new(printer);
+  testCache.loop_over_elements_old_to_new(printer);
 
   std::size_t evicted_element = testCache.evict_oldest_from_full_cache();
   std::cout << "evicted element: " << evicted_element << std::endl;
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
     std::cout << "evicted element: " << evicted_element << std::endl;
 
     std::cout << "after eviction" << std::endl;
-    testCache.print_old_to_new(printer);
+    testCache.loop_over_elements_old_to_new(printer);
   }
   
 }

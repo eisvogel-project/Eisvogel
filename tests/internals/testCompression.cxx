@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
-  // std::cout << "wrote 512MB in " << duration << std::endl;
+  std::cout << "wrote 512MB in " << duration << std::endl;
   
   // {
   //   std::fstream iofs;
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);
-    streamer.append_slice<0>(iofs, slice1, stor::StreamerMode::dense);
+    streamer.append_slice(iofs, slice1, 0, stor::StreamerMode::dense);
     std::cout << "done appending slice" << std::endl;
     iofs.close();
   }

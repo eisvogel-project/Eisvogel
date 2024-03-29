@@ -12,8 +12,9 @@ int main(int argc, char* argv[]) {
   };
   
   Vector<std::size_t, 3> shape{2u, 2u, 2u};
-
-  ChunkCache<NDVecArray, float, 3, 2> chunk_cache(4, shape);
+  Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
+  
+  ChunkCache<NDVecArray, float, 3, 2> chunk_cache(4, shape, streamer_chunk_size);
 
   ChunkMetadata<3> test_meta;
 

@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
   apparr_1.loop_over_elements(print_element);
   
-  apparr_1.Append<1>(apparr_2);
+  apparr_1.Append<0>(apparr_2);
 
   std::cout << "after appending" << std::endl;
 
