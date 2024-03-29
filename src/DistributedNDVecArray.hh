@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <tuple>
 #include <vector>
 
 #include "Vector.hh"
@@ -83,18 +84,20 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 struct CacheEntry {  
 
-  using shape_t = typename ArrayT<T, dims, vec_dims>::shape_t;
+  using metadata_t = ChunkMetadata<dims>;
+  using chunk_t = ArrayT<T, dims, vec_dims>;
+  using shape_t = typename chunk_t::shape_t;
 
   // Constructor for a new, empty, cache element
   CacheEntry(const shape_t& default_shape, const T& default_value) :
     chunk_data(default_shape, default_value), op_to_perform(CacheStatus::nothing) { }
 
   // Fill this cache element with data
-  CacheEntry& operator=(std::size_t testval);
+  CacheEntry& operator=(std::tuple<metadata_t&, chunk_t&, CacheStatus&> other);
   
-  ChunkMetadata<dims> chunk_meta;
+  metadata_t chunk_meta;
+  chunk_t chunk_data;
   CacheStatus op_to_perform;
-  ArrayT<T, dims, vec_dims> chunk_data;
 
   void descope();
 };
