@@ -179,13 +179,13 @@ void Cache<IndexT, PayloadT>::mark_as_newest(CacheElement* element) {
 
 template <class IndexT, class PayloadT>
 template <class CallableT>
-void Cache<IndexT, PayloadT>::print_old_to_new(CallableT&& printer) {
+void Cache<IndexT, PayloadT>::loop_over_elements_old_to_new(CallableT&& worker) {
 
   CacheElement* cur_element = m_oldest;
   while(cur_element != nullptr) {
     
     if(cur_element -> occupied) {
-      printer(cur_element -> payload);
+      worker(cur_element -> payload);
     }
     cur_element = cur_element -> next;
   }  
@@ -193,13 +193,13 @@ void Cache<IndexT, PayloadT>::print_old_to_new(CallableT&& printer) {
 
 template <class IndexT, class PayloadT>
 template <class CallableT>
-void Cache<IndexT, PayloadT>::print_new_to_old(CallableT&& printer) {
+void Cache<IndexT, PayloadT>::loop_over_elements_new_to_old(CallableT&& worker) {
 
   CacheElement* cur_element = m_newest;
   while(cur_element != nullptr) {
 
     if(cur_element -> occupied) {
-      printer(cur_element -> payload);
+      worker(cur_element -> payload);
     }    
     cur_element = cur_element -> prev;
   }  

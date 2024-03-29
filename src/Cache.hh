@@ -37,10 +37,10 @@ public:
   PayloadT& evict_oldest_from_full_cache();
 
   template <class CallableT>
-  void print_old_to_new(CallableT&& printer);
+  void loop_over_elements_old_to_new(CallableT&& worker);
 
   template <class CallableT>
-  void print_new_to_old(CallableT&& printer);
+  void loop_over_elements_new_to_old(CallableT&& worker);
   
 private:
 
