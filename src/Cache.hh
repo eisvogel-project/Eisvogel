@@ -22,15 +22,21 @@ public:
   template <class DataT>
   void insert_no_overwrite(const IndexT& index, const DataT& payload);
 
+  // reserves a new element in the cache and returns a reference to that clients can directly write to it
+  PayloadT& insert_ref_no_overwrite(const IndexT& index);
+
   // removes this element from the cache, creating a free slot
   const PayloadT& evict(const IndexT& elem);
   
   // assumes that the cache is full, evicts the oldest entry and returns it so that
   // it can be properly descoped
-  const PayloadT& evict_oldest_full_cache();
-  
-  void print_old_to_new();
-  void print_new_to_old();
+  const PayloadT& evict_oldest_from_full_cache();
+
+  template <class CallableT>
+  void print_old_to_new(CallableT&& printer);
+
+  template <class CallableT>
+  void print_new_to_old(CallableT&& printer);
   
 private:
 

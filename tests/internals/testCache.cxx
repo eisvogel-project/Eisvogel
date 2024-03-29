@@ -5,8 +5,15 @@ int main(int argc, char* argv[]) {
 
   Cache<std::size_t, std::size_t> testCache(4);
 
+  auto printer = [](std::size_t payload) {
+    
+    std::cout << "--------" << std::endl;
+    std::cout << "payload: " << payload << std::endl;
+    std::cout << "--------" << std::endl;
+  };
+  
   std::cout << "empty cache" << std::endl;
-  testCache.print_old_to_new();
+  testCache.print_old_to_new(printer);
 
   testCache.insert_no_overwrite(13, 3);
   testCache.insert_no_overwrite(14, 4);
@@ -14,9 +21,9 @@ int main(int argc, char* argv[]) {
   testCache.insert_no_overwrite(16, 6);
   
   std::cout << "after insert" << std::endl;
-  testCache.print_old_to_new();
+  testCache.print_old_to_new(printer);
 
-  std::size_t evicted_element = testCache.evict_oldest_full_cache();
+  std::size_t evicted_element = testCache.evict_oldest_from_full_cache();
   std::cout << "evicted element: " << evicted_element << std::endl;
   
   std::size_t index = 16;
@@ -27,7 +34,7 @@ int main(int argc, char* argv[]) {
     std::cout << "evicted element: " << evicted_element << std::endl;
 
     std::cout << "after eviction" << std::endl;
-    testCache.print_old_to_new();
+    testCache.print_old_to_new(printer);
   }
   
 }

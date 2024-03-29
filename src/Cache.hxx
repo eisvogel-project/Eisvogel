@@ -36,6 +36,14 @@ template <class IndexT, class PayloadT>
 template <class DataT>
 void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const DataT& payload) {
 
+  PayloadT& insert_location = insert_ref_no_overwrite(index);
+  insert_location = payload;
+  
+}
+
+template <class IndexT, class PayloadT>
+PayloadT& Cache<IndexT, PayloadT>::insert_ref_no_overwrite(const IndexT& index) {
+
   // an element with the new index must not already exist
   assert(!contains(index));
   
@@ -43,8 +51,7 @@ void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const Dat
   CacheElement* insert_location = m_oldest;
   assert(!(insert_location -> occupied));
 
-  // insert the new payload ...
-  insert_location -> payload = payload; // copy the data, now belongs to the cache
+  // prepare the new payload ...
   insert_location -> index = index;
   insert_location -> occupied = true;
 
@@ -53,6 +60,8 @@ void Cache<IndexT, PayloadT>::insert_no_overwrite(const IndexT& index, const Dat
 
   // update the index mapping
   m_accessor[index] = insert_location;
+  
+  return insert_location -> payload;
 }
 
 template <class IndexT, class PayloadT>
@@ -77,7 +86,7 @@ const PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
 }
 
 template <class IndexT, class PayloadT>
-const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_full_cache() {
+const PayloadT& Cache<IndexT, PayloadT>::evict_oldest_from_full_cache() {
 
   // this function assumes that the cache is full, i.e. that the oldest cache slot is actually occupied
   assert(!has_free_slot());
@@ -169,33 +178,29 @@ void Cache<IndexT, PayloadT>::mark_as_newest(CacheElement* element) {
 }
 
 template <class IndexT, class PayloadT>
-void Cache<IndexT, PayloadT>::print_old_to_new() {
+template <class CallableT>
+void Cache<IndexT, PayloadT>::print_old_to_new(CallableT&& printer) {
 
   CacheElement* cur_element = m_oldest;
   while(cur_element != nullptr) {
-    std::cout << "--------" << std::endl;
-    std::cout << "cache entry at " << cur_element << std::endl;
-    std::cout << "payload: " << cur_element -> payload << std::endl;
-    std::cout << "index: " << cur_element -> index << std::endl;
-    std::cout << "occupied: " << cur_element -> occupied << std::endl;
-    std::cout << "--------" << std::endl;
-
+    
+    if(cur_element -> occupied) {
+      printer(cur_element -> payload);
+    }
     cur_element = cur_element -> next;
   }  
 }
 
 template <class IndexT, class PayloadT>
-void Cache<IndexT, PayloadT>::print_new_to_old() {
+template <class CallableT>
+void Cache<IndexT, PayloadT>::print_new_to_old(CallableT&& printer) {
 
   CacheElement* cur_element = m_newest;
   while(cur_element != nullptr) {
-    std::cout << "--------" << std::endl;
-    std::cout << "cache entry at " << cur_element << std::endl;
-    std::cout << "payload: " << cur_element -> payload << std::endl;
-    std::cout << "index: " << cur_element -> index << std::endl;
-    std::cout << "occupied: " << cur_element -> occupied << std::endl;
-    std::cout << "--------" << std::endl;
 
+    if(cur_element -> occupied) {
+      printer(cur_element -> payload);
+    }    
     cur_element = cur_element -> prev;
   }  
 }
