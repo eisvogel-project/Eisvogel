@@ -72,6 +72,22 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other) requires(axis == 0) {
+
+  // Appending along the outermost index is efficient and fast
+
+  std::cout << "super fast and super efficient appending" << std::endl;
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other) {
+  static_assert(axis < dims);
+  throw std::logic_error("Not implemented yet!");
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T& other) {
   std::fill(m_data -> begin(), m_data -> end(), other);
   return *this;

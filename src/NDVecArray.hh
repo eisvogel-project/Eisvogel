@@ -107,6 +107,13 @@ public:
   // determines whether array with shape `arr_shape` can be concatenated with an array with shape `other_shape` along `axis`
   template <std::size_t axis>
   static bool ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape);
+
+  // For appending another NDVecArray to this one
+  template <std::size_t axis>
+  void Append(const NDVecArray<T, dims, vec_dims>& other) requires(axis == 0);
+  
+  template <std::size_t axis>
+  void Append(const NDVecArray<T, dims, vec_dims>& other);
   
   // -----------------------------
   // operations on `NDVecArrays`
