@@ -85,10 +85,10 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
   
   // some sanity checks
   static_assert(axis < dims);
-  assert(ShapeAllowsConcatenation<axis>(m_shape, other.m_shape));
+  assert(ShapeAllowsConcatenation(m_shape, other.m_shape, axis));
   
   // new elements will be appended at the very back
-  std::size_t app_offset = m_data.size();
+  std::size_t app_offset = m_data -> size();
   
   // compute new shape and resize
   shape_t new_shape = m_shape;
@@ -96,8 +96,8 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
   resize(new_shape);
 
   // copy the new data
-  auto it_app = m_data.begin() + app_offset;
-  std::copy(std::execution::unseq, other.m_data.begin(), other.m_data.end(), it_app);
+  auto it_app = m_data -> begin() + app_offset;
+  std::copy(std::execution::unseq, other.m_data -> begin(), other.m_data -> end(), it_app);
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -106,6 +106,18 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
   static_assert(axis < dims);
   assert(m_owns_data);
   throw std::logic_error("Not implemented yet!");
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other, std::size_t axis) {
+  if(axis == 0) {
+    Append<0>(other);
+  }
+  else {
+    assert(axis < dims);
+    assert(m_owns_data);
+    throw std::logic_error("Not implemented yet!");
+  }
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -142,11 +154,10 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
-template <std::size_t axis>
-bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape) {
+bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape, std::size_t axis) {
     
   // array axis out of bounds
-  static_assert(axis < dims);
+  assert(axis < dims);
   
   // dimension along all directions need to match with the exception of the concatenation axis
   for(std::size_t ind = 0; ind < dims; ind++) {

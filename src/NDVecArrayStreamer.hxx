@@ -249,8 +249,7 @@ namespace stor {
   
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
-  template <std::size_t axis>
-  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& slice, const StreamerMode& mode) {
+  void NDVecArrayStreamer<ArrayT, T, dims, vec_dims>::append_slice(std::fstream& stream, const type& slice, std::size_t axis, const StreamerMode& mode) {
 
     // keep track of current (i.e. beginning) location on stream
     std::streampos init_pos = stream.tellg();
@@ -263,7 +262,7 @@ namespace stor {
     }
 
     // need to make sure that the new slice has the right dimensions for appending to the array along the prescribed axis
-    if(!ArrayT<T, dims, vec_dims>::template ShapeAllowsConcatenation<axis>(meta.array_shape, slice.m_shape)) {
+    if(!ArrayT<T, dims, vec_dims>::template ShapeAllowsConcatenation(meta.array_shape, slice.m_shape, axis)) {
       throw std::runtime_error("Error: dimensions not compatible for concatenation!");
     }
 

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <tuple>
 #include <vector>
+#include <variant>
 
 #include "Cache.hh"
 #include "Vector.hh"
@@ -72,17 +73,16 @@ private:
     
 };
 
-// describes the status of this cache entry relative to the status on disk
-// 2) it is encountered in a cache lookup: determines what needs to be done before the cache entry becomes valid for
-//    the lookup
-//    *) nothing: cache entry is up to date and elements can directly be retrieved
-//    *) serialize: cache entry is up to date and elements can directly be retrieved
-//    *) append: need to append the data and then re-read the full chunk before elements can be retrieved
-enum class CacheStatus : std::size_t {
-  nothing = 0,
-  serialize = 1,
-  append = 2
-};
+namespace CacheStatus {
+
+  struct Nothing { };
+  struct Serialize { };
+  
+  struct Append {
+    Append(std::size_t axis) : axis(axis) { };
+    std::size_t axis;
+  };  
+}
 
 // The elements stored in the cache
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -92,19 +92,18 @@ struct CacheEntry {
   using metadata_t = ChunkMetadata<dims>;
   using chunk_t = ArrayT<T, dims, vec_dims>;
   using shape_t = typename chunk_t::shape_t;
+  using status_t = std::variant<CacheStatus::Nothing, CacheStatus::Serialize, CacheStatus::Append>;
 
   // Constructor for a new, empty, cache element
   CacheEntry(const shape_t& default_shape, const T& default_value) :
-    chunk_data(default_shape, default_value), op_to_perform(CacheStatus::nothing) { }
+    chunk_data(default_shape, default_value), op_to_perform(CacheStatus::Nothing()) { }
 
   // Fill this cache element with data
-  CacheEntry& operator=(std::tuple<metadata_t&, chunk_t&, CacheStatus&> other);
+  CacheEntry& operator=(std::tuple<metadata_t&, chunk_t&, status_t&> other);
   
   metadata_t chunk_meta;
   chunk_t chunk_data;
-  CacheStatus op_to_perform;
-
-  void descope_entry();
+  status_t op_to_perform;
 };
 
 // acts like a cached version of `NDVecArrayStreamer`
@@ -121,12 +120,15 @@ public:
 private:
 
   using cache_entry_t = CacheEntry<ArrayT, T, dims, vec_dims>;
+  using status_t = typename cache_entry_t::status_t;
   
 public:
 
   // `cache_size` ... number of chunks that can be kept in the cache
   // `init_cache_el_shape` ... initial shape to reserve for each element in the cache
-  ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape);
+  ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+	     const Vector<std::size_t, dims>& streamer_chunk_size,
+	     std::size_t initial_buffer_size = 10000);
 
   // adds a new chunk with contents `chunk_data` and metadata `chunk_meta`
   // assumes that this is a new chunk and does not already exist
@@ -147,21 +149,17 @@ private:
   cache_entry_t& deserialize_into_cache(const chunk_meta_t& chunk_meta);
 
   // inserts a new cache element into the cache
-  void insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const CacheStatus& stat);
+  void insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const status_t& stat);
   
   // makes sure cache element with index `ind` is up-to date and ready for retrieval of values
   void sync_cache_element_for_read(cache_entry_t& cache_entry);
-  // {
-  //    proceed according to `op_to_perform` found at this cache slot:
-  //      0) `get` the element at the given cache slot (turns it into the most-recently accessed one)
-  //      1) `nothing`: do nothing
-  //      2) `serialize`: this is already the full chunk, do nothing
-  //      3) `append`: perform appending to disk, then reread into this slot (using the reference obtained at step 0)
-  // }
+
+  void descope_cache_element(cache_entry_t& cache_entry);
   
 private:
 
   stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
+  Vector<std::size_t, dims> m_streamer_chunk_size;
   Cache<std::size_t, cache_entry_t> m_cache;
   
 };
