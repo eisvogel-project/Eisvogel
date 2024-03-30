@@ -114,6 +114,17 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::FlushCache() {
+
+  // Evict and descope all cache elements
+  for(id_t cur_index : m_cache.contained_elements()) {
+    cache_entry_t& entry = m_cache.evict(cur_index);
+    descope_cache_element(entry);
+  }   
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims, vec_dims>::deserialize_into_cache(const chunk_meta_t& chunk_meta) {
 
   if(!m_cache.has_free_slot()) {
@@ -181,8 +192,6 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_en
 
   iofs.close();
 }
-
-// --------------
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>

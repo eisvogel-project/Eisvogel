@@ -142,6 +142,8 @@ public:
   template <std::size_t axis>
   void AppendSlice(chunk_meta_t& chunk_meta, const chunk_t& slice);
 
+  void FlushCache();
+  
 private:
 
   // deserialize chunk (and its metadata) from file and insert into the cache

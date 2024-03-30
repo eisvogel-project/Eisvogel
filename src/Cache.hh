@@ -14,6 +14,7 @@ public:
   bool has_free_slot();
 
   bool contains(const IndexT& elem);
+  std::vector<IndexT> contained_elements();
   
   // fast cache entry lookup
   PayloadT& get(const IndexT& elem);
@@ -35,7 +36,7 @@ public:
   // cache slot can be overwritten at the next insert call
   // is now the responsibility of the caller to do anything that needs to be done to not lose the information
   PayloadT& evict_oldest_from_full_cache();
-
+  
   template <class CallableT>
   void loop_over_elements_old_to_new(CallableT&& worker);
 

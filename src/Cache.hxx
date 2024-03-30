@@ -75,6 +75,18 @@ bool Cache<IndexT, PayloadT>::contains(const IndexT& elem) {
 }
 
 template <class IndexT, class PayloadT>
+std::vector<IndexT> Cache<IndexT, PayloadT>::contained_elements() {
+  
+  std::vector<IndexT> elements;
+  elements.reserve(m_accessor.size());
+  
+  for (auto& [index, elem]: m_accessor) {
+    elements.push_back(index);
+  }
+  return elements;
+}
+
+template <class IndexT, class PayloadT>
 PayloadT& Cache<IndexT, PayloadT>::get(const IndexT& elem) {
     
   CacheElement* accessed_element = m_accessor.at(elem);
