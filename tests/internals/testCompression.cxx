@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     std::fstream iofs;
     iofs.open(testpath, std::ios::out | std::ios::binary);    
     //streamer.serialize(iofs, arr1, streamer_chunk_size, stor::StreamerMode::dense);
-    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::dense);
+    streamer.serialize(iofs, arr1_view, streamer_chunk_size, stor::StreamerMode::null_suppressed);
     //streamer.serialize(iofs, slice1, streamer_chunk_size, stor::StreamerMode::dense);
     std::cout << "done writing" << std::endl;
     iofs.close();
@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
-  std::cout << "wrote 512MB in " << duration << std::endl;
+  // std::cout << "wrote 512MB in " << duration << std::endl;
   
   // {
   //   std::fstream iofs;
@@ -79,7 +79,7 @@ int main(int argc, char* argv[]) {
   {
     std::fstream iofs;
     iofs.open(testpath, std::ios::in | std::ios::out | std::ios::binary);
-    streamer.append_slice(iofs, slice1, 0, stor::StreamerMode::dense);
+    streamer.append_slice(iofs, slice1, 0, stor::StreamerMode::null_suppressed);
     std::cout << "done appending slice" << std::endl;
     iofs.close();
   }
