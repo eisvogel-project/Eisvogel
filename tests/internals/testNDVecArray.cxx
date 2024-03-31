@@ -57,5 +57,11 @@ int main(int argc, char* argv[]) {
   std::cout << "after appending" << std::endl;
 
   apparr_1.loop_over_elements(print_element);
-  
+
+  // ----
+
+  for(int i = 0; i < 10; i++) {
+    NDVecArray<float, 3, 4> largearr({400u, 400u, 400u}, 1230.0);
+    std::cout << i << std::endl;
+  }
 }
