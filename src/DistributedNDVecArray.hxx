@@ -27,7 +27,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape, const Vector<std::size_t, dims>& streamer_chunk_size,
 						  std::size_t initial_buffer_size) :
-  m_cache(cache_size, init_cache_el_shape, T()), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
+  m_cache(cache_size, init_cache_el_shape), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -55,6 +55,7 @@ const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims
     cache_entry_t& cached_chunk = m_cache.get(index);
     if((!std::holds_alternative<CacheStatus::Nothing>(cached_chunk.op_to_perform)) &&
        (!std::holds_alternative<CacheStatus::Serialize>(cached_chunk.op_to_perform))) {
+      [[unlikely]];
       
       // The element contained in the cache is not up-to-date; need to synchronize first
       sync_cache_element_for_read(cached_chunk);
@@ -414,10 +415,27 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <std::size_t axis>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
 
+  // This is the index of an element in the (existing) chunk the slice should be appended to
+  ind_t ind_existing_chunk = start_ind;
+  ind_existing_chunk[axis] -= 1;
+
+  // Get the metadata describing that chunk
+  metadata_t& meta = m_index.GetChunk(ind_existing_chunk);
+
+  // Perform the appending operation
+  m_cache.template AppendSlice<axis>(meta, slice);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, vec_dims>::operator[](const ind_t& ind) {
 
+  // Find chunk that holds the element with the required index
+  metadata_t& meta = m_index.GetChunk(ind);
+
+  // Retrieve the chunk
+  const chunk_t& chunk = m_cache.RetrieveChunk(meta);
+
+  // Fetch the element from the chunk
+  return chunk[ind - meta.start_ind];
 }

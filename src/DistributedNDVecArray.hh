@@ -127,8 +127,8 @@ struct CacheEntry {
   using status_t = std::variant<CacheStatus::Nothing, CacheStatus::Serialize, CacheStatus::Append>;
 
   // Constructor for a new, empty, cache element
-  CacheEntry(const shape_t& default_shape, const T& default_value) :
-    chunk_data(default_shape, default_value), op_to_perform(CacheStatus::Nothing()) { }
+  CacheEntry(const shape_t& default_shape) :
+    chunk_data(default_shape), op_to_perform(CacheStatus::Nothing()) { }
 
   // Fill this cache element with data
   CacheEntry& operator=(std::tuple<metadata_t&, chunk_t&, status_t&> other);
