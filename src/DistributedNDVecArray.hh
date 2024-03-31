@@ -70,6 +70,7 @@ public:
 
   // build from stored index file
   ChunkIndex(std::filesystem::path index_path);
+  ~ChunkIndex();
 
   metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape);
   
@@ -82,9 +83,12 @@ public:
 
   void FlushIndex();
 
-public:
+private:
 
   id_t get_next_chunk_id();
+
+  void load_and_rebuild_index();
+  
   bool is_in_chunk(const metadata_t& chunk, const Vector<std::size_t, dims>& ind);
   bool is_in_region(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape,
 		    const Vector<std::size_t, dims>& ind);
@@ -157,6 +161,7 @@ public:
   ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	     const Vector<std::size_t, dims>& streamer_chunk_size,
 	     std::size_t initial_buffer_size = 10000);
+  ~ChunkCache();
 
   // adds a new chunk with contents `chunk_data` and metadata `chunk_meta`
   // assumes that this is a new chunk and does not already exist

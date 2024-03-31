@@ -43,10 +43,7 @@ int main(int argc, char* argv[]) {
   
   std::cout << chunk_meta.end_ind[0] << ", " << chunk_meta.end_ind[1] << ", " << chunk_meta.end_ind[2] << std::endl;
   std::cout << chunk_meta_read.end_ind[0] << ", " << chunk_meta_read.end_ind[1] << ", " << chunk_meta_read.end_ind[2] << std::endl;
-  
-  Vector<std::size_t, 3> ind_to_test{13u, 13u, 13u};
-  std::cout << chunk_index.is_in_region(start_ind, chunk_shape, ind_to_test) << std::endl;
-  
+    
   // using cache_entry_t = CacheEntry<NDVecArray, float, 3, 2>;
   
   // Cache<std::size_t, cache_entry_t> testCache(4, shape, 0.0f);  

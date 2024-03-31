@@ -24,6 +24,12 @@ ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, const 
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkCache<ArrayT, T, dims, vec_dims>::~ChunkCache() {
+  FlushCache();
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::RegisterNewChunk(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data) {
 
   // Register a new chunk in the cache
@@ -261,8 +267,13 @@ ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(in
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
-
+    load_and_rebuild_index();
   }
+}
+
+template <std::size_t dims>
+ChunkIndex<dims>::~ChunkIndex() {
+  FlushIndex();
 }
 
 template <std::size_t dims>
@@ -293,6 +304,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_
   }
 
   // If not, trigger full chunk lookup
+  // TODO: replace this with lookup in the R-tree, which will be much more efficient
   for(metadata_t& cur_chunk : m_chunk_list) {
     if(is_in_chunk(cur_chunk, ind)) {
       m_last_accessed = &cur_chunk;
@@ -306,6 +318,21 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_
 template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
 
+  std::fstream ofs;
+  ofs.open(m_index_path, std::ios::out | std::ios::binary);
+  stor::Traits<std::vector<metadata_t>>::serialize(ofs, m_chunk_list);
+  ofs.close();
+}
+
+template <std::size_t dims>
+void ChunkIndex<dims>::load_and_rebuild_index() {
+
+  m_chunk_list.clear();
+
+  std::fstream ifs;
+  ifs.open(m_index_path, std::ios::in | std::ios::binary);
+  m_chunk_list = stor::Traits<std::vector<metadata_t>>::deserialize(ifs);
+  ifs.close();
 }
 
 template <std::size_t dims>
