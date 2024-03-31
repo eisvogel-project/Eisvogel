@@ -161,6 +161,11 @@ public:
   ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	     const Vector<std::size_t, dims>& streamer_chunk_size,
 	     std::size_t initial_buffer_size = 10000);
+
+  // Makes some sensible simplified choices
+  ChunkCache(std::size_t cache_size, std::size_t init_cache_el_linear_size = 400,
+	     std::size_t initial_buffer_size = 10000);
+  
   ~ChunkCache();
 
   // adds a new chunk with contents `chunk_data` and metadata `chunk_meta`
@@ -201,52 +206,81 @@ private:
 
 // -------------------------
 
-template <typename T, std::size_t dims, std::size_t vec_dims>
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 class ChunkLibrary {
 
 public:
 
-  // single-element retrieval:
-  // -> check if element is in cache -> if so, return
-  // -> if not in cache, load containing chunk from disk and then return
+  using chunk_t = ArrayT<T, dims, vec_dims>;
+  using chunk_shape_t = typename chunk_t::shape_t;
+  using metadata_t = typename ChunkIndex<dims>::metadata_t;
+  using view_t = typename chunk_t::view_t;  
+  using ind_t = Vector<std::size_t, dims>;
+  
+public:
 
-  // element range retrieval:
-  // -> get list of chunks that have some intersection with the requested range from the full chunk index
-  // -> load them one-by-one and take out the intersection of the loaded cache with the requested range
-    
+  ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size, std::size_t init_cache_el_linear_size = 400);
+  ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+	       const Vector<std::size_t, dims>& streamer_chunk_size);
+  ~ChunkLibrary();
+
+  // Add a new chunk
+  void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
+
+  // Append a slice to an existing chunk along a certain axis
+  template <std::size_t axis>
+  void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
+  
+  // Single-element retrieval
+  view_t operator[](const ind_t& ind);
+  
 private:
 
-  // load into cache:
-  // -> get cache insertion position
-  // -> sync contained element to disk if needed
-  // -> load requested chunk into freed-up buffer location
-
-  // ----
+  std::filesystem::path m_dirpath;
+  std::filesystem::path m_index_path;
   
-  // data members
-  
-  // streamer
-  // chunk cache
-  // chunk index
+  ChunkIndex<dims> m_index;
+  ChunkCache<ArrayT, T, dims, vec_dims> m_cache;
   
 };
 
-// template <typename T, std::size_t dims, std::size_t vec_dims>
-// class DistributedNDVecArray {
+// ----------------
 
-//   // handles all the multi-chunk stuff by talking to ChunkLibrary
-//   // temporarily, can also have more than one chunk library (e.g. when rechunking)
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+class DistributedNDVecArray {
+
+public:
+
+  using chunk_t = ArrayT<T, dims, vec_dims>;
+  using view_t = typename chunk_t::view_t;
+  using ind_t = Vector<std::size_t, dims>;
   
-// public:
+public:
 
-//   DistributedNDVecArray(std::filesystem::path dirpath, std::size_t cache_size);
+  DistributedNDVecArray(std::filesystem::path dirpath);
+  ~DistributedNDVecArray();
 
-// private:
-
-//   const std::filesystem::path m_dirpath;
-
+  // Single-chunk operations
+  void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
+  view_t operator[](const ind_t& ind);
   
-//   // chunk library
-// };
+  template <std::size_t axis>
+  void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
+
+  // Multi-chunk operations
+
+  // Imports another distributed array and add it to this one
+  void Import(const DistributedNDVecArray<ArrayT, T, dims, vec_dims>& other);
+  
+  // Rebalance chunks
+  void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
+  
+private:
+
+  ChunkLibrary<ArrayT, T, dims, vec_dims> m_library;
+  
+};
 
 #include "DistributedNDVecArray.hxx"

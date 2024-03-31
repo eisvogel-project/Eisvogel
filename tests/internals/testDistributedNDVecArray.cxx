@@ -12,10 +12,10 @@ int main(int argc, char* argv[]) {
     std::cout << elem[0] << ", " << elem[1] << std::endl;
   };
   
-  Vector<std::size_t, 3> shape{2u, 2u, 2u};
+  Vector<std::size_t, 3> shape{400u, 400u, 400u};
   Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
   
-  ChunkCache<NDVecArray, float, 3, 2> chunk_cache(4, shape, streamer_chunk_size);
+  ChunkCache<NDVecArray, float, 3, 2> chunk_cache(10, shape, streamer_chunk_size);
 
   ChunkIndex<3> chunk_index("index.bin");
 
@@ -43,7 +43,9 @@ int main(int argc, char* argv[]) {
   
   std::cout << chunk_meta.end_ind[0] << ", " << chunk_meta.end_ind[1] << ", " << chunk_meta.end_ind[2] << std::endl;
   std::cout << chunk_meta_read.end_ind[0] << ", " << chunk_meta_read.end_ind[1] << ", " << chunk_meta_read.end_ind[2] << std::endl;
-    
+
+  // ChunkLibrary<NDVecArray, float, 3, 2> lib("test_lib", 10);
+  
   // using cache_entry_t = CacheEntry<NDVecArray, float, 3, 2>;
   
   // Cache<std::size_t, cache_entry_t> testCache(4, shape, 0.0f);  

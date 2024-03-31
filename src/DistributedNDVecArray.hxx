@@ -18,6 +18,13 @@ CacheEntry<ArrayT, T, dims, vec_dims>& CacheEntry<ArrayT, T, dims, vec_dims>::op
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, std::size_t init_cache_el_linear_size,
+						  std::size_t initial_buffer_size) :
+  ChunkCache(cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
+	     Vector<std::size_t, dims>(stor::INFTY), initial_buffer_size) { }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape, const Vector<std::size_t, dims>& streamer_chunk_size,
 						  std::size_t initial_buffer_size) :
   m_cache(cache_size, init_cache_el_shape, T()), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
@@ -147,6 +154,8 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   insert_location.chunk_meta = chunk_meta;
   insert_location.op_to_perform = CacheStatus::Nothing();  // this chunk is freshly read into the cache, nothing left to be done when it goes out of scope
 
+  // TODO: add check here whether ChunkType is specified or all_null
+  
   // Directly deserialize into the cache element
   assert(std::filesystem::exists(chunk_meta.filepath));
   
@@ -185,6 +194,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_en
   iofs.open(chunk_path, std::ios::in | std::ios::out | std::ios::binary);
   iofs.seekg(cache_entry.chunk_meta.start_pos, std::ios_base::beg);
 
+  // TODO: add check here whether ChunkType is specified or all_null
+  
   status_t& status = cache_entry.op_to_perform;
   if(std::holds_alternative<CacheStatus::Append>(status)) {
     
@@ -358,4 +369,55 @@ bool ChunkIndex<dims>::is_in_region(const Vector<std::size_t, dims>& start_ind, 
 template <std::size_t dims>
 id_t ChunkIndex<dims>::get_next_chunk_id() {
   return m_next_chunk_id++;
+}
+
+// -------------
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size,
+						      std::size_t init_cache_el_linear_size) :
+  ChunkLibrary(dirpath, cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
+	       Vector<std::size_t, dims>(stor::INFTY)) { }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size,
+						      const chunk_shape_t& init_cache_el_shape,
+						      const Vector<std::size_t, dims>& streamer_chunk_size) :
+  m_dirpath(dirpath), m_index_path(dirpath / "index.bin"), m_index(m_index_path),
+  m_cache(cache_size, init_cache_el_shape, streamer_chunk_size) {
+
+  // create directory if it does not yet exist
+  if(!std::filesystem::exists(m_dirpath)) {
+    std::filesystem::create_directory(m_dirpath);
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkLibrary<ArrayT, T, dims, vec_dims>::~ChunkLibrary() { }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const ind_t& start_ind, const chunk_t& chunk) {
+
+  // Insert new metadata entry into chunk index
+  metadata_t& meta = m_index.RegisterChunk(start_ind, chunk.GetShape());
+
+  // Insert new chunk into the cache
+  m_cache.RegisterNewChunk(meta, chunk);  
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
+
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, vec_dims>::operator[](const ind_t& ind) {
+
 }
