@@ -57,8 +57,12 @@ private:
   }
   
 public:
-  
+
+  // Creates an array with the specified `shape` that gets initialized with `value`
   NDVecArray(const shape_t& shape, const T& value);
+
+  // Creates an array with the specified `shape` that remains uninitialized
+  NDVecArray(const shape_t& shape);
 
   // copy constructor
   NDVecArray(const NDVecArray<T, dims, vec_dims>& other);

@@ -3,9 +3,9 @@
 
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
-NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) : m_offset(0), m_shape(shape), m_owns_data(true) {
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_offset(0), m_shape(shape), m_owns_data(true) {
 
-  std::cout << "NDVecArray normal constructor" << std::endl;
+  std::cout << "NDVecArray normal constructor uninitialized" << std::endl;
   
   m_strides = ComputeStrides(shape);
   m_number_elements = ComputeNumberElements(shape);
@@ -13,7 +13,14 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
   
   // reserve the required memory
   m_data = std::make_shared<data_t>(GetVolume());
-  
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) :
+  NDVecArray<T, dims, vec_dims>(shape) {
+
+  std::cout << "NDVecArray normal constructor initialized" << std::endl;
+    
   // initialize properly
   this -> operator=(value);
 }   
