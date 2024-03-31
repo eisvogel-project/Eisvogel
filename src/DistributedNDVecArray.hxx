@@ -318,6 +318,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_
 template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
 
+  // TODO: requires modifications after switch to R-tree
   std::fstream ofs;
   ofs.open(m_index_path, std::ios::out | std::ios::binary);
   stor::Traits<std::vector<metadata_t>>::serialize(ofs, m_chunk_list);
@@ -327,8 +328,8 @@ void ChunkIndex<dims>::FlushIndex() {
 template <std::size_t dims>
 void ChunkIndex<dims>::load_and_rebuild_index() {
 
+  // TODO: requires modifications after switch to R-tree  
   m_chunk_list.clear();
-
   std::fstream ifs;
   ifs.open(m_index_path, std::ios::in | std::ios::binary);
   m_chunk_list = stor::Traits<std::vector<metadata_t>>::deserialize(ifs);
