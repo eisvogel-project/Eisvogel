@@ -1,3 +1,4 @@
+#include <uuid/uuid.h>
 #include "DistributedNDVecArray.hh"
 
 // --------------
@@ -227,3 +228,106 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
 }
 
 // -------------
+
+namespace stor{
+
+  template <std::size_t dims>
+  struct Traits<ChunkMetadata<dims>> {
+    using type = ChunkMetadata<dims>;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<std::size_t>::serialize(stream, static_cast<std::size_t>(val.chunk_type));
+      Traits<std::string>::serialize(stream, val.filepath.string());
+      Traits<id_t>::serialize(stream, val.chunk_id);
+      Traits<Vector<std::size_t, dims>>::serialize(stream, val.start_ind);
+      Traits<Vector<std::size_t, dims>>::serialize(stream, val.shape);
+    }
+
+    static type deserialize(std::iostream& stream) {
+      ChunkType chunk_type{Traits<std::size_t>::deserialize(stream)};
+      std::filesystem::path filepath(Traits<std::string>::deserialize(stream));
+      id_t chunk_id = Traits<id_t>::deserialize(stream);
+      Vector<std::size_t, dims> start_ind = Traits<Vector<std::size_t, dims>>::deserialize(stream);
+      Vector<std::size_t, dims> shape = Traits<Vector<std::size_t, dims>>::deserialize(stream);
+      return ChunkMetadata<dims>(chunk_type, filepath, chunk_id, start_ind, shape);
+    }
+  };
+}
+
+// -------------
+
+template <std::size_t dims>
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path) {
+
+  // Already have an index file on disk, load it
+  if(std::filesystem::exists(m_index_path)) {
+
+  }
+}
+
+template <std::size_t dims>
+ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::size_t, dims>& start_ind,
+							      const Vector<std::size_t, dims>& shape) {
+
+  uuid_t uuid_binary;
+  uuid_generate_random(uuid_binary);
+  char uuid_string[36];
+  uuid_unparse(uuid_binary, uuid_string);
+  std::filesystem::path filename(std::string(uuid_string) + ".bin");
+
+  // build metadata object for this chunk
+  id_t chunk_id = get_next_chunk_id();
+  metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape);
+
+  m_chunk_list.push_back(chunk_meta);
+  return m_chunk_list.back();
+}
+
+template <std::size_t dims>
+ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
+
+  // First check if we're still in the most-recently read chunk
+  if((m_last_accessed != nullptr) && (is_in_chunk(*m_last_accessed, ind))) {
+    [[likely]];
+    return *m_last_accessed;
+  }
+
+  // If not, trigger full chunk lookup
+  for(metadata_t& cur_chunk : m_chunk_list) {
+    if(is_in_chunk(cur_chunk, ind)) {
+      m_last_accessed = &cur_chunk;
+      return cur_chunk;
+    }
+  }
+
+  throw std::logic_error("Error: no chunk found!");
+}
+
+template <std::size_t dims>
+void ChunkIndex<dims>::FlushIndex() {
+
+}
+
+template <std::size_t dims>
+bool ChunkIndex<dims>::is_in_chunk(const metadata_t& chunk, const Vector<std::size_t, dims>& ind) {
+  return is_in_region(chunk.start_ind, chunk.shape, ind);
+}
+
+template <std::size_t dims>
+bool ChunkIndex<dims>::is_in_region(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape,
+				    const Vector<std::size_t, dims>& ind) {
+  
+  for(std::size_t i = 0; i < dims; i++) {
+    
+    // Efficient out-of-range comparison with a single branch
+    if((ind[i] - start_ind[i]) >= shape[i]) {
+      return false;
+    }
+  }  
+  return true;
+}
+
+template <std::size_t dims>
+id_t ChunkIndex<dims>::get_next_chunk_id() {
+  return m_next_chunk_id++;
+}

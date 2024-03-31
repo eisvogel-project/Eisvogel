@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <tuple>
 
 #include "Cache.hh"
@@ -16,13 +17,37 @@ int main(int argc, char* argv[]) {
   
   ChunkCache<NDVecArray, float, 3, 2> chunk_cache(4, shape, streamer_chunk_size);
 
-  ChunkMetadata<3> test_meta;
+  ChunkIndex<3> chunk_index("index.bin");
 
-  chunk_cache.RetrieveChunk(test_meta);
+  Vector<std::size_t, 3> start_ind{10u, 10u, 10u};
+  Vector<std::size_t, 3> end_ind{13u, 13u, 13u};
+  Vector<std::size_t, 3> chunk_shape = end_ind - start_ind;
+
+  ChunkMetadata<3> chunk_meta(ChunkType::specified, "abc.bin", 3, start_ind, chunk_shape);
+
+  std::fstream ofs;
+  ofs.open("index.bin", std::ios::out | std::ios::binary);
+  stor::Traits<ChunkMetadata<3>>::serialize(ofs, chunk_meta);
+  ofs.close();
+
+  std::fstream ifs;
+  ifs.open("index.bin", std::ios::in | std::ios::binary);
+  ChunkMetadata<3> chunk_meta_read = stor::Traits<ChunkMetadata<3>>::deserialize(ifs);
+  ifs.close();
+
+  std::cout << chunk_meta.filepath << std::endl;
+  std::cout << chunk_meta_read.filepath << std::endl;
+  
+  std::cout << chunk_meta.start_ind[0] << ", " << chunk_meta.start_ind[1] << ", " << chunk_meta.start_ind[2] << std::endl;
+  std::cout << chunk_meta_read.start_ind[0] << ", " << chunk_meta_read.start_ind[1] << ", " << chunk_meta_read.start_ind[2] << std::endl;
+  
+  std::cout << chunk_meta.end_ind[0] << ", " << chunk_meta.end_ind[1] << ", " << chunk_meta.end_ind[2] << std::endl;
+  std::cout << chunk_meta_read.end_ind[0] << ", " << chunk_meta_read.end_ind[1] << ", " << chunk_meta_read.end_ind[2] << std::endl;
+  
+  Vector<std::size_t, 3> ind_to_test{13u, 13u, 13u};
+  std::cout << chunk_index.is_in_region(start_ind, chunk_shape, ind_to_test) << std::endl;
   
   // using cache_entry_t = CacheEntry<NDVecArray, float, 3, 2>;
-
-
   
   // Cache<std::size_t, cache_entry_t> testCache(4, shape, 0.0f);  
 

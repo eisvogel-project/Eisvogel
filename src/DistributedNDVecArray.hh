@@ -22,8 +22,13 @@ struct ChunkMetadata {
 
   // default constructor
   ChunkMetadata() :
-    chunk_type(ChunkType::all_null), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
+    chunk_type(ChunkType::specified), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
 
+  ChunkMetadata(const ChunkType& chunk_type, const std::filesystem::path& filepath, const id_t& chunk_id,
+		const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape) :
+    chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_ind(start_ind), shape(shape),
+    end_ind(start_ind + shape) { }
+  
   // Accessor that grows the recorded shape of a chunk
   template <std::size_t axis>
   void GrowChunk(std::size_t shape_growth) {
@@ -51,27 +56,50 @@ struct ChunkMetadata {
   Vector<std::size_t, dims> shape;
 };
 
+// -------------------------
+
 // provides fast coordinate-indexed lookup of chunks
-template <template<std::size_t> class MetadataT,
-	  std::size_t dims>
+template <std::size_t dims>
 class ChunkIndex {
+
+public:
+
+  using metadata_t = ChunkMetadata<dims>;
   
 public:
 
   // build from stored index file
   ChunkIndex(std::filesystem::path index_path);
 
+  metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape);
+  
   // get chunk that contains the element with index `ind`
-  ChunkMetadata<dims> GetChunk(const Vector<std::size_t, dims>& ind);
+  metadata_t& GetChunk(const Vector<std::size_t, dims>& ind);
 
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
-  std::vector<ChunkMetadata<dims>> GetChunks(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind);
+  std::vector<metadata_t> GetChunks(const Vector<std::size_t, dims>& start_ind,
+				    const Vector<std::size_t, dims>& end_ind);  
+
+  void FlushIndex();
+
+public:
+
+  id_t get_next_chunk_id();
+  bool is_in_chunk(const metadata_t& chunk, const Vector<std::size_t, dims>& ind);
+  bool is_in_region(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape,
+		    const Vector<std::size_t, dims>& ind);
   
 private:
 
-  // for now, do simple linear search and remember to check last-accessed chunk first; use an R-tree later
-    
+  id_t m_next_chunk_id;
+  std::filesystem::path m_index_path;
+  metadata_t* m_last_accessed;
+
+  // TODO: to be replaced with R-tree
+  std::vector<metadata_t> m_chunk_list;   
 };
+
+// -------------------------
 
 namespace CacheStatus {
 
@@ -160,11 +188,13 @@ private:
   
 private:
 
-  stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
   Vector<std::size_t, dims> m_streamer_chunk_size;
   Cache<std::size_t, cache_entry_t> m_cache;
+  stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
   
 };
+
+// -------------------------
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 class ChunkLibrary {
