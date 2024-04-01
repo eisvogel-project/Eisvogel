@@ -5,11 +5,11 @@
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-CacheEntry<ArrayT, T, dims, vec_dims>& CacheEntry<ArrayT, T, dims, vec_dims>::operator=(std::tuple<metadata_t&, chunk_t&, status_t&> other) {
+CacheEntry<ArrayT, T, dims, vec_dims>& CacheEntry<ArrayT, T, dims, vec_dims>::operator=(std::tuple<const metadata_t&, const chunk_t&, const status_t&> other) {
 
-  chunk_meta = std::get<metadata_t&>(other);
-  chunk_data = std::get<chunk_t&>(other);  
-  op_to_perform = std::get<status_t&>(other); 
+  chunk_meta = std::get<const metadata_t&>(other);
+  chunk_data = std::get<const chunk_t&>(other);  
+  op_to_perform = std::get<const status_t&>(other); 
   
   return *this;
 }
@@ -18,16 +18,22 @@ CacheEntry<ArrayT, T, dims, vec_dims>& CacheEntry<ArrayT, T, dims, vec_dims>::op
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, std::size_t init_cache_el_linear_size,
+ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, std::size_t init_cache_el_linear_size,
 						  std::size_t initial_buffer_size) :
-  ChunkCache(cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
+  ChunkCache(workdir, cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
 	     Vector<std::size_t, dims>(stor::INFTY), initial_buffer_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape, const Vector<std::size_t, dims>& streamer_chunk_size,
-						  std::size_t initial_buffer_size) :
-  m_cache(cache_size, init_cache_el_shape), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
+ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+						  const Vector<std::size_t, dims>& streamer_chunk_size, std::size_t initial_buffer_size) :
+  m_workdir(std::filesystem::absolute(workdir)), m_cache(cache_size, init_cache_el_shape), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) {
+
+  // create directory if it does not yet exist
+  if(!std::filesystem::exists(m_workdir)) {
+    std::filesystem::create_directory(m_workdir);
+  }
+}
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -158,10 +164,11 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   // TODO: add check here whether ChunkType is specified or all_null
   
   // Directly deserialize into the cache element
-  assert(std::filesystem::exists(chunk_meta.filepath));
+  std::filesystem::path chunk_path = get_abs_path(chunk_meta.filepath);
+  assert(std::filesystem::exists(chunk_path));
   
   std::fstream ifs;
-  ifs.open(chunk_meta.filepath, std::ios::in | std::ios::binary);
+  ifs.open(chunk_path, std::ios::in | std::ios::binary);
   ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
   m_streamer.deserialize(ifs, insert_location.chunk_data);
   ifs.close();
@@ -188,7 +195,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_entry_t& cache_entry) {
 
-  std::filesystem::path chunk_path = cache_entry.chunk_meta.filepath;
+  std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   assert(std::filesystem::exists(chunk_path));
   
   std::fstream iofs;
@@ -216,8 +223,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t& cache_entry) {
 
-  std::filesystem::path chunk_path = cache_entry.chunk_meta.filepath;
-  assert(std::filesystem::exists(chunk_path));
+  std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   
   // Handle any outstanding operations before this cache element goes out of scope and may be overwritten
   status_t& status = cache_entry.op_to_perform;
@@ -231,6 +237,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
     ofs.close();    
   }
   else if(std::holds_alternative<CacheStatus::Append>(status)) {
+
+    assert(std::filesystem::exists(chunk_path));
     
     // Need to append this to the on-disk chunk
     std::fstream iofs;
@@ -243,6 +251,12 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
   else if(std::holds_alternative<CacheStatus::Nothing>(status)) {
     // Nothing needs to be done here
   }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+std::filesystem::path ChunkCache<ArrayT, T, dims, vec_dims>::get_abs_path(const std::filesystem::path& chunk_path) {
+  return m_workdir / chunk_path;
 }
 
 // -------------
@@ -376,28 +390,20 @@ id_t ChunkIndex<dims>::get_next_chunk_id() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size,
+ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size,
 						      std::size_t init_cache_el_linear_size) :
-  ChunkLibrary(dirpath, cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
+  ChunkLibrary(libdir, cache_size, Vector<std::size_t, dims>(init_cache_el_linear_size),
 	       Vector<std::size_t, dims>(stor::INFTY)) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size,
+ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size,
 						      const chunk_shape_t& init_cache_el_shape,
 						      const Vector<std::size_t, dims>& streamer_chunk_size) :
-  m_dirpath(dirpath), m_index_path(dirpath / "index.bin"), m_index(m_index_path),
-  m_cache(cache_size, init_cache_el_shape, streamer_chunk_size) {
+  m_libdir(libdir), m_index_path(libdir / "index.bin"), m_index(m_index_path),
+  m_cache(libdir, cache_size, init_cache_el_shape, streamer_chunk_size) {
 
-  // create directory if it does not yet exist
-  if(!std::filesystem::exists(m_dirpath)) {
-    std::filesystem::create_directory(m_dirpath);
-  }
 }
-
-template <template<typename, std::size_t, std::size_t> class ArrayT,
-	  typename T, std::size_t dims, std::size_t vec_dims>
-ChunkLibrary<ArrayT, T, dims, vec_dims>::~ChunkLibrary() { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -438,4 +444,36 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
 
   // Fetch the element from the chunk
   return chunk[ind - meta.start_ind];
+}
+
+// ------------
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+									const Vector<std::size_t, dims>& streamer_chunk_size) :
+  m_library(workdir, cache_size, init_cache_el_shape, streamer_chunk_size) { }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size, std::size_t init_cache_el_linear_size) :
+  m_library(workdir, cache_size, init_cache_el_linear_size) { }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const ind_t& start_ind, const chunk_t& chunk) {
+  m_library.RegisterChunk(start_ind, chunk);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+DistributedNDVecArray<ArrayT, T, dims, vec_dims>::view_t DistributedNDVecArray<ArrayT, T, dims, vec_dims>::operator[](const ind_t& ind) {
+  return m_library[ind];
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
+  m_library.template AppendSlice<axis>(start_ind, slice);
 }

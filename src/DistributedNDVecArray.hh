@@ -131,7 +131,7 @@ struct CacheEntry {
     chunk_data(default_shape), op_to_perform(CacheStatus::Nothing()) { }
 
   // Fill this cache element with data
-  CacheEntry& operator=(std::tuple<metadata_t&, chunk_t&, status_t&> other);
+  CacheEntry& operator=(std::tuple<const metadata_t&, const chunk_t&, const status_t&> other);
   
   metadata_t chunk_meta;
   chunk_t chunk_data;
@@ -158,12 +158,12 @@ public:
 
   // `cache_size` ... number of chunks that can be kept in the cache
   // `init_cache_el_shape` ... initial shape to reserve for each element in the cache
-  ChunkCache(std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+  ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	     const Vector<std::size_t, dims>& streamer_chunk_size,
 	     std::size_t initial_buffer_size = 10000);
 
   // Makes some sensible simplified choices
-  ChunkCache(std::size_t cache_size, std::size_t init_cache_el_linear_size = 400,
+  ChunkCache(std::filesystem::path workdir, std::size_t cache_size, std::size_t init_cache_el_linear_size = 400,
 	     std::size_t initial_buffer_size = 10000);
   
   ~ChunkCache();
@@ -195,9 +195,12 @@ private:
   void sync_cache_element_for_read(cache_entry_t& cache_entry);
 
   void descope_cache_element(cache_entry_t& cache_entry);
+
+  std::filesystem::path get_abs_path(const std::filesystem::path& chunk_path);
   
 private:
 
+  std::filesystem::path m_workdir;
   Vector<std::size_t, dims> m_streamer_chunk_size;
   Cache<std::size_t, cache_entry_t> m_cache;
   stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
@@ -220,10 +223,9 @@ public:
   
 public:
 
-  ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size, std::size_t init_cache_el_linear_size = 400);
-  ChunkLibrary(std::filesystem::path dirpath, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+  ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size, std::size_t init_cache_el_linear_size = 400);
+  ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	       const Vector<std::size_t, dims>& streamer_chunk_size);
-  ~ChunkLibrary();
 
   // Add a new chunk
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
@@ -237,7 +239,7 @@ public:
   
 private:
 
-  std::filesystem::path m_dirpath;
+  std::filesystem::path m_libdir;
   std::filesystem::path m_index_path;
   
   ChunkIndex<dims> m_index;
@@ -253,17 +255,20 @@ class DistributedNDVecArray {
 
 public:
 
-  using chunk_t = ArrayT<T, dims, vec_dims>;
+  using chunk_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_t;
+  using chunk_shape_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_shape_t;
   using view_t = typename chunk_t::view_t;
   using ind_t = Vector<std::size_t, dims>;
   
 public:
 
-  DistributedNDVecArray(std::filesystem::path dirpath);
-  ~DistributedNDVecArray();
+  DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
+			const Vector<std::size_t, dims>& streamer_chunk_size);
+  DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size = 5, std::size_t init_cache_el_linear_size = 100);
 
   // Single-chunk operations
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
+  
   view_t operator[](const ind_t& ind);
   
   template <std::size_t axis>
