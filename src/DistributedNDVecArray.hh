@@ -15,26 +15,28 @@ enum class ChunkType : std::size_t {
   all_null = 1
 };
 
+// forward declarations (needed for `operator<<` decleared below)
+template <std::size_t dims>
+struct ChunkMetadata;
+
+template <std::size_t dims>
+std::ostream& operator<<(std::ostream& stream, const ChunkMetadata<dims>& meta);
+
 template <std::size_t dims>
 struct ChunkMetadata {
 
   using id_t = std::size_t;
 
   // default constructor
-  ChunkMetadata() :
-    chunk_type(ChunkType::specified), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
-
+  ChunkMetadata();
   ChunkMetadata(const ChunkType& chunk_type, const std::filesystem::path& filepath, const id_t& chunk_id,
-		const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape) :
-    chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_ind(start_ind), shape(shape),
-    end_ind(start_ind + shape) { }
+		const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape);
+
+  friend std::ostream& operator<< <dims> (std::ostream& stream, const ChunkMetadata& meta);
   
   // Accessor that grows the recorded shape of a chunk
   template <std::size_t axis>
-  void GrowChunk(std::size_t shape_growth) {
-    end_ind[axis] += shape_growth;
-    shape[axis] += shape_growth;
-  }
+  void GrowChunk(std::size_t shape_growth);
   
   // type of this chunk
   ChunkType chunk_type;
@@ -264,7 +266,7 @@ public:
 
   DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 			const Vector<std::size_t, dims>& streamer_chunk_size);
-  DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size = 5, std::size_t init_cache_el_linear_size = 100);
+  DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size = 1, std::size_t init_cache_el_linear_size = 100);
 
   // Single-chunk operations
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);

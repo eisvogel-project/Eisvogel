@@ -261,6 +261,31 @@ std::filesystem::path ChunkCache<ArrayT, T, dims, vec_dims>::get_abs_path(const 
 
 // -------------
 
+template <std::size_t dims>
+ChunkMetadata<dims>::ChunkMetadata() :
+  chunk_type(ChunkType::specified), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
+
+template <std::size_t dims>
+ChunkMetadata<dims>::ChunkMetadata(const ChunkType& chunk_type, const std::filesystem::path& filepath, const id_t& chunk_id,
+				   const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape) :
+  chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_ind(start_ind), shape(shape),
+  end_ind(start_ind + shape) { }
+
+template <std::size_t dims>
+template <std::size_t axis>
+void ChunkMetadata<dims>::GrowChunk(std::size_t shape_growth) {
+  end_ind[axis] += shape_growth;
+  shape[axis] += shape_growth;
+}
+
+template <std::size_t dims>
+std::ostream& operator<<(std::ostream& stream, const ChunkMetadata<dims>& meta) {
+
+  std::cout << 
+  
+  return stream;
+}
+
 namespace stor{
 
   template <std::size_t dims>
@@ -439,6 +464,9 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
   // Find chunk that holds the element with the required index
   metadata_t& meta = m_index.GetChunk(ind);
 
+  std::cout << "found the following chunk meta" << std::endl;
+  std::cout << meta << std::endl;
+  
   // Retrieve the chunk
   const chunk_t& chunk = m_cache.RetrieveChunk(meta);
 
