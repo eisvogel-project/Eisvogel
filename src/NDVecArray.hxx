@@ -4,8 +4,6 @@
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_offset(0), m_shape(shape), m_owns_data(true) {
-
-  std::cout << "NDVecArray normal constructor uninitialized" << std::endl;
   
   m_strides = ComputeStrides(m_shape);
   UpdateShapeAttributes(m_shape);
@@ -17,8 +15,6 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_offset(0), m
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) :
   NDVecArray<T, dims, vec_dims>(shape) {
-
-  std::cout << "NDVecArray normal constructor initialized" << std::endl;
     
   // initialize properly
   this -> operator=(value);
@@ -27,8 +23,6 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
   m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume), m_owns_data(true) {
-
-  std::cout << "NDVecArray copy constructor" << std::endl;
   
   // reserve the required memory
   m_data = std::make_shared<data_t>(GetVolume());
@@ -152,6 +146,37 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
     while(it != it_end) {
       worker(view_t(it));
       it += vec_dims;
+    }    
+  };
+
+  // iterate over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
+  Vector<std::size_t, dims> chunk_size(1);
+  chunk_size[dims - 1] = m_shape[dims - 1];
+  index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
+}
+
+// Loop over (index, element) pairs
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) const {
+
+  Vector<std::size_t, dims> ind;
+  
+  // manual handling of the loop over the contiguous memory region
+  auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+
+    // iterator to the beginning of this contiguous memory region
+    auto it = m_data -> begin() + ComputeFlatInd(chunk_begin);
+
+    // end of this contiguous memory region
+    auto it_end = it + m_shape[dims - 1] * vec_dims;
+
+    // call worker function on every (index, element) pair
+    ind = chunk_begin;
+    while(it != it_end) {
+      worker(ind, view_t(it));
+      it += vec_dims;
+      ind[dims - 1] += 1;
     }    
   };
 

@@ -85,9 +85,17 @@ public:
 				    const Vector<std::size_t, dims>& end_ind);  
 
   void FlushIndex();
-
   shape_t GetShape();
 
+  // iterators over chunk metadata sets
+  auto begin() { return m_chunk_list.begin(); }
+  auto begin() const { return m_chunk_list.cbegin(); }
+  auto cbegin() { return m_chunk_list.cbegin(); }
+
+  auto end() { return m_chunk_list.end(); }
+  auto end() const { return m_chunk_list.cend(); }
+  auto cend() { return m_chunk_list.cend(); }
+  
 private:
 
   void calculate_shape();
@@ -249,6 +257,10 @@ public:
   // Single-element retrieval
   view_t operator[](const ind_t& ind);
 
+  // Chunk-aware iterators
+  template <class CallableT>
+  constexpr void index_loop_over_elements(CallableT&& worker);
+  
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
 
@@ -303,6 +315,10 @@ public:
   
   // Rebalance chunks
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
+
+  // Chunk-aware iterators
+  template <class CallableT>
+  constexpr void index_loop_over_elements(CallableT&& worker);
   
 private:
 

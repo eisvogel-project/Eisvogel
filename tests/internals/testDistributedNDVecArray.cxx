@@ -83,9 +83,8 @@ template <std::size_t dims, std::size_t vec_dims, class CallableT>
 void test_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, CallableT&& filler) {
 
   using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;
-  auto checker = [&](const Vector<std::size_t, dims>& ind) {
+  auto checker = [&](const Vector<std::size_t, dims>& ind, const view_t& darr_elems) {
     
-    view_t darr_elems = darr[ind];
     Vector<T, vec_dims> filled_values = filler(ind);
     
     for(std::size_t i = 0; i < vec_dims; i++) {
@@ -94,15 +93,13 @@ void test_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr
       T filled_value = filled_values[i];
       
       if(darr_value != filled_value) {
-	std::cout << "Error: discrepancy for index " << ind << ", found " << darr_value << ", expected " << filled_value << "!" << std::endl;
+	std::cout << "Error: discrepancy for element index " << ind << ", vector index " << i << ": found " << darr_value << ", expected " << filled_value << "!" << std::endl;
 	throw;
       }
     }
   };
 
-  Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> shape = darr.GetShape();  
-  index_loop_over_elements(start_ind, shape, checker);
+  darr.index_loop_over_elements(checker);
 }
 
 int main(int argc, char* argv[]) {
@@ -122,15 +119,15 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 10, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(10);
+  Vector<std::size_t, dims> chunk_size(100);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(20);
+  Vector<std::size_t, dims> end_ind(200);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(10);
+  Vector<std::size_t, dims> slice_shape(100);
   append_slices<0>(darr, slice_shape, filler);
   
   test_correctness(darr, filler);

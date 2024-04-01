@@ -87,6 +87,10 @@ public:
   // Loop over elements
   template <class CallableT>
   constexpr void loop_over_elements(CallableT&& worker) const;
+
+  // Loop over (index, element) pairs
+  template <class CallableT>
+  constexpr void index_loop_over_elements(CallableT&& worker) const;
   
   // Array view access
   NDVecArray<T, dims, vec_dims> View(const ind_t& start_ind, const ind_t& end_ind) const {

@@ -550,6 +550,20 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {  
+  for(const metadata_t& chunk_meta : m_index) {
+    const chunk_t chunk = m_cache.RetrieveChunk(chunk_meta);
+
+    auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {      
+      worker(chunk_meta.start_ind + ind_within_chunk, elem);
+    };    
+    chunk.index_loop_over_elements(chunk_worker);
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::CalculateShape() {
   m_index.CalculateShape();
 }
@@ -584,4 +598,11 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <std::size_t axis>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
   m_library.template AppendSlice<axis>(start_ind, slice);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {
+  m_library.index_loop_over_elements(worker);
 }
