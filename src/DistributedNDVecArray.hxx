@@ -332,7 +332,7 @@ namespace stor{
 // -------------
 
 template <std::size_t dims>
-ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path), m_next_chunk_id(0), m_last_accessed_ind(0) {
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path), m_next_chunk_id(0), m_last_accessed_ind(0), m_shape(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -407,6 +407,14 @@ void ChunkIndex<dims>::FlushIndex() {
 }
 
 template <std::size_t dims>
+ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
+
+  // TODO: if this becomes a bottleneck, cache the shape and only invalidate it if an additional chunk gets added
+  calculate_shape();
+  return m_shape;
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::load_and_rebuild_index() {
 
   // TODO: requires modifications after switch to R-tree  
@@ -441,6 +449,65 @@ id_t ChunkIndex<dims>::get_next_chunk_id() {
   return m_next_chunk_id++;
 }
 
+template <std::size_t dims>
+void ChunkIndex<dims>::calculate_shape() {
+
+  if(m_chunk_list.empty()) {
+    return;
+  }
+
+  shape_t global_start_ind = get_start_ind();
+  shape_t global_end_ind = get_end_ind();
+  
+  // check if the total inferred shape is consistent with the total number of elements contained in all chunks:
+  // if so, then all chunks taken together define a contiguous region
+  auto number_elements = [](const Vector<std::size_t, dims>& shape) -> std::size_t {
+    return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
+  };
+
+  std::size_t elements_from_shape = number_elements(global_end_ind - global_start_ind);
+  
+  std::size_t elements_in_chunks = 0;
+  for(const metadata_t& cur_chunk : m_chunk_list) {
+    elements_in_chunks += number_elements(cur_chunk.end_ind - cur_chunk.start_ind);
+  }
+
+  // have a contiguous region that is worth assigning a certain shape
+  if(elements_in_chunks == elements_from_shape) {
+    m_shape = global_end_ind - global_start_ind;
+  }  
+}
+
+template <std::size_t dims>
+Vector<std::size_t, dims> ChunkIndex<dims>::get_start_ind() {
+  
+  Vector<std::size_t, dims> start_ind(std::numeric_limits<std::size_t>::max());
+
+  // TODO: this will be faster once we have the R-tree
+  for(const metadata_t& cur_chunk : m_chunk_list) {
+    for(std::size_t i = 0; i < dims; i++) {
+      start_ind[i] = std::min(start_ind[i], cur_chunk.start_ind[i]);
+    }
+  }
+
+  return start_ind;
+}
+
+template <std::size_t dims>
+Vector<std::size_t, dims> ChunkIndex<dims>::get_end_ind() {
+  
+  Vector<std::size_t, dims> end_ind(std::numeric_limits<std::size_t>::min());
+
+  // TODO: this will be faster once we have the R-tree
+  for(const metadata_t& cur_chunk : m_chunk_list) {
+    for(std::size_t i = 0; i < dims; i++) {
+      end_ind[i] = std::max(end_ind[i], cur_chunk.end_ind[i]);
+    }
+  }
+  
+  return end_ind;
+}
+
 // -------------
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -456,9 +523,7 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libd
 						      const chunk_shape_t& init_cache_el_shape,
 						      const Vector<std::size_t, dims>& streamer_chunk_size) :
   m_libdir(libdir), m_index_path(libdir / "index.bin"), m_index(m_index_path),
-  m_cache(libdir, cache_size, init_cache_el_shape, streamer_chunk_size) {
-
-}
+  m_cache(libdir, cache_size, init_cache_el_shape, streamer_chunk_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -509,6 +574,12 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
 
   // Fetch the element from the chunk
   return chunk[ind - meta.start_ind];
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::CalculateShape() {
+  m_index.CalculateShape();
 }
 
 // ------------

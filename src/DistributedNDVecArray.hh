@@ -67,6 +67,7 @@ class ChunkIndex {
 public:
 
   using metadata_t = ChunkMetadata<dims>;
+  using shape_t = Vector<std::size_t, dims>;
   
 public:
 
@@ -85,8 +86,14 @@ public:
 
   void FlushIndex();
 
+  shape_t GetShape();
+
 private:
 
+  void calculate_shape();
+  Vector<std::size_t, dims> get_start_ind();
+  Vector<std::size_t, dims> get_end_ind();
+  
   id_t get_next_chunk_id();
 
   void load_and_rebuild_index();
@@ -99,7 +106,9 @@ private:
 
   id_t m_next_chunk_id;
   std::filesystem::path m_index_path;
-
+  
+  shape_t m_shape;
+  
   // TODO: use R-tree to quickly find the chunks in this list
   std::vector<metadata_t> m_chunk_list;
   std::size_t m_last_accessed_ind;
@@ -219,6 +228,7 @@ public:
 
   using chunk_t = ArrayT<T, dims, vec_dims>;
   using chunk_shape_t = typename chunk_t::shape_t;
+  using shape_t = typename ChunkIndex<dims>::shape_t;  
   using metadata_t = typename ChunkIndex<dims>::metadata_t;
   using view_t = typename chunk_t::view_t;  
   using ind_t = Vector<std::size_t, dims>;
@@ -238,12 +248,19 @@ public:
   
   // Single-element retrieval
   view_t operator[](const ind_t& ind);
+
+  // Other properties
+  shape_t GetShape() {return m_index.GetShape();};
+
+private:
+
+  void CalculateShape();
   
 private:
 
   std::filesystem::path m_libdir;
   std::filesystem::path m_index_path;
-  
+
   ChunkIndex<dims> m_index;
   ChunkCache<ArrayT, T, dims, vec_dims> m_cache;
   
@@ -259,6 +276,7 @@ public:
 
   using chunk_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_t;
   using chunk_shape_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_shape_t;
+  using shape_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::shape_t;
   using view_t = typename chunk_t::view_t;
   using ind_t = Vector<std::size_t, dims>;
   
@@ -276,6 +294,8 @@ public:
   template <std::size_t axis>
   void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
 
+  shape_t GetShape(){ return m_library.GetShape(); };
+  
   // Multi-chunk operations
 
   // Imports another distributed array and add it to this one
