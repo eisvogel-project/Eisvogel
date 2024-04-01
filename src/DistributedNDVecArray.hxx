@@ -84,7 +84,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   if(!ArrayT<T, dims, vec_dims>::template ShapeAllowsConcatenation<axis>(chunk_meta.shape, slice.GetShape())) {
     throw std::runtime_error("Error: dimensions not compatible for concatenation!");
   }
-
+  
   // Update the metadata
   std::size_t shape_growth = slice.GetShape()[axis];
   chunk_meta.template GrowChunk<axis>(shape_growth);
@@ -111,6 +111,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     insert_into_cache(chunk_meta, slice, CacheStatus::Append(axis));
   }
   else if(std::holds_alternative<CacheStatus::Serialize>(status)) {
+
+    std::cout << "appending to chunk in cache" << std::endl;
     
     // The cache already contains a chunk that is to be serialized from scratch; just concatenate in memory and write to disk whenever
     // this chunk is evicted from the cache
@@ -120,7 +122,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   else if(std::holds_alternative<CacheStatus::Append>(status)) {
     
     // The cache already contains a chunk scheduled for concatenation with the on-disk chunk
-    if(status.axis != axis) {
+    if(std::get<CacheStatus::Append>(status).axis != axis) {
       
       // Concatenation axis changed, need to synchronize
       sync_cache_element_for_read(cached_chunk);
@@ -131,6 +133,9 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     cached_chunk.chunk_meta = chunk_meta;
     cached_chunk.chunk_data.template Append<axis>(slice);
   }
+
+  std::cout << "finished updating cache; new metadata: " << std::endl;
+  std::cout << cached_chunk.chunk_meta << std::endl;
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -224,6 +229,9 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t& cache_entry) {
 
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
+
+  std::cout << "Now descoping the following cache entry" << std::endl;
+  std::cout << cache_entry.chunk_meta << std::endl;
   
   // Handle any outstanding operations before this cache element goes out of scope and may be overwritten
   status_t& status = cache_entry.op_to_perform;
@@ -277,6 +285,8 @@ template <std::size_t axis>
 void ChunkMetadata<dims>::GrowChunk(std::size_t shape_growth) {
   end_ind[axis] += shape_growth;
   shape[axis] += shape_growth;
+
+  std::cout << "growing chunk by " << shape_growth << " along axis = " << axis << std::endl;
 }
 
 template <std::size_t dims>
@@ -322,7 +332,7 @@ namespace stor{
 // -------------
 
 template <std::size_t dims>
-ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path) {
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path), m_next_chunk_id(0), m_last_accessed_ind(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -349,6 +359,9 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
   id_t chunk_id = get_next_chunk_id();
   metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape);
 
+  std::cout << "created the following chunk metadata" << std::endl;
+  std::cout << chunk_meta << std::endl;
+  
   m_chunk_list.push_back(chunk_meta);
   return m_chunk_list.back();
 }
@@ -356,17 +369,26 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
 
-  // First check if we're still in the most-recently read chunk
-  if((m_last_accessed != nullptr) && (is_in_chunk(*m_last_accessed, ind))) {
+  assert(m_chunk_list.size() > 0);
+  
+  std::cout << "looking for chunk in index" << std::endl;
+  std::cout << "last accessed at ind = " << m_last_accessed_ind << std::endl;
+  
+  // First check if we're still in the most-recently read chunk  
+  metadata_t& last_accessed_chunk = m_chunk_list[m_last_accessed_ind];
+  if(is_in_chunk(last_accessed_chunk, ind)) {
     [[likely]];
-    return *m_last_accessed;
+    return last_accessed_chunk;
   }
 
+  std::cout << "trigger chunk lookup" << std::endl;
+  
   // If not, trigger full chunk lookup
   // TODO: replace this with lookup in the R-tree, which will be much more efficient
-  for(metadata_t& cur_chunk : m_chunk_list) {
+  for(std::size_t chunk_ind = 0; chunk_ind < m_chunk_list.size(); chunk_ind++) {
+    metadata_t& cur_chunk = m_chunk_list[chunk_ind];
     if(is_in_chunk(cur_chunk, ind)) {
-      m_last_accessed = &cur_chunk;
+      m_last_accessed_ind = chunk_ind;
       return cur_chunk;
     }
   }
@@ -454,13 +476,20 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <std::size_t axis>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
 
+  std::cout << "ChunkLibrary: appending" << std::endl;
+  
   // This is the index of an element in the (existing) chunk the slice should be appended to
   ind_t ind_existing_chunk = start_ind;
   ind_existing_chunk[axis] -= 1;
 
+  std::cout << "searching for chunk containing previous inds: " << ind_existing_chunk << std::endl;
+  
   // Get the metadata describing that chunk
   metadata_t& meta = m_index.GetChunk(ind_existing_chunk);
 
+  std::cout << "appending to the following chunk " << std::endl;
+  std::cout << meta << std::endl;
+  
   // Perform the appending operation
   m_cache.template AppendSlice<axis>(meta, slice);
 }

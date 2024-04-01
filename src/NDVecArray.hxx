@@ -49,10 +49,8 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
   m_offset = 0;
 
   UpdateShapeAttributes(m_shape);
-
-  std::cout << "resizing to " << GetVolume() << std::endl;
   
-  m_data -> resize(GetVolume()); 
+  m_data -> resize(GetVolume());
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -64,8 +62,6 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& va
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
-
-  std::cout << "NDVecArray copy-assignment" << std::endl;
   
   resize(other.m_shape);
 
@@ -89,7 +85,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
 void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& other) requires(axis == 0) {
-
+  
   // Need to own our own data for this to make sense
   assert(m_owns_data);
   
@@ -99,12 +95,12 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
   
   // new elements will be appended at the very back
   std::size_t app_offset = m_data -> size();
-  
+
   // compute new shape and resize
   shape_t new_shape = m_shape;
   new_shape[axis] += other.m_shape[axis];
   resize(new_shape);
-
+  
   // copy the new data
   auto it_app = m_data -> begin() + app_offset;
   std::copy(std::execution::unseq, other.m_data -> begin(), other.m_data -> end(), it_app);
@@ -163,6 +159,12 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = m_shape[dims - 1];
   index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape) {
+  return ShapeAllowsConcatenation(arr_shape, other_shape, axis);
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>

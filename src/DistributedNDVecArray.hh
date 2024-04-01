@@ -99,10 +99,10 @@ private:
 
   id_t m_next_chunk_id;
   std::filesystem::path m_index_path;
-  metadata_t* m_last_accessed;
 
-  // TODO: to be replaced with R-tree
-  std::vector<metadata_t> m_chunk_list;   
+  // TODO: use R-tree to quickly find the chunks in this list
+  std::vector<metadata_t> m_chunk_list;
+  std::size_t m_last_accessed_ind;
 };
 
 // -------------------------
