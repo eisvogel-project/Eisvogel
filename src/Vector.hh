@@ -207,6 +207,16 @@ public:
   auto end() {return m_data.end();}
   auto cend() const {return m_data.cend();}
   auto end() const {return m_data.cend();}
+
+  // printing
+  friend std::ostream& operator<<(std::ostream& stream, const Vector<T, vec_dims>& vec) {
+    std::cout << "[ ";
+    for(const T& cur: vec) {
+      std::cout << cur << " ";
+    }
+    std::cout << "]";
+    return stream;
+  }
   
 private:
   data_t m_data;

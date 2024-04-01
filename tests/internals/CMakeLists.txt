@@ -17,8 +17,8 @@ set(CMAKE_CXX_FLAGS "-O3 -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=
 # add_executable(testNDVecArray testNDVecArray.cxx)
 # target_link_libraries(testNDVecArray eisvogel)
 
-# add_executable(testCompression testCompression.cxx)
-# target_link_libraries(testCompression eisvogel)
+add_executable(testCompression testCompression.cxx)
+target_link_libraries(testCompression eisvogel)
 
 add_executable(testDistributedNDVecArray testDistributedNDVecArray.cxx)
 target_link_libraries(testDistributedNDVecArray eisvogel)

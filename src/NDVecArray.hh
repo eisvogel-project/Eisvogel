@@ -172,6 +172,11 @@ private:
     return strides;
   }
 
+  void UpdateShapeAttributes(const shape_t& shape) {
+    m_number_elements = ComputeNumberElements(shape);
+    m_volume = ComputeVolume(shape);
+  }
+  
   static std::size_t ComputeNumberElements(const shape_t& shape) {
     return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
   }

@@ -7,9 +7,8 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_offset(0), m
 
   std::cout << "NDVecArray normal constructor uninitialized" << std::endl;
   
-  m_strides = ComputeStrides(shape);
-  m_number_elements = ComputeNumberElements(shape);
-  m_volume = ComputeVolume(shape);
+  m_strides = ComputeStrides(m_shape);
+  UpdateShapeAttributes(m_shape);
   
   // reserve the required memory
   m_data = std::make_shared<data_t>(GetVolume());
@@ -48,6 +47,10 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
   m_shape = new_shape;
   m_strides = ComputeStrides(new_shape);
   m_offset = 0;
+
+  UpdateShapeAttributes(m_shape);
+
+  std::cout << "resizing to " << GetVolume() << std::endl;
   
   m_data -> resize(GetVolume()); 
 }
@@ -129,6 +132,8 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T& other) {
+
+  // TODO: fix this, right now this would write across the end of a view
   std::fill(m_data -> begin(), m_data -> end(), other);
   return *this;
 }

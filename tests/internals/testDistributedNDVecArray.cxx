@@ -21,7 +21,13 @@ void fill_distributed_array(std::filesystem::path workdir) {
 
 void read_distributed_array(std::filesystem::path workdir) {
 
-  DistributedNDVecArray<NDVecArray, float, 3, 2> darr(workdir);
+  using darr_type = DistributedNDVecArray<NDVecArray, float, 3, 2>;
+  
+  darr_type darr(workdir);
+
+  darr_type::view_t elem = darr[{1u, 2u, 3u}];
+
+  std::cout << elem[0] << ", " << elem[1] << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -32,7 +38,7 @@ int main(int argc, char* argv[]) {
 
   std::filesystem::path workdir = "./darr_test";
   if(std::filesystem::exists(workdir)) {
-    std::filesystem::remove|_all(workdir);
+    std::filesystem::remove_all(workdir);
   }
   
   fill_distributed_array(workdir);

@@ -58,7 +58,7 @@ const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims
     [[likely]]; // The point about caching is that it only makes sense when the access pattern is such that the same element is repeatedly needed many times
 
     // Requested chunk is contained in the cache, check if it needs to be brought up-to-date before returning a reference to it
-    cache_entry_t& cached_chunk = m_cache.get(index);
+    cache_entry_t& cached_chunk = m_cache.get(index);    
     if((!std::holds_alternative<CacheStatus::Nothing>(cached_chunk.op_to_perform)) &&
        (!std::holds_alternative<CacheStatus::Serialize>(cached_chunk.op_to_perform))) {
       [[unlikely]];
@@ -172,7 +172,7 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
   m_streamer.deserialize(ifs, insert_location.chunk_data);
   ifs.close();
-
+  
   return insert_location;
 }
 
@@ -232,7 +232,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
     // Serialize this chunk
     std::fstream ofs;
     ofs.open(chunk_path, std::ios::out | std::ios::binary);
-    ofs.seekg(cache_entry.chunk_meta.start_pos, std::ios_base::beg);
+    ofs.seekp(cache_entry.chunk_meta.start_pos, std::ios_base::beg);
     m_streamer.serialize(ofs, cache_entry.chunk_data, m_streamer_chunk_size, stor::StreamerMode::null_suppressed);
     ofs.close();    
   }
@@ -244,6 +244,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
     std::fstream iofs;
     iofs.open(chunk_path, std::ios::in | std::ios::out | std::ios::binary);
     iofs.seekg(cache_entry.chunk_meta.start_pos, std::ios_base::beg);
+    iofs.seekp(cache_entry.chunk_meta.start_pos, std::ios_base::beg);
     m_streamer.append_slice(iofs, cache_entry.chunk_data, std::get<CacheStatus::Append>(status).axis,
 			    stor::StreamerMode::null_suppressed);
     iofs.close();
@@ -281,7 +282,14 @@ void ChunkMetadata<dims>::GrowChunk(std::size_t shape_growth) {
 template <std::size_t dims>
 std::ostream& operator<<(std::ostream& stream, const ChunkMetadata<dims>& meta) {
 
-  std::cout << 
+  // TODO: make the output format nicer
+  std::cout << "---------------------------------------\n";
+  std::cout << " path:\t\t"      << meta.filepath  << "\n";
+  std::cout << " chunk_id:\t\t"  << meta.chunk_id  << "\n";
+  std::cout << " start_ind:\t\t" << meta.start_ind << "\n";
+  std::cout << " end_ind:\t\t"   << meta.end_ind   << "\n";
+  std::cout << " shape:\t\t"     << meta.shape     << "\n";
+  std::cout << "---------------------------------------\n";
   
   return stream;
 }
