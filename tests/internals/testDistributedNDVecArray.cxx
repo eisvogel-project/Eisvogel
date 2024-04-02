@@ -159,22 +159,27 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(300);
+  Vector<std::size_t, dims> chunk_size(30);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(1100);
+  Vector<std::size_t, dims> end_ind(110);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(300);
+  Vector<std::size_t, dims> slice_shape(30);
   slice_shape[0] = 10;
   
+  append_slices<0>(darr, slice_shape, filler);
   append_slices<0>(darr, slice_shape, filler);
   
   test_darr_correctness(darr, filler);
 
+  std::cout << darr.GetShape() << std::endl;
+  
   darr.SwapAxes<0, 2>();
+
+  std::cout << darr.GetShape() << std::endl;
 
   auto swapped_filler = [&](const Vector<std::size_t, dims>& ind){
     Vector<std::size_t, dims> swapped_ind = ind;
@@ -183,10 +188,14 @@ int main(int argc, char* argv[]) {
   };  
 
   test_darr_correctness(darr, swapped_filler);
+
+  std::filesystem::path workdir_tmp = "./darr_test_tmp";
+  Vector<std::size_t, dims> requested_chunk_size(40);  
+  darr.RebuildChunks(requested_chunk_size, workdir_tmp);
+
+  std::cout << darr.GetShape() << std::endl;
   
-  Vector<std::size_t, dims> region_start_ind{10u, 10u, 10u};
-  Vector<std::size_t, dims> region_end_ind{493u, 600u, 150u};
-  test_fill_array(darr, region_start_ind, region_end_ind, swapped_filler);
-  
+  test_darr_correctness(darr, swapped_filler);
+    
   std::cout << "done" << std::endl;
 }

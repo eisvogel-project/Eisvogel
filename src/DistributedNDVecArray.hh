@@ -98,7 +98,8 @@ public:
   // housekeeping and moving operations
   void FlushIndex();
   void MoveIndex(std::filesystem::path new_index_path);
-  void DeleteIndex();
+  void ClearIndex();
+  void ImportIndex(std::filesystem::path index_path);
   
   // iterators over chunk metadata sets
   auto begin() { return m_chunk_list.begin(); }
@@ -128,8 +129,9 @@ private:
   Vector<std::size_t, dims> get_end_ind();
   
   id_t get_next_chunk_id();
-
+  
   void load_and_rebuild_index();
+  std::vector<metadata_t> load_index_entries(std::filesystem::path index_path);
   
 private:
 
@@ -226,7 +228,11 @@ public:
   template <std::size_t axis>
   void AppendSlice(chunk_meta_t& chunk_meta, const chunk_t& slice);
 
+  // housekeeping operations
   void FlushCache();
+  void MoveCache(std::filesystem::path new_workdir);
+  void ClearCache();
+  void ImportCache(std::filesystem::path workdir);
   
 private:
 
@@ -250,6 +256,8 @@ private:
   Vector<std::size_t, dims> m_streamer_chunk_size;
   Cache<std::size_t, cache_entry_t> m_cache;
   stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
+
+  static constexpr std::string_view m_suffix = ".chunk";
   
 };
 
@@ -276,9 +284,6 @@ public:
 
   // Add a new chunk to the libraryy
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
-
-  // Remove a chunk from the library
-  void DeregisterChunk();
   
   // Append a slice to an existing chunk along a certain axis
   template <std::size_t axis>
@@ -295,6 +300,7 @@ public:
   // Retrieval of rectangular region
   void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);
 
+  // Change order of axes (along with corresponding change in memory layout)
   template <std::size_t axis_1, std::size_t axis_2>
   void SwapAxes();
   
@@ -302,6 +308,13 @@ public:
   // TODO: generalize with `start_ind` and `end_ind`
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
+
+  // housekeeping
+  void MoveLibrary(std::filesystem::path new_libdir);
+  void ClearLibrary();
+  void DeleteLibrary();
+  void FlushLibrary();
+  void ImportLibrary(std::filesystem::path libdir);
   
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
@@ -316,8 +329,12 @@ private:
   template <class CallableT>
   void map_over_chunks(CallableT&& worker);
   
-private:
+public:
 
+  static constexpr std::string_view m_index_filename = "index.bin";
+
+private:
+  
   std::filesystem::path m_libdir;
   std::filesystem::path m_index_path;
 

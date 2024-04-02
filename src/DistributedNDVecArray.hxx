@@ -29,13 +29,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 						  const Vector<std::size_t, dims>& streamer_chunk_size, std::size_t initial_buffer_size) :
   m_workdir(std::filesystem::absolute(workdir)), m_cache(cache_size, init_cache_el_shape),
-  m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) {
-
-  // create directory if it does not yet exist
-  if(!std::filesystem::exists(m_workdir)) {
-    std::filesystem::create_directory(m_workdir);
-  }
-}
+  m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -175,6 +169,60 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::FlushCache() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::MoveCache(std::filesystem::path new_workdir) {
+
+  // Shut down the cache and make sure everything is safely on disk
+  FlushCache();
+
+  // Prepare the new working directory if it does not exist already
+  if(!std::filesystem::exists(new_workdir)) {
+    std::filesystem::create_directory(new_workdir);
+  }
+  
+  // Move all the files to the new location
+  for(auto const& cur_entry : std::filesystem::directory_iterator(m_workdir)) {
+    if(cur_entry.path().extension() != m_suffix) {
+      continue;
+    }
+    std::filesystem::copy(cur_entry, new_workdir);
+    std::filesystem::remove(cur_entry);
+  }
+
+  // Update the working directory
+  m_workdir = new_workdir;
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::ClearCache() {
+
+  // Shut down the cache
+  FlushCache();
+
+  // Delete all files
+  for(auto const& cur_entry : std::filesystem::directory_iterator(m_workdir)) {
+    if(cur_entry.path().extension() != m_suffix) {
+      continue;
+    }
+    std::filesystem::remove(cur_entry);
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::ImportCache(std::filesystem::path workdir) {
+
+  // Simply copy all the chunk files from the other work directory
+  for(auto const& cur_entry : std::filesystem::directory_iterator(workdir)) {
+    if(cur_entry.path().extension() != m_suffix) {
+      continue;
+    }
+    std::filesystem::copy(cur_entry, m_workdir);
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims, vec_dims>::deserialize_into_cache(const chunk_meta_t& chunk_meta) {
 
   if(!m_cache.has_free_slot()) {
@@ -289,7 +337,9 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 std::filesystem::path ChunkCache<ArrayT, T, dims, vec_dims>::get_abs_path(const std::filesystem::path& chunk_path) {
-  return m_workdir / chunk_path;
+  std::filesystem::path full_chunk_path = chunk_path;
+  full_chunk_path += m_suffix;
+  return m_workdir / full_chunk_path;
 }
 
 // -------------
@@ -383,7 +433,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
   uuid_generate_random(uuid_binary);
   char uuid_string[36];
   uuid_unparse(uuid_binary, uuid_string);
-  std::filesystem::path filename(std::string(uuid_string) + ".bin");
+  std::filesystem::path filename = std::string(uuid_string);
 
   // build metadata object for this chunk
   id_t chunk_id = get_next_chunk_id();
@@ -458,7 +508,7 @@ void ChunkIndex<dims>::MoveIndex(std::filesystem::path new_index_path) {
 }
 
 template <std::size_t dims>
-void ChunkIndex<dims>::DeleteIndex() {
+void ChunkIndex<dims>::ClearIndex() {
 
   if(std::filesystem::exists(m_index_path)) {
     std::filesystem::remove(m_index_path);
@@ -471,6 +521,18 @@ void ChunkIndex<dims>::DeleteIndex() {
 }
 
 template <std::size_t dims>
+void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
+
+  std::vector<metadata_t> index_entries = load_index_entries(index_path);
+  m_chunk_list.insert(m_chunk_list.end(),
+		      std::make_move_iterator(index_entries.begin()),
+		      std::make_move_iterator(index_entries.end())
+		      );
+
+  // TODO: rebuild the R-tree based on the new list of chunks
+}
+
+template <std::size_t dims>
 ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
 
   // TODO: if this becomes a bottleneck, cache the shape and only invalidate it if an additional chunk gets added
@@ -479,14 +541,27 @@ ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
 }
 
 template <std::size_t dims>
+std::vector<ChunkMetadata<dims>> ChunkIndex<dims>::load_index_entries(std::filesystem::path index_path) {
+
+  std::cout << "loading index entries from " << index_path << std::endl;
+  
+  std::fstream ifs;
+  ifs.open(index_path, std::ios::in | std::ios::binary);
+  std::vector<metadata_t> index_entries = stor::Traits<std::vector<metadata_t>>::deserialize(ifs);
+  ifs.close();
+
+  std::cout << "found " << index_entries.size() << " entries" << std::endl;
+  
+  return index_entries;
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::load_and_rebuild_index() {
 
-  // TODO: requires modifications after switch to R-tree  
   m_chunk_list.clear();
-  std::fstream ifs;
-  ifs.open(m_index_path, std::ios::in | std::ios::binary);
-  m_chunk_list = stor::Traits<std::vector<metadata_t>>::deserialize(ifs);
-  ifs.close();
+  m_chunk_list = load_index_entries(m_index_path);
+
+  // TODO: rebuild the R-tree based on the new list of chunks
 }
 
 template <std::size_t dims>
@@ -626,8 +701,14 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size,
 						      const chunk_shape_t& init_cache_el_shape,
 						      const Vector<std::size_t, dims>& streamer_chunk_size) :
-  m_libdir(libdir), m_index_path(libdir / "index.bin"), m_index(m_index_path),
-  m_cache(libdir, cache_size, init_cache_el_shape, streamer_chunk_size) { }
+  m_libdir(libdir), m_index_path(libdir / m_index_filename), m_index(m_index_path),
+  m_cache(libdir, cache_size, init_cache_el_shape, streamer_chunk_size) {
+
+  // create directory if this does not exist already
+  if(!std::filesystem::exists(libdir)) {
+    std::filesystem::create_directory(libdir);
+  }
+}
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
@@ -673,6 +754,8 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
+
+  array.resize(end_ind - start_ind);
   
   // Go through all chunks, find overlaps with the targeted region, and fill these into the target array
   
@@ -710,9 +793,66 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::SwapAxes() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::MoveLibrary(std::filesystem::path new_libdir) {
+
+  // prepare the new directory
+  if(!std::filesystem::exists(new_libdir)) {
+    std::filesystem::create_directory(new_libdir);
+  }
+  
+  // move everything to a new location
+  m_cache.MoveCache(new_libdir);
+  m_index.MoveIndex(new_libdir / m_index_filename);
+
+  // delete the old directory
+  std::filesystem::remove(m_libdir);
+
+  m_libdir = new_libdir;
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::ClearLibrary() {
+
+  // clear all contents, but do not delete the containing directory
+  m_index.ClearIndex();
+  m_cache.ClearCache();
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::DeleteLibrary() {
+
+  // clear the library ...
+  ClearLibrary();
+
+  // ... and delete the directory
+  std::filesystem::remove(m_libdir);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::FlushLibrary() {
+  m_index.FlushIndex();
+  m_cache.FlushCache();
+}
+
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::ImportLibrary(std::filesystem::path libdir) {
+
+  // import and merge both the chunk index and the "cache"
+  m_index.ImportIndex(libdir / m_index_filename);
+  m_cache.ImportCache(libdir);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
 constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {  
   for(const metadata_t& chunk_meta : m_index) {
+    
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
 
     auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {      
@@ -811,8 +951,34 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
 								     std::filesystem::path tmpdir) {
 
-  // 1) create new ChunkLibrary 
-  // 2) use m_library.FillArray to fill values into a local buffer
-  // 3) register it as new chunk in a second, new ChunkLibrary
+  ind_t streamer_chunk_size(stor::INFTY);
+  streamer_chunk_size[0] = 1;
   
+  ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(tmpdir, 1, requested_chunk_shape, streamer_chunk_size);
+
+  ind_t global_start_ind(0);
+  shape_t global_shape = m_library.GetShape();
+
+  ArrayT<T, dims, vec_dims> chunk_buffer(requested_chunk_shape);
+  auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
+
+    // fill rebuilt chunk into local buffer ...
+    FillArray(chunk_buffer, chunk_start_ind, chunk_end_ind);
+
+    // ... and register it as a new chunk in the new library
+    rebuilt_library.RegisterChunk(chunk_start_ind, chunk_buffer);
+  };
+  index_loop_over_chunks(global_start_ind, global_shape, requested_chunk_shape, rebuilder);
+
+  // Ensure that everything is written to disk
+  rebuilt_library.FlushLibrary();
+   
+  // Clear the contents of the original library ...
+  m_library.ClearLibrary();
+
+  // ... pull in the contents of the rebuilt one ...
+  m_library.ImportLibrary(tmpdir);
+
+  // ... and delete the temporary one
+  rebuilt_library.DeleteLibrary();
 }
