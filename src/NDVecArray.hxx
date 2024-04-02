@@ -186,6 +186,19 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(CallableT
   index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
 }
 
+// Sequential access
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void NDVecArray<T, dims, vec_dims>::apply_sequential(const ind_t& outer_ind,
+							       const std::vector<std::size_t>& inner_ind,
+							       CallableT&& worker) {
+  
+  auto it_outer = m_data -> begin() + ComputeFlatInd(outer_ind);
+  for(const std::size_t& cur_inner_ind : inner_ind) {
+    worker(view_t(it_outer + cur_inner_ind * vec_dims));
+  }
+}
+
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
 bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_shape, const shape_t& other_shape) {

@@ -257,9 +257,20 @@ public:
   // Single-element retrieval
   view_t operator[](const ind_t& ind);
 
+  // Efficient sequential element retrieval
+  template <class CallableT>
+  constexpr void apply_sequential(const ind_t& outer_ind, const std::vector<std::size_t>& inner_ind,
+				  CallableT&& worker);
+  
+  // Retrieval of rectangular region
+  void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);
+  
   // Chunk-aware iterators
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
+
+  // Change the order of the axes
+  void ReorderAxes();
   
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
@@ -300,15 +311,14 @@ public:
 
   // Single-chunk operations
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
-  
-  view_t operator[](const ind_t& ind);
-  
+ 
   template <std::size_t axis>
   void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
 
   shape_t GetShape(){ return m_library.GetShape(); };
-  
-  // Multi-chunk operations
+
+  // Single-element random access
+  view_t operator[](const ind_t& ind);  
 
   // Imports another distributed array and add it to this one
   void Import(const DistributedNDVecArray<ArrayT, T, dims, vec_dims>& other);
@@ -316,6 +326,9 @@ public:
   // Rebalance chunks
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
 
+  // Reorder the axes
+  void ReorderAxes();
+  
   // Chunk-aware iterators
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);

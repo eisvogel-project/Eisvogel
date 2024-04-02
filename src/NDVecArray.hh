@@ -84,6 +84,11 @@ public:
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
 
+  // Sequential access
+  template <class CallableT>
+  constexpr void apply_sequential(const ind_t& outer_ind, const std::vector<std::size_t>& inner_ind,
+				  CallableT&& worker);
+  
   // Loop over elements
   template <class CallableT>
   constexpr void loop_over_elements(CallableT&& worker) const;

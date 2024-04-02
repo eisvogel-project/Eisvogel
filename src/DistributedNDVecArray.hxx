@@ -606,3 +606,14 @@ template <class CallableT>
 constexpr void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {
   m_library.index_loop_over_elements(worker);
 }
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
+								     std::filesystem::path tmpdir) {
+
+  // 1) create new ChunkLibrary 
+  // 2) use m_library.FillArray to fill values into a local buffer
+  // 3) register it as new chunk in a second, new ChunkLibrary
+  
+}
