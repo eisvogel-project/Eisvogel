@@ -159,15 +159,15 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(20);
+  Vector<std::size_t, dims> chunk_size(200);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(110);
+  Vector<std::size_t, dims> end_ind(1100);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(20);
+  Vector<std::size_t, dims> slice_shape(200);
   slice_shape[0] = 10;
   
   append_slices<0>(darr, slice_shape, filler);
@@ -175,7 +175,7 @@ int main(int argc, char* argv[]) {
   test_darr_correctness(darr, filler);
 
   Vector<std::size_t, dims> region_start_ind{10u, 10u, 10u};
-  Vector<std::size_t, dims> region_end_ind{49u, 60u, 15u};
+  Vector<std::size_t, dims> region_end_ind{493u, 600u, 150u};
   test_fill_array(darr, region_start_ind, region_end_ind, filler);
   
   std::cout << "done" << std::endl;
