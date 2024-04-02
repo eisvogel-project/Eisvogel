@@ -608,8 +608,6 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
   
   // Go through all chunks, find overlaps with the targeted region, and fill these into the target array
-
-  std::cout << "filling array" << std::endl;
   
   // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
   std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
@@ -623,13 +621,7 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
     // copy the overlapping range from the `chunk` into the destination `array`
     array.fill_from(chunk,
 		    chunk_overlap_start_ind - chunk_meta.start_ind, chunk_overlap_end_ind - chunk_meta.start_ind, // chunk-local index range
-		    chunk_overlap_start_ind - start_ind); // output-`array`-local index range start
-    
-    std::cout << "taking from chunk " << std::endl;
-    std::cout << chunk_meta << std::endl;
-
-    std::cout << "overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
-    std::cout << "overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+		    chunk_overlap_start_ind - start_ind); // output-`array`-local index range start    
   }
 }
 

@@ -80,7 +80,7 @@ void append_slices(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, c
 }
 
 template <std::size_t dims, std::size_t vec_dims, class CallableT>
-void test_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, CallableT&& filler) {
+void test_darr_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, CallableT&& filler) {
 
   std::cout << "testing closure ... ";
   
@@ -95,12 +95,49 @@ void test_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr
       T filled_value = filled_values[i];
       
       if(darr_value != filled_value) {
-	std::cout << "Error: discrepancy for element index " << ind << ", vector index " << i << ": found " << darr_value << ", expected " << filled_value << "!" << std::endl;
+	std::cout << "Error: discrepancy for element index " << ind << ", vector index " << i << ": found " << darr_value
+		  << ", expected " << filled_value << "!" << std::endl;
 	throw;
       }
     }
   };
   darr.index_loop_over_elements(checker);
+
+  std::cout << "OK!" << std::endl;
+}
+
+template <std::size_t dims, std::size_t vec_dims, class CallableT>
+void test_fill_array(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
+		     const Vector<std::size_t, dims>& region_start_ind, const Vector<std::size_t, dims>& region_end_ind,
+		     CallableT&& filler) {
+
+  std::cout << "testing array filling ... ";
+  
+  // construct a buffer with the neede shape
+  NDVecArray<T, dims, vec_dims> extracted_array(region_end_ind - region_start_ind);
+  
+  darr.FillArray(extracted_array, region_start_ind, region_end_ind);
+
+  using view_t = typename NDVecArray<T, dims, vec_dims>::view_t;
+  auto checker = [&](const Vector<std::size_t, dims>& ind) {
+
+    Vector<T, vec_dims> filled_values = filler(ind);
+    view_t extracted_values = extracted_array[ind - region_start_ind];
+    
+    for(std::size_t i = 0; i < vec_dims; i++) {
+
+      T filled_value = filled_values[i];
+      T extracted_value = extracted_values[i];
+
+      if(filled_value != extracted_value) {
+	std::cout << "Error: discrepancy for element index " << ind << ", vector index " << i << ": found " << extracted_value
+		  << ", expected " << filled_value << "!" << std::endl;
+	throw;
+      }      
+    }
+  };
+  
+  index_loop_over_elements(region_start_ind, region_end_ind, checker);
 
   std::cout << "OK!" << std::endl;
 }
@@ -122,18 +159,24 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(400);
+  Vector<std::size_t, dims> chunk_size(20);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(1100);
+  Vector<std::size_t, dims> end_ind(110);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(400);
+  Vector<std::size_t, dims> slice_shape(20);
+  slice_shape[0] = 10;
+  
   append_slices<0>(darr, slice_shape, filler);
   
-  test_correctness(darr, filler);
+  test_darr_correctness(darr, filler);
+
+  Vector<std::size_t, dims> region_start_ind(10);
+  Vector<std::size_t, dims> region_end_ind(30);
+  test_fill_array(darr, region_start_ind, region_end_ind, filler);
   
   std::cout << "done" << std::endl;
 }
