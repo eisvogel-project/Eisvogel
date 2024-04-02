@@ -159,15 +159,15 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(30);
+  Vector<std::size_t, dims> chunk_size(300);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(110);
+  Vector<std::size_t, dims> end_ind(1100);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(30);
+  Vector<std::size_t, dims> slice_shape(300);
   slice_shape[0] = 10;
   
   append_slices<0>(darr, slice_shape, filler);
@@ -190,7 +190,7 @@ int main(int argc, char* argv[]) {
   test_darr_correctness(darr, swapped_filler);
 
   std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(40);  
+  Vector<std::size_t, dims> requested_chunk_size(400);  
   darr.RebuildChunks(requested_chunk_size, workdir_tmp);
 
   std::cout << darr.GetShape() << std::endl;
