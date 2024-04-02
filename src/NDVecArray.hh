@@ -67,15 +67,21 @@ public:
   // copy constructor
   NDVecArray(const NDVecArray<T, dims, vec_dims>& other);
   
-  // copy-assignment operators
+  // copy-assignment operators (these copy the full array and thus also change the shape of the destination)
+  // requires that the target `NDVecArray` owns its data (i.e. is not a view of another array)
   NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other);
   NDVecArray<T, dims, vec_dims>& operator=(const T& other);
+
+  // copy and fill part of the full array from `other` without changing the shape
+  void fill_from(const NDVecArray<T, dims, vec_dims>& other,
+		 const ind_t& input_start, const ind_t& input_end,
+		 const ind_t& output_start);
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape);
   void resize(const shape_t& new_shape, const T& value);
   
-  // Single-element access
+  // Single-element access, no bounds checking
   view_t operator[](const ind_t& ind) {
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
@@ -131,14 +137,9 @@ public:
   void Append(const NDVecArray<T, dims, vec_dims>& other);
 
   void Append(const NDVecArray<T, dims, vec_dims>& other, std::size_t axis);
-  
-  // -----------------------------
-  // operations on `NDVecArrays`
-  // -----------------------------
 
-  // Copy range from other array
-  // friend void CopyRange(const NDVecArray<T, dims, vec_dims>& source, const ind_t& source_start_ind, const ind_t& source_end_ind,
-  //                       NDVecArray<T, dims, vec_dims>& target, const ind_t& target_start_ind) {  }
+  // Other utilities
+  bool has_index(const ind_t& ind) const;
   
 private:
 
