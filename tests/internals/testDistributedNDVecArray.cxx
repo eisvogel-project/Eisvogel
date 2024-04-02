@@ -13,8 +13,8 @@ template <std::size_t dims, std::size_t vec_dims>
 Vector<T, vec_dims> ind_sum(const Vector<std::size_t, dims>& ind) {
 
   std::size_t sum = 0;
-  for(const std::size_t& cur : ind) {
-    sum += cur;
+  for(std::size_t i = 0; i < dims; i++) {
+    sum += ind[i] * i;
   }
 
   Vector<T, vec_dims> retvec;
@@ -153,13 +153,13 @@ int main(int argc, char* argv[]) {
     std::filesystem::remove_all(workdir);
   }
 
-  Vector<std::size_t, dims> init_cache_el_shape(100);
+  Vector<std::size_t, dims> init_cache_el_shape(10);
   Vector<std::size_t, dims> streamer_chunk_shape(stor::INFTY);
   streamer_chunk_shape[0] = 1;
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(200);
+  Vector<std::size_t, dims> chunk_size(300);
   Vector<std::size_t, dims> start_ind(0);
   Vector<std::size_t, dims> end_ind(1100);
 
@@ -167,16 +167,26 @@ int main(int argc, char* argv[]) {
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(200);
+  Vector<std::size_t, dims> slice_shape(300);
   slice_shape[0] = 10;
   
   append_slices<0>(darr, slice_shape, filler);
   
   test_darr_correctness(darr, filler);
 
+  darr.SwapAxes<0, 2>();
+
+  auto swapped_filler = [&](const Vector<std::size_t, dims>& ind){
+    Vector<std::size_t, dims> swapped_ind = ind;
+    std::swap(swapped_ind[0], swapped_ind[2]);    
+    return ind_sum<dims, vec_dims>(swapped_ind);
+  };  
+
+  test_darr_correctness(darr, swapped_filler);
+  
   Vector<std::size_t, dims> region_start_ind{10u, 10u, 10u};
   Vector<std::size_t, dims> region_end_ind{493u, 600u, 150u};
-  test_fill_array(darr, region_start_ind, region_end_ind, filler);
+  test_fill_array(darr, region_start_ind, region_end_ind, swapped_filler);
   
   std::cout << "done" << std::endl;
 }

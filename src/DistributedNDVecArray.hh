@@ -41,6 +41,10 @@ struct ChunkMetadata {
   template <std::size_t axis>
   void GrowChunk(std::size_t shape_growth);
 
+  // Accessor to swap two axes
+  template <std::size_t axis_1, std::size_t axis_2>
+  void SwapAxes();
+  
   // data members
   
   // type of this chunk
@@ -88,10 +92,14 @@ public:
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
   std::vector<std::reference_wrapper<metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
 							    const Vector<std::size_t, dims>& end_ind);  
-
-  void FlushIndex();
+  
   shape_t GetShape();
 
+  // housekeeping and moving operations
+  void FlushIndex();
+  void MoveIndex(std::filesystem::path new_index_path);
+  void DeleteIndex();
+  
   // iterators over chunk metadata sets
   auto begin() { return m_chunk_list.begin(); }
   auto begin() const { return m_chunk_list.cbegin(); }
@@ -204,6 +212,12 @@ public:
   // assumes that this is a new chunk and does not already exist
   void RegisterNewChunk(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data);
 
+  // Removes a chunk with given metadata `chunk_meta`; implies that this chunk cannot be retrieved again
+  void RemoveChunk(const chunk_meta_t& chunk_meta);
+  
+  // Replace chunk with `chunk_meta` by a new chunk with `new_chunk_meta` as metadata with data at `new_chunk_data`
+  void ReplaceChunk(const chunk_meta_t& chunk_meta, const chunk_meta_t& new_chunk_meta, const chunk_t& new_chunk_data);
+  
   // gets an existing chunk based on its metadata `chunk_meta`
   const chunk_t& RetrieveChunk(const chunk_meta_t& chunk_meta);
 
@@ -223,8 +237,8 @@ private:
   // inserts a new cache element into the cache
   void insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const status_t& stat);
   
-  // makes sure cache element with index `ind` is up-to date and ready for retrieval of values
-  void sync_cache_element_for_read(cache_entry_t& cache_entry);
+  // makes sure cache element with index `ind` is synchronized with its disk image
+  void sync_cache_element_with_disk(cache_entry_t& cache_entry);
 
   void descope_cache_element(cache_entry_t& cache_entry);
 
@@ -260,9 +274,12 @@ public:
   ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	       const Vector<std::size_t, dims>& streamer_chunk_size);
 
-  // Add a new chunk
+  // Add a new chunk to the libraryy
   void RegisterChunk(const ind_t& start_ind, const chunk_t& chunk);
 
+  // Remove a chunk from the library
+  void DeregisterChunk();
+  
   // Append a slice to an existing chunk along a certain axis
   template <std::size_t axis>
   void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
@@ -277,21 +294,27 @@ public:
   
   // Retrieval of rectangular region
   void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);
+
+  template <std::size_t axis_1, std::size_t axis_2>
+  void SwapAxes();
   
   // Chunk-aware iterators over all elements
   // TODO: generalize with `start_ind` and `end_ind`
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
-
-  // Change the order of the axes
-  void ReorderAxes();
   
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
-
+  
 private:
 
   void CalculateShape();
+
+  // Map a general `worker` over all chunks
+  // The worker must have the signature (metadata_t& new_chunk_meta, const chunk_t& chunk_data, chunk_t& new_chunk_data)
+  // and can modify the new metadata in-place (comes initialized to the current metadata)
+  template <class CallableT>
+  void map_over_chunks(CallableT&& worker);
   
 private:
 
@@ -339,9 +362,10 @@ public:
   
   // Rebalance chunks
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
-
-  // Reorder the axes
-  void ReorderAxes();
+  
+  // Change the order of the axes
+  template <std::size_t axis_1, std::size_t axis_2>
+  void SwapAxes();
 
   // Extract an array
   void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);  

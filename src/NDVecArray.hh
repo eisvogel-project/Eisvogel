@@ -29,6 +29,11 @@ struct VectorView : public std::span<T, vec_dims> {
     std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this -> begin());
     return *this;
   }
+
+  VectorView& operator=(const VectorView<T, vec_dims>& other) {
+    std::copy_n(std::execution::unseq, other.begin(), vec_dims, this -> begin());
+    return *this;
+  }
 };
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -138,6 +143,10 @@ public:
 
   void Append(const NDVecArray<T, dims, vec_dims>& other, std::size_t axis);
 
+  // Builds a version of this array at `dest` with `axis_1` and `axis_2` swapped
+  template <std::size_t axis_1, std::size_t axis_2>
+  void SwapAxes(NDVecArray<T, dims, vec_dims>& dest) const;
+  
   // Other utilities
   bool has_index(const ind_t& ind) const;
   

@@ -175,6 +175,26 @@ void NDVecArray<T, dims, vec_dims>::Append(const NDVecArray<T, dims, vec_dims>& 
   }
 }
 
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis_1, std::size_t axis_2>
+void NDVecArray<T, dims, vec_dims>::SwapAxes(NDVecArray<T, dims, vec_dims>& dest) const {
+
+  // make sure we have the correct shape
+  shape_t swapped_shape = m_shape;
+  std::swap(swapped_shape[axis_1], swapped_shape[axis_2]);
+  dest.resize(swapped_shape);
+  
+  auto copy_swapped = [&](const Vector<std::size_t, dims>& ind, const view_t& element) {
+
+    // prepare the index with the requested dimensions swapped
+    ind_t swapped_ind = ind;
+    std::swap(swapped_ind[axis_1], swapped_ind[axis_2]);
+    
+    dest[swapped_ind] = element;
+  };
+  index_loop_over_elements(copy_swapped);
+}
+
 // loop over elements
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>

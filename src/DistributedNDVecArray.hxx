@@ -28,7 +28,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 						  const Vector<std::size_t, dims>& streamer_chunk_size, std::size_t initial_buffer_size) :
-  m_workdir(std::filesystem::absolute(workdir)), m_cache(cache_size, init_cache_el_shape), m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) {
+  m_workdir(std::filesystem::absolute(workdir)), m_cache(cache_size, init_cache_el_shape),
+  m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) {
 
   // create directory if it does not yet exist
   if(!std::filesystem::exists(m_workdir)) {
@@ -52,6 +53,33 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::RegisterNewChunk(const chunk_meta_t&
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::RemoveChunk(const chunk_meta_t& chunk_meta) {
+
+  // Remove the element from the cache whatever its current status is
+  id_t index = chunk_meta.chunk_id;
+  if(m_cache.contains(index)) {
+    m_cache.evict(index);
+  }
+
+  // Also remove the chunk from disk
+  if(std::filesystem::exists(chunk_meta.filepath)) {
+    std::filesystem::remove(chunk_meta.filepath);
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkCache<ArrayT, T, dims, vec_dims>::ReplaceChunk(const chunk_meta_t& chunk_meta, const chunk_meta_t& new_chunk_meta, const chunk_t& new_chunk_data) {
+
+  // replacing a chunk means that the chunk index does not change, but only other metadata or chunk data does
+  assert(chunk_meta.chunk_id == new_chunk_meta.chunk_id);
+  
+  RemoveChunk(chunk_meta);
+  RegisterNewChunk(new_chunk_meta, new_chunk_data);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims, vec_dims>::RetrieveChunk(const chunk_meta_t& chunk_meta) {
 
   id_t index = chunk_meta.chunk_id;
@@ -65,7 +93,7 @@ const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims
       [[unlikely]];
       
       // The element contained in the cache is not up-to-date; need to synchronize first
-      sync_cache_element_for_read(cached_chunk);
+      sync_cache_element_with_disk(cached_chunk);
     }
     
     // Requested element is contained in the cache and is now complete, directly return reference to its data
@@ -124,7 +152,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     if(std::get<CacheStatus::Append>(status).axis != axis) {
       
       // Concatenation axis changed, need to synchronize
-      sync_cache_element_for_read(cached_chunk);
+      sync_cache_element_with_disk(cached_chunk);
       cached_chunk.op_to_perform = CacheStatus::Append(axis); // record the new concatenation axis
     }
 
@@ -181,6 +209,10 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::insert_into_cache(const chunk_meta_t& chunk_meta, const chunk_t& chunk_data, const status_t& stat) {
 
+  // cache must not already contain this element
+  id_t index = chunk_meta.chunk_id;
+  assert(!m_cache.contains(index));
+  
   if(!m_cache.has_free_slot()) {
     // Cache is full, evict oldest element and handle any outstanding operations
     cache_entry_t& oldest_entry = m_cache.evict_oldest_from_full_cache();
@@ -188,13 +220,12 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::insert_into_cache(const chunk_meta_t
   }
 
   // Now have free slot in the cache, insert new element
-  id_t index = chunk_meta.chunk_id;
   m_cache.insert_no_overwrite(index, std::forward_as_tuple(chunk_meta, chunk_data, stat));
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_for_read(cache_entry_t& cache_entry) {
+void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_with_disk(cache_entry_t& cache_entry) {
 
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   assert(std::filesystem::exists(chunk_path));
@@ -278,6 +309,14 @@ template <std::size_t axis>
 void ChunkMetadata<dims>::GrowChunk(std::size_t shape_growth) {
   end_ind[axis] += shape_growth;
   shape[axis] += shape_growth;
+}
+
+template <std::size_t dims>
+template <std::size_t axis_1, std::size_t axis_2>
+void ChunkMetadata<dims>::SwapAxes() {
+  std::swap(start_ind[axis_1], start_ind[axis_2]);
+  std::swap(end_ind[axis_1], end_ind[axis_2]);
+  std::swap(shape[axis_1], shape[axis_2]);
 }
 
 template <std::size_t dims>
@@ -401,6 +440,34 @@ void ChunkIndex<dims>::FlushIndex() {
   ofs.open(m_index_path, std::ios::out | std::ios::binary);
   stor::Traits<std::vector<metadata_t>>::serialize(ofs, m_chunk_list);
   ofs.close();
+}
+
+template <std::size_t dims>
+void ChunkIndex<dims>::MoveIndex(std::filesystem::path new_index_path) {
+
+  assert(new_index_path != m_index_path);
+
+  // remove the old index file on disk
+  if(std::filesystem::exists(m_index_path)) {
+    std::filesystem::remove(m_index_path);
+  }
+  
+  // reset the path and flush the index to the new location
+  m_index_path = new_index_path;  
+  FlushIndex();
+}
+
+template <std::size_t dims>
+void ChunkIndex<dims>::DeleteIndex() {
+
+  if(std::filesystem::exists(m_index_path)) {
+    std::filesystem::remove(m_index_path);
+  }
+
+  // reset and clear everything
+  m_last_accessed_ind = 0;
+  m_shape = 0;
+  m_chunk_list.clear();
 }
 
 template <std::size_t dims>
@@ -627,16 +694,57 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis_1, std::size_t axis_2>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::SwapAxes() {
+
+  auto swapper = [](metadata_t& new_chunk_meta, const chunk_t& chunk_data, chunk_t& new_chunk_data) {
+    
+    // swap axes in metadata entries
+    new_chunk_meta.template SwapAxes<axis_1, axis_2>();
+    
+    // swap data in the chunk
+    chunk_data.template SwapAxes<axis_1, axis_2>(new_chunk_data);
+  };
+  map_over_chunks(swapper);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
 constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {  
   for(const metadata_t& chunk_meta : m_index) {
-    const chunk_t chunk = m_cache.RetrieveChunk(chunk_meta);
+    const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
 
     auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {      
       worker(chunk_meta.start_ind + ind_within_chunk, elem);
     };    
     chunk.index_loop_over_elements(chunk_worker);
   }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::map_over_chunks(CallableT&& worker) {
+
+  chunk_t new_chunk_data(Vector<std::size_t, dims>(1));
+  metadata_t new_chunk_meta;
+    
+  for(metadata_t& chunk_meta : m_index) {
+
+    const chunk_t& chunk_data = m_cache.RetrieveChunk(chunk_meta);
+    
+    new_chunk_meta = chunk_meta; // initialize the new metadata with the current one
+
+    // ask the worker to fill in the new chunk and modify the chunk metadata
+    worker(new_chunk_meta, chunk_data, new_chunk_data);
+    
+    // use the new chunk to replace the old one in the cache
+    m_cache.ReplaceChunk(chunk_meta, new_chunk_meta, new_chunk_data);
+
+    // record the modification also in the chunk index
+    chunk_meta = new_chunk_meta;
+  }  
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -688,6 +796,14 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
   m_library.FillArray(array, start_ind, end_ind);
+}
+
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis_1, std::size_t axis_2>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::SwapAxes() {
+  m_library.template SwapAxes<axis_1, axis_2>();
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
