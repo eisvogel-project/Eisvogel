@@ -1,4 +1,5 @@
 #include <uuid/uuid.h>
+#include <algorithm>
 #include "DistributedNDVecArray.hh"
 
 // --------------
@@ -379,6 +380,20 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_
 }
 
 template <std::size_t dims>
+std::vector<std::reference_wrapper<ChunkMetadata<dims>>> ChunkIndex<dims>::GetChunks(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind) {
+
+  std::vector<std::reference_wrapper<metadata_t>> chunks_found;
+  
+  // TODO: this will be significantly faster once we can do the lookup in the R-tree instead of through a linear search
+  for(metadata_t& cur_chunk : m_chunk_list) {
+    if(chunk_overlaps_region(cur_chunk, start_ind, end_ind)) {
+      chunks_found.push_back(cur_chunk);
+    }
+  }
+  return chunks_found;
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
 
   // TODO: requires modifications after switch to R-tree
@@ -424,6 +439,46 @@ bool ChunkIndex<dims>::is_in_region(const Vector<std::size_t, dims>& start_ind, 
     }
   }  
   return true;
+}
+
+template <std::size_t dims>
+bool ChunkIndex<dims>::chunk_overlaps_region(const metadata_t& chunk, const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind) {
+
+  for(std::size_t i = 0; i < dims; i++) {
+
+    // the `start_ind` of the specified region must lie "to the left of" the chunk endpoint in all directions
+    if(start_ind[i] >= chunk.end_ind[i]) {
+      return false;
+    }
+
+    // the `end_ind` of the specified region must lie "to the right of" the chunk endpoint in all directions
+    if(end_ind[i] <= chunk.start_ind[i]) {
+      return false;
+    }
+  }  
+  return true;
+}
+
+template <std::size_t dims>
+Vector<std::size_t, dims> ChunkIndex<dims>::get_overlap_start_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& start_ind) {
+
+  // find element-wise std::max between `start_ind` (belonging to the range) and `chunk.start_ind`
+  Vector<std::size_t, dims> overlap_start_ind;
+  std::transform(std::execution::unseq, start_ind.begin(), start_ind.end(), chunk.start_ind.begin(), overlap_start_ind.begin(),
+		 [](auto a, auto b){return std::max(a, b);});
+  
+  return overlap_start_ind;
+}
+
+template <std::size_t dims>
+Vector<std::size_t, dims> ChunkIndex<dims>::get_overlap_end_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& end_ind) {
+  
+  // find element-wise std::min between `end_ind` (belonging to the range) and `chunk.end_ind`
+  Vector<std::size_t, dims> overlap_end_ind;
+  std::transform(std::execution::unseq, end_ind.begin(), end_ind.end(), chunk.end_ind.begin(), overlap_end_ind.begin(),
+		 [](auto a, auto b){return std::min(a, b);});
+  
+  return overlap_end_ind;
 }
 
 template <std::size_t dims>
@@ -550,6 +605,36 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
+  
+  // Go through all chunks, find overlaps with the targeted region, and fill these into the target array
+
+  std::cout << "filling array" << std::endl;
+  
+  // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
+  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
+  for(const metadata_t& chunk_meta : required_chunks) {
+
+    const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
+    
+    ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, start_ind);
+    ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, end_ind);
+
+    // copy the overlapping range from the `chunk` into the destination `array`
+    array.fill_from(chunk,
+		    chunk_overlap_start_ind - chunk_meta.start_ind, chunk_overlap_end_ind - chunk_meta.start_ind, // chunk-local index range
+		    chunk_overlap_start_ind - start_ind); // output-`array`-local index range start
+    
+    std::cout << "taking from chunk " << std::endl;
+    std::cout << chunk_meta << std::endl;
+
+    std::cout << "overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
+    std::cout << "overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+  }
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
 constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {  
   for(const metadata_t& chunk_meta : m_index) {
@@ -605,6 +690,12 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <class CallableT>
 constexpr void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {
   m_library.index_loop_over_elements(worker);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
+  m_library.FillArray(array, start_ind, end_ind);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,

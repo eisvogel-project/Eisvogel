@@ -29,14 +29,19 @@ struct ChunkMetadata {
 
   // default constructor
   ChunkMetadata();
+
+  // fully-specified constructor
   ChunkMetadata(const ChunkType& chunk_type, const std::filesystem::path& filepath, const id_t& chunk_id,
 		const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape);
 
+  // pretty printing
   friend std::ostream& operator<< <dims> (std::ostream& stream, const ChunkMetadata& meta);
   
   // Accessor that grows the recorded shape of a chunk
   template <std::size_t axis>
   void GrowChunk(std::size_t shape_growth);
+
+  // data members
   
   // type of this chunk
   ChunkType chunk_type;
@@ -81,8 +86,8 @@ public:
   metadata_t& GetChunk(const Vector<std::size_t, dims>& ind);
 
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
-  std::vector<metadata_t> GetChunks(const Vector<std::size_t, dims>& start_ind,
-				    const Vector<std::size_t, dims>& end_ind);  
+  std::vector<std::reference_wrapper<metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
+							    const Vector<std::size_t, dims>& end_ind);  
 
   void FlushIndex();
   shape_t GetShape();
@@ -95,6 +100,18 @@ public:
   auto end() { return m_chunk_list.end(); }
   auto end() const { return m_chunk_list.cend(); }
   auto cend() { return m_chunk_list.cend(); }
+
+public:
+  
+  // to check whether a specific index, or index range, is contained in or overlaps with a chunk
+  static bool is_in_chunk(const metadata_t& chunk, const Vector<std::size_t, dims>& ind);
+  static bool is_in_region(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape,
+			   const Vector<std::size_t, dims>& ind);  
+  static bool chunk_overlaps_region(const metadata_t& chunk, const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind);
+
+  // calculate the actual start / end index of the region where `chunk` overlaps with a specified index range
+  static Vector<std::size_t, dims> get_overlap_start_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& start_ind);
+  static Vector<std::size_t, dims> get_overlap_end_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& end_ind);
   
 private:
 
@@ -105,10 +122,6 @@ private:
   id_t get_next_chunk_id();
 
   void load_and_rebuild_index();
-  
-  bool is_in_chunk(const metadata_t& chunk, const Vector<std::size_t, dims>& ind);
-  bool is_in_region(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape,
-		    const Vector<std::size_t, dims>& ind);
   
 private:
 
@@ -257,7 +270,7 @@ public:
   // Single-element retrieval
   view_t operator[](const ind_t& ind);
 
-  // Efficient sequential element retrieval
+  // Sequential element retrieval
   template <class CallableT>
   constexpr void apply_sequential(const ind_t& outer_ind, const std::vector<std::size_t>& inner_ind,
 				  CallableT&& worker);
@@ -265,7 +278,8 @@ public:
   // Retrieval of rectangular region
   void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);
   
-  // Chunk-aware iterators
+  // Chunk-aware iterators over all elements
+  // TODO: generalize with `start_ind` and `end_ind`
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
 
@@ -328,6 +342,9 @@ public:
 
   // Reorder the axes
   void ReorderAxes();
+
+  // Extract an array
+  void FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind);  
   
   // Chunk-aware iterators
   template <class CallableT>
