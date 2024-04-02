@@ -377,8 +377,12 @@ public:
   // Imports another distributed array and add it to this one
   void Import(const DistributedNDVecArray<ArrayT, T, dims, vec_dims>& other);
   
-  // Rebalance chunks
+  // Rebalance chunks in-place, i.e. output will remain in the same location
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
+
+  // Rebalance chunks in a certain region and provide the output at `outdir`
+  void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
+			    const ind_t& requested_chunk_shape, std::filesystem::path outdir);
   
   // Change the order of the axes
   template <std::size_t axis_1, std::size_t axis_2>

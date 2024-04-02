@@ -948,16 +948,13 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::SwapAxes() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
-								     std::filesystem::path tmpdir) {
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
+									    const ind_t& requested_chunk_shape, std::filesystem::path outdir) {
 
   ind_t streamer_chunk_size(stor::INFTY);
   streamer_chunk_size[0] = 1;
   
-  ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(tmpdir, 1, requested_chunk_shape, streamer_chunk_size);
-
-  ind_t global_start_ind(0);
-  shape_t global_shape = m_library.GetShape();
+  ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(outdir, 1, requested_chunk_shape, streamer_chunk_size);
 
   ArrayT<T, dims, vec_dims> chunk_buffer(requested_chunk_shape);
   auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
@@ -968,17 +965,28 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
     // ... and register it as a new chunk in the new library
     rebuilt_library.RegisterChunk(chunk_start_ind, chunk_buffer);
   };
-  index_loop_over_chunks(global_start_ind, global_shape, requested_chunk_shape, rebuilder);
+  index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
   // Ensure that everything is written to disk
-  rebuilt_library.FlushLibrary();
-   
+  rebuilt_library.FlushLibrary();    
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
+								     std::filesystem::path tmpdir) {
+
+  ind_t global_start_ind(0);
+  shape_t global_shape = m_library.GetShape();
+
+  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir);
+
   // Clear the contents of the original library ...
   m_library.ClearLibrary();
 
   // ... pull in the contents of the rebuilt one ...
   m_library.ImportLibrary(tmpdir);
 
-  // ... and delete the temporary one
-  rebuilt_library.DeleteLibrary();
+  // ... and delete the temporary directory
+  std::filesystem::remove_all(tmpdir);
 }
