@@ -346,13 +346,14 @@ std::filesystem::path ChunkCache<ArrayT, T, dims, vec_dims>::get_abs_path(const 
 
 template <std::size_t dims>
 ChunkMetadata<dims>::ChunkMetadata() :
-  chunk_type(ChunkType::specified), filepath(""), chunk_id(0), start_pos(0), start_ind(0), end_ind(0), shape(0) { }
+  chunk_type(ChunkType::specified), filepath(""), chunk_id(0), start_pos(0), shape(0), start_ind(0), end_ind(0), overlap(0), loc_ind_offset(0) { }
 
 template <std::size_t dims>
 ChunkMetadata<dims>::ChunkMetadata(const ChunkType& chunk_type, const std::filesystem::path& filepath, const id_t& chunk_id,
-				   const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape) :
-  chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_ind(start_ind), shape(shape),
-  end_ind(start_ind + shape) { }
+				   const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape,
+				   std::size_t overlap) :
+  chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_pos(0), shape(shape),
+  start_ind(start_ind), end_ind(start_ind + shape), overlap(overlap), loc_ind_offset(start_ind - overlap) { }
 
 template <std::size_t dims>
 template <std::size_t axis>
@@ -367,6 +368,7 @@ void ChunkMetadata<dims>::SwapAxes() {
   std::swap(start_ind[axis_1], start_ind[axis_2]);
   std::swap(end_ind[axis_1], end_ind[axis_2]);
   std::swap(shape[axis_1], shape[axis_2]);
+  std::swap(loc_ind_offset[axis_1], loc_ind_offset[axis_2]);
 }
 
 template <std::size_t dims>
@@ -379,6 +381,8 @@ std::ostream& operator<<(std::ostream& stream, const ChunkMetadata<dims>& meta) 
   std::cout << " start_ind:\t\t" << meta.start_ind << "\n";
   std::cout << " end_ind:\t\t"   << meta.end_ind   << "\n";
   std::cout << " shape:\t\t"     << meta.shape     << "\n";
+  std::cout << " loc_ind_offset:\t\t"   << meta.loc_ind_offset   << "\n";
+  std::cout << " overlap:\t\t" << meta.overlap << "\n";
   std::cout << "---------------------------------------\n";
   
   return stream;
@@ -396,6 +400,7 @@ namespace stor{
       Traits<id_t>::serialize(stream, val.chunk_id);
       Traits<Vector<std::size_t, dims>>::serialize(stream, val.start_ind);
       Traits<Vector<std::size_t, dims>>::serialize(stream, val.shape);
+      Traits<std::size_t>::serialize(stream, val.overlap);
     }
 
     static type deserialize(std::iostream& stream) {
@@ -404,7 +409,8 @@ namespace stor{
       id_t chunk_id = Traits<id_t>::deserialize(stream);
       Vector<std::size_t, dims> start_ind = Traits<Vector<std::size_t, dims>>::deserialize(stream);
       Vector<std::size_t, dims> shape = Traits<Vector<std::size_t, dims>>::deserialize(stream);
-      return ChunkMetadata<dims>(chunk_type, filepath, chunk_id, start_ind, shape);
+      std::size_t overlap = Traits<std::size_t>::deserialize(stream);
+      return ChunkMetadata<dims>(chunk_type, filepath, chunk_id, start_ind, shape, overlap);
     }
   };
 }
@@ -427,7 +433,7 @@ ChunkIndex<dims>::~ChunkIndex() {
 
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::size_t, dims>& start_ind,
-							      const Vector<std::size_t, dims>& shape) {
+							      const Vector<std::size_t, dims>& shape, std::size_t overlap) {
 
   uuid_t uuid_binary;
   uuid_generate_random(uuid_binary);
@@ -437,7 +443,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
 
   // build metadata object for this chunk
   id_t chunk_id = get_next_chunk_id();
-  metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape);
+  metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape, overlap);
   
   m_chunk_list.push_back(chunk_meta);
   return m_chunk_list.back();
@@ -712,10 +718,10 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libd
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const ind_t& start_ind, const chunk_t& chunk) {
-
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap) {
+  
   // Insert new metadata entry into chunk index
-  metadata_t& meta = m_index.RegisterChunk(start_ind, chunk.GetShape());
+  metadata_t& meta = m_index.RegisterChunk(start_ind, chunk.GetShape(), overlap);
 
   // Insert new chunk into the cache
   m_cache.RegisterNewChunk(meta, chunk);  
@@ -747,31 +753,34 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, ve
   // Retrieve the chunk
   const chunk_t& chunk = m_cache.RetrieveChunk(meta);
 
-  // Fetch the element from the chunk
-  return chunk[ind - meta.start_ind];
+  // Convert to chunk-local index and fetch the element from the chunk
+  return chunk[ind - meta.loc_ind_offset];
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& input_start, const ind_t& input_end, const ind_t& output_start) {
 
-  array.resize(end_ind - start_ind);
+  // Make sure the full range is available in the target array
+  assert(array.has_index(output_start));
+  assert(array.has_index(output_start + (input_end - input_start) - 1));
   
   // Go through all chunks, find overlaps with the targeted region, and fill these into the target array
   
   // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
-  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
+  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(input_start, input_end);
   for(const metadata_t& chunk_meta : required_chunks) {
 
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
-    
-    ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, start_ind);
-    ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, end_ind);
 
+    // These are the indices where the current `chunk` overlaps with the specified range
+    ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, input_start);
+    ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, input_end);
+    
     // copy the overlapping range from the `chunk` into the destination `array`
     array.fill_from(chunk,
-		    chunk_overlap_start_ind - chunk_meta.start_ind, chunk_overlap_end_ind - chunk_meta.start_ind, // chunk-local index range
-		    chunk_overlap_start_ind - start_ind); // output-`array`-local index range start    
+		    chunk_overlap_start_ind - chunk_meta.loc_ind_offset, chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // convert to chunk-local index range
+		    chunk_overlap_start_ind - input_start); // output-`array`-local index range start
   }
 }
 
@@ -850,15 +859,31 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::ImportLibrary(std::filesystem::pat
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
-constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {  
-  for(const metadata_t& chunk_meta : m_index) {
+constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) {
+  Vector<std::size_t, dims> start_ind(0);
+  index_loop_over_elements(start_ind, m_index.GetShape(), worker);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(const ind_t& start_ind, const ind_t& end_ind, CallableT&& worker) {
+
+  // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
+  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
+  for(const metadata_t& chunk_meta : required_chunks) {
     
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
 
+    // These are the indices where the current `chunk` overlaps with the specified range
+    ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, start_ind);
+    ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, end_ind);
+    
     auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {      
-      worker(chunk_meta.start_ind + ind_within_chunk, elem);
-    };    
-    chunk.index_loop_over_elements(chunk_worker);
+      worker(chunk_meta.loc_ind_offset + ind_within_chunk, elem);
+    };
+    chunk.index_loop_over_elements(chunk_overlap_start_ind - chunk_meta.loc_ind_offset, chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // chunk-local start and end indices
+				   chunk_worker);
   }
 }
 
@@ -908,8 +933,8 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::fil
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const ind_t& start_ind, const chunk_t& chunk) {
-  m_library.RegisterChunk(start_ind, chunk);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap) {
+  m_library.RegisterChunk(chunk, start_ind, overlap);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -934,8 +959,8 @@ constexpr void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind) {
-  m_library.FillArray(array, start_ind, end_ind);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const ind_t& start_ind, const ind_t& end_ind, const ind_t& output_start) {
+  m_library.FillArray(array, start_ind, end_ind, output_start);
 }
 
 
@@ -951,24 +976,48 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
 									    const ind_t& requested_chunk_shape, std::filesystem::path outdir) {
 
+  // no overlap requested here
+  auto error_on_evaluation = []() {
+    throw std::logic_error("This should never be encountered!");
+  };
+  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, 0, error_on_evaluation);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class BoundaryCallableT>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
+									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
+									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator) {
+
   ind_t streamer_chunk_size(stor::INFTY);
   streamer_chunk_size[0] = 1;
-  
+
   ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(outdir, 1, requested_chunk_shape, streamer_chunk_size);
 
   ArrayT<T, dims, vec_dims> chunk_buffer(requested_chunk_shape);
   auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
 
+    // insert the requested overlap between neighbouring chunks
+    ind_t chunk_start_ind_with_overlap = chunk_start_ind - overlap;
+    ind_t chunk_end_ind_with_overlap = chunk_end_ind + overlap;
+    
     // fill rebuilt chunk into local buffer ...
-    FillArray(chunk_buffer, chunk_start_ind, chunk_end_ind);
+    ind_t output_start(0);
+    
+    chunk_buffer.resize(chunk_end_ind_with_overlap - chunk_start_ind_with_overlap);
+    FillArray(chunk_buffer, chunk_start_ind, chunk_end_ind, output_start);
 
+    // ... if introducing the overlap would go beyond the global shape of the array, take care of the boundary values manually ...
+    
+    
     // ... and register it as a new chunk in the new library
-    rebuilt_library.RegisterChunk(chunk_start_ind, chunk_buffer);
+    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, overlap);
   };
   index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
-  // Ensure that everything is written to disk
-  rebuilt_library.FlushLibrary();    
+  // Ensure that everything is written to disk before we finish here
+  rebuilt_library.FlushLibrary();
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
