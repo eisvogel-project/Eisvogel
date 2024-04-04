@@ -16,10 +16,10 @@ constexpr void index_loop_over_array_elements(const ArrayT<T, dims, vec_dims>& a
   index_loop_over_elements(begin, end, worker);
 }
 
-template <std::size_t vec_dims, class CallableT>
-constexpr void index_loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+template <std::size_t vec_dims, class NumT, class CallableT>
+constexpr void index_loop_over_elements(const Vector<NumT, vec_dims>& begin, const Vector<NumT, vec_dims>& end,
 					CallableT&& worker) requires(vec_dims == 2) {  
-  Vector<std::size_t, vec_dims> cur;
+  Vector<NumT, vec_dims> cur;
   for(cur[0] = begin[0]; cur[0] < end[0]; cur[0]++) {
     for(cur[1] = begin[1]; cur[1] < end[1]; cur[1]++) {
       worker(cur);
@@ -27,16 +27,16 @@ constexpr void index_loop_over_elements(const Vector<std::size_t, vec_dims>& beg
   }
 }
 
-template <std::size_t vec_dims, class CallableT>
-constexpr void index_loop_over_elements(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
+template <std::size_t vec_dims, class NumT, class CallableT>
+constexpr void index_loop_over_elements(const Vector<NumT, vec_dims>& begin, const Vector<NumT, vec_dims>& end,
 					CallableT&& worker) {
-  Vector<std::size_t, vec_dims> cur;
-  index_loop_over_elements_dimension<0, vec_dims, CallableT>(begin, end, cur, worker);
+  Vector<NumT, vec_dims> cur;
+  index_loop_over_elements_dimension<0, vec_dims, NumT, CallableT>(begin, end, cur, worker);
 }
 
-template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
-constexpr void index_loop_over_elements_dimension(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
-						  Vector<std::size_t, vec_dims>& cur, CallableT&& worker) {
+template <std::size_t cur_dim, std::size_t vec_dims, class NumT, class CallableT>
+constexpr void index_loop_over_elements_dimension(const Vector<NumT, vec_dims>& begin, const Vector<NumT, vec_dims>& end,
+						  Vector<NumT, vec_dims>& cur, CallableT&& worker) {
 
   static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
 
@@ -64,18 +64,18 @@ constexpr void index_loop_over_array_chunks(const ArrayT<T, dims, vec_dims>& arr
   index_loop_over_chunks(begin, end, chunk_size, worker);
 }
 
-template <std::size_t vec_dims, class CallableT>
-constexpr void index_loop_over_chunks(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
-				      const Vector<std::size_t, vec_dims>& chunk_size, CallableT&& worker) {
-  Vector<std::size_t, vec_dims> chunk_begin;
-  Vector<std::size_t, vec_dims> chunk_end;
-  index_loop_over_chunks_dimension<0, vec_dims, CallableT>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
+template <std::size_t vec_dims, class NumT, class CallableT>
+constexpr void index_loop_over_chunks(const Vector<NumT, vec_dims>& begin, const Vector<NumT, vec_dims>& end,
+				      const Vector<NumT, vec_dims>& chunk_size, CallableT&& worker) {
+  Vector<NumT, vec_dims> chunk_begin;
+  Vector<NumT, vec_dims> chunk_end;
+  index_loop_over_chunks_dimension<0, vec_dims, NumT, CallableT>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
 }
 
-template <std::size_t cur_dim, std::size_t vec_dims, class CallableT>
-constexpr void index_loop_over_chunks_dimension(const Vector<std::size_t, vec_dims>& begin, const Vector<std::size_t, vec_dims>& end,
-						const Vector<std::size_t, vec_dims>& chunk_size,
-						Vector<std::size_t, vec_dims>& chunk_begin, Vector<std::size_t, vec_dims>& chunk_end,
+template <std::size_t cur_dim, std::size_t vec_dims, class NumT, class CallableT>
+constexpr void index_loop_over_chunks_dimension(const Vector<NumT, vec_dims>& begin, const Vector<NumT, vec_dims>& end,
+						const Vector<NumT, vec_dims>& chunk_size,
+						Vector<NumT, vec_dims>& chunk_begin, Vector<NumT, vec_dims>& chunk_end,
 						CallableT&& worker) {
   
   static_assert((vec_dims > 0) && (cur_dim >= 0) && (cur_dim < vec_dims));
