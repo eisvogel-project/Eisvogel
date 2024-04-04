@@ -72,6 +72,22 @@ public:
   }
 
   // -----------------------------
+  // type-casting
+  // -----------------------------
+
+  // TODO: make this private and collect the implementation in `Vector.hxx`
+  template <typename DestT, typename SrcT, std::size_t... idxs>
+  auto array_as_type(const std::array<SrcT, vec_dims>& src, std::index_sequence<idxs...>) {
+    return std::array<DestT, vec_dims>{{static_cast<DestT>(src[idxs])...}};
+  }
+
+  // returns a copy of this vector, with its values static_cast'ed to the destination type `DestT`
+  template <class DestT>
+  Vector<DestT, vec_dims> as_type() {
+    return Vector<DestT, vec_dims>(array_as_type<DestT>(m_data, std::make_index_sequence<vec_dims>()));
+  }
+  
+  // -----------------------------
   // logic operations
   // -----------------------------
 
