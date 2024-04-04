@@ -225,10 +225,10 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
 // Loop over (index, element) pairs
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
-constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) const {
+constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind_t& start_ind, const ind_t& end_ind, CallableT&& worker) const {
 
   Vector<std::size_t, dims> ind;
-  
+
   // manual handling of the loop over the contiguous memory region
   auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
 
@@ -249,8 +249,15 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(CallableT
 
   // iterate over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
   Vector<std::size_t, dims> chunk_size(1);
-  chunk_size[dims - 1] = m_shape[dims - 1];
-  index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
+  chunk_size[dims - 1] = end_ind[dims - 1] - start_ind[dims - 1];
+  index_loop_over_chunks(start_ind, end_ind, chunk_size, loop_over_chunk_contiguous);  
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(CallableT&& worker) const {
+  Vector<std::size_t, dims> start_ind(0);
+  index_loop_over_elements(start_ind, m_shape, worker);
 }
 
 // Sequential access
