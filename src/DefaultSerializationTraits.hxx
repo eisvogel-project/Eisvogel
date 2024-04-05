@@ -84,12 +84,12 @@ namespace stor {
       Traits<std::size_t>::serialize(stream, vec_size);
       std::size_t vec_ind = 0;
       while(vec_ind < vec_size) {
-	ser_type outbuf[std::min(vec_size - vec_ind, block_size)];
+	std::vector<ser_type> outbuf(std::min(vec_size - vec_ind, block_size));
 	for(std::size_t buf_ind = 0; (buf_ind < block_size) && (vec_ind < vec_size); buf_ind++, vec_ind++) {
 	  ser_type ser_val = reinterpret_cast<const ser_type&>(val[vec_ind]);
 	  outbuf[buf_ind] = htonl(ser_val);
 	}
-	stream.write((char*)&outbuf, sizeof(outbuf));
+	stream.write((char*)outbuf.data(), sizeof(outbuf[0]) * outbuf.size());
       }
     }
     
@@ -98,8 +98,8 @@ namespace stor {
       std::size_t vec_ind = 0;
       type val;
       while(vec_ind < vec_size) {
-	ser_type inbuf[std::min(vec_size - vec_ind, block_size)];
-	stream.read((char*)&inbuf, sizeof(inbuf));
+	std::vector<ser_type> inbuf(std::min(vec_size - vec_ind, block_size));
+	stream.read((char*)inbuf.data(), sizeof(inbuf[0]) * inbuf.size());
 	for(std::size_t buf_ind = 0; (buf_ind < block_size) && (vec_ind < vec_size); buf_ind++, vec_ind++) {
 	  ser_type ser_val = ntohl(inbuf[buf_ind]);
 	  float cur_val = 0.0f;
