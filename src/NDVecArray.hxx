@@ -122,13 +122,18 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
-bool NDVecArray<T, dims, vec_dims>::has_index(const ind_t& ind) const {
+bool NDVecArray<T, dims, vec_dims>::has_index(const ind_t& ind, const shape_t& shape) {
   for(std::size_t i = 0; i < dims; i++) {
-    if(ind[i] >= m_shape[i]) {
+    if(ind[i] >= shape[i]) {
       return false;
     }
   }
   return true;
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+bool NDVecArray<T, dims, vec_dims>::has_index(const ind_t& ind) const {
+  return has_index(ind, m_shape);
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -198,8 +203,8 @@ void NDVecArray<T, dims, vec_dims>::SwapAxes(NDVecArray<T, dims, vec_dims>& dest
 // loop over elements
 template <typename T, std::size_t dims, std::size_t vec_dims>
 template <class CallableT>
-constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& worker) const {
-
+constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& worker) const {  
+  
   // manual handling of the loop over the contiguous memory region
   auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
 
@@ -229,14 +234,17 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind
 
   Vector<std::size_t, dims> ind;
 
-  // manual handling of the loop over the contiguous memory region
+  // manual handling of the iteration over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
+  Vector<std::size_t, dims> chunk_size(1);
+  chunk_size[dims - 1] = end_ind[dims - 1] - start_ind[dims - 1];
+  
   auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
-
+    
     // iterator to the beginning of this contiguous memory region
     auto it = m_data -> begin() + ComputeFlatInd(chunk_begin);
 
     // end of this contiguous memory region
-    auto it_end = it + m_shape[dims - 1] * vec_dims;
+    auto it_end = it + chunk_size[dims - 1] * vec_dims;
 
     // call worker function on every (index, element) pair
     ind = chunk_begin;
@@ -246,10 +254,6 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind
       ind[dims - 1] += 1;
     }    
   };
-
-  // iterate over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
-  Vector<std::size_t, dims> chunk_size(1);
-  chunk_size[dims - 1] = end_ind[dims - 1] - start_ind[dims - 1];
   index_loop_over_chunks(start_ind, end_ind, chunk_size, loop_over_chunk_contiguous);  
 }
 

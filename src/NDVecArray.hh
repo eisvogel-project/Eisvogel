@@ -152,6 +152,7 @@ public:
   
   // Other utilities
   bool has_index(const ind_t& ind) const;
+  static bool has_index(const ind_t& ind, const shape_t& shape);
   
 private:
 
