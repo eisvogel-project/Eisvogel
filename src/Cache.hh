@@ -49,7 +49,7 @@ private:
     
     template <typename ... PayloadConstructorArgs>
     CacheElement(PayloadConstructorArgs&& ... args) :
-      payload(std::forward<PayloadConstructorArgs&&>(args)...), occupied(false), next(nullptr), prev(nullptr) { };
+      payload(std::forward<PayloadConstructorArgs&&>(args)...), occupied(false), next(nullptr), prev(nullptr) { }
     
     PayloadT payload;
     IndexT index;

@@ -30,8 +30,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 						  const Vector<std::size_t, dims>& streamer_chunk_size, std::size_t initial_buffer_size) :
-  m_workdir(std::filesystem::absolute(workdir)), m_cache(cache_size, init_cache_el_shape),
-  m_streamer(initial_buffer_size), m_streamer_chunk_size(streamer_chunk_size) { }
+  m_workdir(std::filesystem::absolute(workdir)), m_streamer_chunk_size(streamer_chunk_size), m_cache(cache_size, init_cache_el_shape),
+  m_streamer(initial_buffer_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>

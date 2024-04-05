@@ -187,16 +187,20 @@ namespace stor {
       // deserialize data and fill into array
       type val_view = val.View(chunk_begin, chunk_end);
       
-      std::size_t elems_read;
+      std::size_t elems_read = 0;
       switch(chunk_meta.ser_mode) {
 	
       case StreamerMode::dense:
-	  elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
-	  break;
+	elems_read = dense::from_buffer(val_view, std::span<ser_type>(*m_ser_buffer));
+	break;
 	
       case StreamerMode::null_suppressed:
-	  elems_read = nullsup::desuppress_null(std::span<ser_type>(*m_ser_buffer), val_view);
-	  break;	
+	elems_read = nullsup::desuppress_null(std::span<ser_type>(*m_ser_buffer), val_view);
+	break;
+	
+      case StreamerMode::automatic:
+	// This will never be encountered in an actual file
+	break;    
       }
       assert(elems_read == chunk_meta.chunk_size);
     };

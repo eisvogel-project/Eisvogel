@@ -3,7 +3,7 @@
 
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
-NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_offset(0), m_shape(shape), m_owns_data(true) {
+NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape) : m_owns_data(true), m_offset(0), m_shape(shape) {
   
   m_strides = ComputeStrides(m_shape);
   UpdateShapeAttributes(m_shape);
@@ -22,7 +22,7 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
-  m_offset(other.m_offset), m_shape(other.m_shape), m_strides(other.m_strides), m_number_elements(other.m_number_elements), m_volume(other.m_volume), m_owns_data(true) {
+  m_owns_data(true), m_strides(other.m_strides), m_offset(other.m_offset), m_number_elements(other.m_number_elements), m_volume(other.m_volume), m_shape(other.m_shape)  {
   
   // reserve the required memory
   m_data = std::make_shared<data_t>(GetVolume());
@@ -60,7 +60,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
   resize(other.m_shape);
 
   // copy a region of memory that is guaranteed to be contiguous in both `other` and `this`
-  auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+  auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
     
     std::size_t offset = ComputeFlatInd(chunk_begin);
     auto src = other.m_data -> begin() + offset;
@@ -80,7 +80,7 @@ template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T& other) {
 
   // fill a contiguous chunk of memory with the target value
-  auto fill_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+  auto fill_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
     
     std::size_t offset = ComputeFlatInd(chunk_begin);
     auto dest = m_data -> begin() + offset;
@@ -109,7 +109,7 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = input_end[dims - 1] - input_start[dims - 1];
 
-  auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+  auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
     
     auto src = other.m_data -> begin() + other.ComputeFlatInd(chunk_begin);
     auto dest = m_data -> begin() + ComputeFlatInd(output_start + (chunk_begin - input_start));
@@ -206,7 +206,7 @@ template <class CallableT>
 constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& worker) const {  
   
   // manual handling of the loop over the contiguous memory region
-  auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+  auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
 
     // iterator to the beginning of this contiguous memory region
     auto it = m_data -> begin() + ComputeFlatInd(chunk_begin);
@@ -238,7 +238,7 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = end_ind[dims - 1] - start_ind[dims - 1];
   
-  auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>& chunk_end) {
+  auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
     
     // iterator to the beginning of this contiguous memory region
     auto it = m_data -> begin() + ComputeFlatInd(chunk_begin);

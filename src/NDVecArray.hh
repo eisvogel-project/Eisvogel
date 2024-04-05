@@ -23,7 +23,7 @@ template <typename T, std::size_t vec_dims>
 struct VectorView : public std::span<T, vec_dims> {
 
   template <class It>
-  constexpr VectorView(It first) : std::span<T, vec_dims>(first, vec_dims) { }; 
+  constexpr VectorView(It first) : std::span<T, vec_dims>(first, vec_dims) { }
 
   VectorView& operator=(const Vector<T, vec_dims>& other) {
     std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this -> begin());
@@ -56,10 +56,8 @@ private:
 
   // used in creation of view
   NDVecArray(const shape_t& shape, const stride_t& strides, const std::size_t offset, std::shared_ptr<data_t> data) :
-    m_data(data), m_owns_data(false), m_strides(strides), m_offset(offset), m_shape(shape) {
-    m_number_elements =ComputeNumberElements(shape);
-    m_volume = ComputeVolume(shape);
-  }
+    m_data(data), m_owns_data(false), m_strides(strides), m_offset(offset),
+    m_number_elements(ComputeNumberElements(shape)), m_volume(ComputeVolume(shape)), m_shape(shape) { }
   
 public:
 
@@ -128,8 +126,8 @@ public:
   }
   
   const shape_t& GetShape() const {return m_shape;}
-  const std::size_t GetVolume() const {return m_volume;}
-  const std::size_t GetNumberElements() const {return m_number_elements;}
+  std::size_t GetVolume() const {return m_volume;}
+  std::size_t GetNumberElements() const {return m_number_elements;}
 
   // determines whether array with shape `arr_shape` can be concatenated with an array with shape `other_shape` along `axis`
   template <std::size_t axis>

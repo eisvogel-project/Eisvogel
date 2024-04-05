@@ -192,8 +192,8 @@ public:
   auto end() {return m_data.end();}
   auto cend() {return m_data.cend();}
   auto end() const {return m_data.cend();}
-  const std::size_t size() const requires(dims == 1) {return m_data.size();}
-  const std::size_t volume() const {return m_strides.back();}
+  std::size_t size() const requires(dims == 1) {return m_data.size();}
+  std::size_t volume() const {return m_strides.back();}
 
   friend DenseNDArray<T, dims> operator+(const DenseNDArray<T, dims>& lhs, const DenseNDArray<T, dims>& rhs) {
     return operator_binary<T, dims, T, T>(lhs, rhs, std::plus<>());
