@@ -128,12 +128,14 @@ public:
   static Vector<std::size_t, dims> get_overlap_start_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& start_ind);
   static Vector<std::size_t, dims> get_overlap_end_ind(const metadata_t& chunk, const Vector<std::size_t, dims>& end_ind);
   
-private:
+public:
 
-  void calculate_shape();
   Vector<std::size_t, dims> get_start_ind();
   Vector<std::size_t, dims> get_end_ind();
+
+private:
   
+  void calculate_shape();  
   id_t get_next_chunk_id();
   
   void load_and_rebuild_index();
@@ -289,7 +291,7 @@ public:
 	       const Vector<std::size_t, dims>& streamer_chunk_size);
 
   // Add a new chunk to the libraryy
-  void RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap);
+  void RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap);
   
   // Append a slice to an existing chunk along a certain axis
   template <std::size_t axis>
@@ -321,6 +323,8 @@ public:
   
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
+  ind_t GetStartInd() {return m_index.get_start_ind();};
+  ind_t GetEndInd() {return m_index.get_end_ind();};
   
 private:
 
@@ -367,7 +371,8 @@ public:
   DistributedNDVecArray(std::filesystem::path workdir, std::size_t cache_size = 1, std::size_t init_cache_el_linear_size = 100);
 
   // Single-chunk operations
-  void RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap = 0);
+  void RegisterChunk(const chunk_t& chunk, const ind_t& start_ind);
+  void RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap);
  
   template <std::size_t axis>
   void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
@@ -382,6 +387,10 @@ public:
   
   // Rebalance chunks in-place, i.e. output will remain in the same location
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);
+  
+  template <class BoundaryCallableT>
+  void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir,
+		     std::size_t overlap, BoundaryCallableT&& boundary_evaluator);
 
   // Rebalance chunks in a certain region and provide the output at `outdir`
   void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,

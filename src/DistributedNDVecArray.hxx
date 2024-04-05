@@ -1,5 +1,6 @@
 #include <uuid/uuid.h>
 #include <algorithm>
+#include <utility>
 #include "DistributedNDVecArray.hh"
 
 // --------------
@@ -353,7 +354,11 @@ ChunkMetadata<dims>::ChunkMetadata(const ChunkType& chunk_type, const std::files
 				   const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> shape,
 				   std::size_t overlap) :
   chunk_type(chunk_type), filepath(filepath), chunk_id(chunk_id), start_pos(0), shape(shape),
-  start_ind(start_ind), end_ind(start_ind + shape), overlap(overlap), loc_ind_offset(start_ind - overlap) { }
+  start_ind(start_ind), end_ind(start_ind + shape), overlap(overlap), loc_ind_offset(start_ind - overlap) {
+
+  // Note: unsigned-integer underflow in `loc_ind_offset` can happen, but is no problem here:
+  // when a chunk element is accessed, the index will be `global_index - loc_ind_offset`.
+}
 
 template <std::size_t dims>
 template <std::size_t axis>
@@ -718,10 +723,12 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libd
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
+
+  assert(chunk.GetShape() == end_ind - start_ind + 2 * overlap);
   
   // Insert new metadata entry into chunk index
-  metadata_t& meta = m_index.RegisterChunk(start_ind, chunk.GetShape(), overlap);
+  metadata_t& meta = m_index.RegisterChunk(start_ind, end_ind - start_ind, overlap);
 
   // Insert new chunk into the cache
   m_cache.RegisterNewChunk(meta, chunk);  
@@ -779,8 +786,9 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
     
     // copy the overlapping range from the `chunk` into the destination `array`
     array.fill_from(chunk,
-		    chunk_overlap_start_ind - chunk_meta.loc_ind_offset, chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // convert to chunk-local index range
-		    chunk_overlap_start_ind - input_start); // output-`array`-local index range start
+		    chunk_overlap_start_ind - chunk_meta.loc_ind_offset, // `input_start` in chunk-local indices
+		    chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // `input_end` in chunk-local indices
+		    chunk_overlap_start_ind - input_start + output_start); // `output_start` in output-array-local indices
   }
 }
 
@@ -879,7 +887,7 @@ constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements
     ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, start_ind);
     ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, end_ind);
     
-    auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {      
+    auto chunk_worker = [&](const Vector<std::size_t, dims>& ind_within_chunk, const view_t& elem) {
       worker(chunk_meta.loc_ind_offset + ind_within_chunk, elem);
     };
     chunk.index_loop_over_elements(chunk_overlap_start_ind - chunk_meta.loc_ind_offset, chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // chunk-local start and end indices
@@ -933,8 +941,16 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::fil
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, std::size_t overlap) {
-  m_library.RegisterChunk(chunk, start_ind, overlap);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind) {
+  std::size_t overlap = 0;
+  ind_t end_ind = start_ind + chunk.GetShape();
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -980,7 +996,8 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
   auto error_on_evaluation = []() {
     throw std::logic_error("This should never be encountered!");
   };
-  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, 0, error_on_evaluation);
+  std::size_t overlap = 0;
+  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -990,29 +1007,53 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
 									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
 									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator) {
 
+  // prepare the output library containing the rebuilt chunks
   ind_t streamer_chunk_size(stor::INFTY);
   streamer_chunk_size[0] = 1;
+  std::size_t cache_depth = 1; // no need for a large cache here, will just add one chunk at a time
+  ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(outdir, cache_depth, requested_chunk_shape, streamer_chunk_size);
 
-  ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(outdir, 1, requested_chunk_shape, streamer_chunk_size);
-
+  // buffer where the new chunks will be filled
   ArrayT<T, dims, vec_dims> chunk_buffer(requested_chunk_shape);
-  auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
 
-    // insert the requested overlap between neighbouring chunks
-    ind_t chunk_start_ind_with_overlap = chunk_start_ind - overlap;
-    ind_t chunk_end_ind_with_overlap = chunk_end_ind + overlap;
+  // ------------------------------
+  //  Note: std library containers like `std::array` strictly use unsigned types for indexing, and so do `NDVecArray` and `Vector`.
+  //  Signed indices are useful for what follows, and so there will be a bit of back-and-forth type casting below, please bear with us.
+  // ------------------------------
+
+  auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
+    using signed_ind_t = Vector<int, dims>;  
+
+    // Compute the start and end indices of the chunks extended by the corresponding overlap ...
+    // ... which means that these indices may be outside the bounds of the original array.    
+    signed_ind_t extended_chunk_start_ind = chunk_start_ind.template as_type<int>() - overlap;
+    signed_ind_t extended_chunk_end_ind = chunk_end_ind.template as_type<int>() + overlap;
+    chunk_shape_t extended_chunk_shape = (chunk_end_ind - chunk_start_ind) + 2 * overlap;
+
+    // Determine the index range that overlaps with the original array from which the contained values can be copied over
+    ind_t fill_start_ind = VectorUtils::max(m_library.GetStartInd(), extended_chunk_start_ind);
+    ind_t fill_end_ind = VectorUtils::min(m_library.GetEndInd(), extended_chunk_end_ind);
+
+    // position in the output chunk where the copying should start
+    ind_t output_start = (fill_start_ind.template as_type<int>() - extended_chunk_start_ind).template as_type<std::size_t>();
+
+    // std::cout << "------------------" << std::endl;
+    // std::cout << "chunk_start_ind = " << chunk_start_ind << std::endl;
+    // std::cout << "chunk_end_ind = " << chunk_end_ind << std::endl;
+    // std::cout << "fill_start_ind = " << fill_start_ind << std::endl;
+    // std::cout << "fill_end_ind = " << fill_end_ind << std::endl;
+    // std::cout << "output_start = " << output_start << std::endl;
+    // std::cout << "------------------" << std::endl;
     
-    // fill rebuilt chunk into local buffer ...
-    ind_t output_start(0);
-    
-    chunk_buffer.resize(chunk_end_ind_with_overlap - chunk_start_ind_with_overlap);
-    FillArray(chunk_buffer, chunk_start_ind, chunk_end_ind, output_start);
+    // fill rebuilt chunk into local buffer ...    
+    chunk_buffer.resize(extended_chunk_shape);
+    FillArray(chunk_buffer, fill_start_ind, fill_end_ind, output_start);
 
     // ... if introducing the overlap would go beyond the global shape of the array, take care of the boundary values manually ...
     
     
-    // ... and register it as a new chunk in the new library
-    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, overlap);
+    // ... and register it as a new chunk in the new library under the original start index, and pass on the information about the overlap
+    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap);
   };
   index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
@@ -1022,13 +1063,13 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
-								     std::filesystem::path tmpdir) {
-
+template <class BoundaryCallableT>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir, std::size_t overlap,
+								     BoundaryCallableT&& boundary_evaluator) {
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
 
-  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir);
+  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator);
 
   // Clear the contents of the original library ...
   m_library.ClearLibrary();
@@ -1038,4 +1079,16 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
 
   // ... and delete the temporary directory
   std::filesystem::remove_all(tmpdir);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
+								     std::filesystem::path tmpdir) {
+  // no overlap requested here
+  auto error_on_evaluation = []() {
+    throw std::logic_error("This should never be encountered!");
+  };
+  std::size_t overlap = 0;
+  RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation);
 }
