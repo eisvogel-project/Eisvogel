@@ -21,7 +21,10 @@
 
 int main(int argc, char* argv[]) { 
 
-  static constexpr std::size_t len = 400;
+  (void)argc;
+  (void)argv;
+  
+  // static constexpr std::size_t len = 400;
   
   Vector<std::size_t, 3> shape{401u, 400u, 400u};
   
@@ -43,13 +46,13 @@ int main(int argc, char* argv[]) {
 
   NDVecArray<float, 3, 2> arr1_view = arr1.View({0u, 0u, 0u}, {400u, 400u, 400u});
   
-  using in_type = float;
-  using ser_type = uint32_t;
+  // using in_type = float;
+  // using ser_type = uint32_t;
 
   Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
   stor::NDVecArrayStreamer<NDVecArray, float, 3, 2> streamer;
   
-  std::filesystem::path testpath = "./testVector.bin";
+  std::filesystem::path testpath = "/home/windischhofer/data/windischhofer/eisvogel/testVector.bin";
 
   auto start = std::chrono::high_resolution_clock::now();
   

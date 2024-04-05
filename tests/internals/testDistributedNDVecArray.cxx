@@ -78,7 +78,7 @@ void append_slices(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, c
   Vector<std::size_t, dims> end_ind = shape;
   end_ind[axis] += slice_shape[axis];
   
-  auto chunk_appender = [&](const Vector<std::size_t, dims>& chunk_start, const Vector<std::size_t, dims>& chunk_end) {
+  auto chunk_appender = [&](const Vector<std::size_t, dims>& chunk_start, const Vector<std::size_t, dims>&) {
 
     // prepare filled array
     NDVecArray<T, dims, vec_dims> array_buffer(slice_shape);
@@ -162,6 +162,9 @@ void test_fill_array(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
 
 int main(int argc, char* argv[]) {
 
+  (void)argc;
+  (void)argv;
+  
   constexpr std::size_t dims = 3;
   constexpr std::size_t vec_dims = 2;
   using darr_t = DistributedNDVecArray<NDVecArray, T, dims, vec_dims>;
@@ -209,6 +212,7 @@ int main(int argc, char* argv[]) {
 
   using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;
   auto boundary_evaluator = [](darr_t& darr, const Vector<int, dims>& ind, view_t elem){
+    (void)ind;
     // std::cout << "got asked for evaluation of boundary element at " << ind << std::endl;
     Vector<std::size_t, dims> default_ind(0);
     Vector<T, vec_dims> default_val(-10000000.0);
@@ -223,6 +227,10 @@ int main(int argc, char* argv[]) {
   std::cout << darr.GetShape() << std::endl;
   
   test_darr_correctness(darr, swapped_filler);
-    
+
+  darr_t darr_read(workdir);
+  std::cout << darr_read.GetShape() << std::endl;
+  test_darr_correctness(darr_read, swapped_filler);
+  
   std::cout << "done" << std::endl;
 }
