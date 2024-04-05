@@ -150,7 +150,7 @@ namespace nullsup {
     };
 
     // if performance becomes a problem, could consider moving this to `arr.loop_over_elements` which iterates move efficiently
-    index_loop_over_array_elements(arr, null_suppressor);
+    IteratorUtils::index_loop_over_array_elements(arr, null_suppressor);
     
     // close any remaining open nulls
     if(num_nulls > 0) {
@@ -199,7 +199,7 @@ namespace nullsup {
     };
 
     // if performance becomes a problem, could consider moving this to `arr.loop_over_elements` which iterates move efficiently
-    index_loop_over_array_elements(arr, null_desuppressor);
+    IteratorUtils::index_loop_over_array_elements(arr, null_desuppressor);
     
     return buffer_it - buffer.begin();
   }

@@ -71,7 +71,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
 
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = m_shape[dims - 1];
-  index_loop_over_array_chunks(*this, chunk_size, copy_chunk_contiguous);
+  IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, copy_chunk_contiguous);
   
   return *this;
 }
@@ -90,7 +90,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T&
 
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = m_shape[dims - 1];
-  index_loop_over_array_chunks(*this, chunk_size, fill_chunk_contiguous);
+  IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, fill_chunk_contiguous);
 
   return *this;
 }
@@ -118,7 +118,7 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims
   };
 
   // iterate over chunks in the source array
-  index_loop_over_chunks(input_start, input_end, chunk_size, copy_chunk_contiguous);
+  IteratorUtils::index_loop_over_chunks(input_start, input_end, chunk_size, copy_chunk_contiguous);
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -224,7 +224,7 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
   // iterate over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
   Vector<std::size_t, dims> chunk_size(1);
   chunk_size[dims - 1] = m_shape[dims - 1];
-  index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
+  IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
 }
 
 // Loop over (index, element) pairs
@@ -254,7 +254,7 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind
       ind[dims - 1] += 1;
     }    
   };
-  index_loop_over_chunks(start_ind, end_ind, chunk_size, loop_over_chunk_contiguous);  
+  IteratorUtils::index_loop_over_chunks(start_ind, end_ind, chunk_size, loop_over_chunk_contiguous);  
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
