@@ -44,7 +44,7 @@ void fill_array(NDVecArray<T, dims, vec_dims>& to_fill, const Vector<std::size_t
   auto worker = [&](const Vector<std::size_t, dims>& ind) {
     to_fill[ind] = fill_function(start_ind + ind);
   };  
-  index_loop_over_array_elements(to_fill, worker);
+  IteratorUtils::index_loop_over_array_elements(to_fill, worker);
 }
 
 template <std::size_t dims, std::size_t vec_dims, class CallableT>
@@ -62,7 +62,7 @@ void register_chunks(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
     darr.RegisterChunk(array_buffer, chunk_start);
   };
   
-  index_loop_over_chunks(start_ind, end_ind, chunk_shape, chunk_registerer);  
+  IteratorUtils::index_loop_over_chunks(start_ind, end_ind, chunk_shape, chunk_registerer);  
 }
 
 template <std::size_t axis, std::size_t dims, std::size_t vec_dims, class CallableT>
@@ -89,16 +89,19 @@ void append_slices(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, c
     darr.template AppendSlice<axis>(chunk_start, array_buffer);
   };
   
-  index_loop_over_chunks(start_ind, end_ind, slice_shape, chunk_appender);
+  IteratorUtils::index_loop_over_chunks(start_ind, end_ind, slice_shape, chunk_appender);
 }
 
 template <std::size_t dims, std::size_t vec_dims, class CallableT>
 void test_darr_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, CallableT&& filler) {
 
   std::cout << "testing closure ... ";
-  
-  using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;
+
+  std::size_t num_elements_visited = 0;
+  using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;  
   auto checker = [&](const Vector<std::size_t, dims>& ind, const view_t& darr_elems) {
+
+    num_elements_visited++;
     
     Vector<T, vec_dims> filled_values = filler(ind);
     
@@ -114,9 +117,11 @@ void test_darr_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>&
       }
     }
   };
-  darr.index_loop_over_elements(checker);
-
+  darr.index_loop_over_elements(checker);  
+  
   std::cout << "OK!" << std::endl;
+
+  std::cout << "visited " << num_elements_visited << " elements" << std::endl;
 }
 
 template <std::size_t dims, std::size_t vec_dims, class CallableT>
@@ -150,7 +155,7 @@ void test_fill_array(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
     }
   };
   
-  index_loop_over_elements(region_start_ind, region_end_ind, checker);
+  IteratorUtils::index_loop_over_elements(region_start_ind, region_end_ind, checker);
 
   std::cout << "OK!" << std::endl;
 }
@@ -202,10 +207,17 @@ int main(int argc, char* argv[]) {
 
   test_darr_correctness(darr, swapped_filler);
 
-  auto boundary_evaluator = [](){};
+  using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;
+  auto boundary_evaluator = [](darr_t& darr, const Vector<int, dims>& ind, view_t elem){
+    // std::cout << "got asked for evaluation of boundary element at " << ind << std::endl;
+    Vector<std::size_t, dims> default_ind(0);
+    Vector<T, vec_dims> default_val(-10000000.0);
+    default_val[1] = 123345;
+    elem = darr[default_ind];
+  };
   
   std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(30);  
+  Vector<std::size_t, dims> requested_chunk_size(40);  
   darr.RebuildChunks(requested_chunk_size, workdir_tmp, 1, boundary_evaluator);
 
   std::cout << darr.GetShape() << std::endl;
