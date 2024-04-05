@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <cmath>
+#include <cstdlib>
 
 #include "NDVecArray.hh"
 #include "DistributedNDVecArray.hh"
@@ -12,6 +13,14 @@ using T = float;
 template <std::size_t dims, std::size_t vec_dims>
 Vector<T, vec_dims> ind_sum(const Vector<std::size_t, dims>& ind) {
 
+  std::size_t hash = 0;
+  std::size_t mulfact = 1;
+  for(std::size_t i = 0; i < dims; i++) {
+    hash += ind[i] * mulfact;
+    mulfact *= 100;
+  }
+  srand(hash);
+  
   std::size_t sum = 0;
   for(std::size_t i = 0; i < dims; i++) {
     sum += ind[i] * i;
@@ -19,7 +28,8 @@ Vector<T, vec_dims> ind_sum(const Vector<std::size_t, dims>& ind) {
 
   Vector<T, vec_dims> retvec;
   for(std::size_t i = 0; i < vec_dims; i++) {
-    retvec[i] = std::sin(sum + i);
+    float randval = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    retvec[i] = std::sin(sum + i) + randval;
   }
   
   return retvec;
@@ -46,7 +56,7 @@ void register_chunks(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
 
     // register as chunk
     std::cout << "Registering chunk: " << chunk_start << " -> " << chunk_end << std::endl;
-    darr.RegisterChunk(chunk_start, array_buffer);
+    darr.RegisterChunk(array_buffer, chunk_start);
   };
   
   index_loop_over_chunks(start_ind, end_ind, chunk_shape, chunk_registerer);  
@@ -159,15 +169,15 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(300);
+  Vector<std::size_t, dims> chunk_size(3);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(1100);
+  Vector<std::size_t, dims> end_ind(11);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(300);
+  Vector<std::size_t, dims> slice_shape(3);
   slice_shape[0] = 10;
   
   append_slices<0>(darr, slice_shape, filler);
@@ -189,9 +199,11 @@ int main(int argc, char* argv[]) {
 
   test_darr_correctness(darr, swapped_filler);
 
+  auto boundary_evaluator = [](){};
+  
   std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(400);  
-  darr.RebuildChunks(requested_chunk_size, workdir_tmp);
+  Vector<std::size_t, dims> requested_chunk_size(4);  
+  darr.RebuildChunks(requested_chunk_size, workdir_tmp, 1, boundary_evaluator);
 
   std::cout << darr.GetShape() << std::endl;
   
