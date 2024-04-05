@@ -424,7 +424,7 @@ namespace stor{
 // -------------
 
 template <std::size_t dims>
-ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_index_path(index_path), m_next_chunk_id(0), m_last_accessed_ind(0), m_shape(0) {
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_next_chunk_id(0), m_index_path(index_path), m_shape(0), m_chunk_list(), m_last_accessed_ind(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -1111,6 +1111,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
 
   // ... pull in the contents of the rebuilt one ...
   m_library.ImportLibrary(tmpdir);
+  m_library.FlushLibrary();
 
   // ... and delete the temporary directory
   std::filesystem::remove_all(tmpdir);
