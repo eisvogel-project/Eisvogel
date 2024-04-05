@@ -77,13 +77,13 @@ public:
 
   // TODO: make this private and collect the implementation in `Vector.hxx`
   template <typename DestT, typename SrcT, std::size_t... idxs>
-  auto array_as_type(const std::array<SrcT, vec_dims>& src, std::index_sequence<idxs...>) {
+  auto array_as_type(const std::array<SrcT, vec_dims>& src, std::index_sequence<idxs...>) const {
     return std::array<DestT, vec_dims>{{static_cast<DestT>(src[idxs])...}};
   }
 
   // returns a copy of this vector, with its values static_cast'ed to the destination type `DestT`
   template <class DestT>
-  Vector<DestT, vec_dims> as_type() {
+  Vector<DestT, vec_dims> as_type() const {
     return Vector<DestT, vec_dims>(array_as_type<DestT>(m_data, std::make_index_sequence<vec_dims>()));
   }
   
@@ -255,6 +255,37 @@ namespace stor {
       return Vector<T, vec_dims>(std::move(data));
     }
   };    
+}
+
+// Some useful utilities
+namespace VectorUtils {
+
+  // `min` and `max` for vectors holding integers (can be signed or unsigned)
+  template <std::integral T1, std::integral T2, std::size_t vec_dims>
+  Vector<T1, vec_dims> min(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {
+    
+    Vector<T1, vec_dims> result;
+    
+    auto take_min = [](const T1& a, const T2& b) -> T1 {
+      return std::cmp_less(a, b) ? a : static_cast<T1>(b);
+    };
+    
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_min);
+    return result;
+  }
+  
+  template <std::integral T1, std::integral T2, std::size_t vec_dims>
+  Vector<T1, vec_dims> max(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {
+    
+    Vector<T1, vec_dims> result;
+    
+    auto take_max = [](const T1& a, const T2& b) -> T1 {
+      return std::cmp_greater(a, b) ? a : static_cast<T1>(b);
+    };
+    
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_max);
+    return result;
+  }   
 }
 
 // Some type shortcuts
