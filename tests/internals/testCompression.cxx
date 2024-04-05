@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
   };
 
   std::cout << "checking" << std::endl;
-  index_loop_over_array_elements(arr1_view, checker);
+  IteratorUtils::index_loop_over_array_elements(arr1_view, checker);
 
   // =====
   
