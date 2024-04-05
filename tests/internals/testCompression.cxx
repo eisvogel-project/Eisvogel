@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   Vector<std::size_t, 3> streamer_chunk_size{1u, stor::INFTY, stor::INFTY};
   stor::NDVecArrayStreamer<NDVecArray, float, 3, 2> streamer;
   
-  std::filesystem::path testpath = "/home/windischhofer/data/windischhofer/eisvogel/testVector.bin";
+  std::filesystem::path testpath = "./testVector.bin";
 
   auto start = std::chrono::high_resolution_clock::now();
   
