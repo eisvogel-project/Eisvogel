@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <utility>
 #include "DistributedNDVecArray.hh"
+#include "Eisvogel/IteratorUtils.hh"
 
 // --------------
 
@@ -1021,8 +1022,10 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
   //  Signed indices are useful for what follows, and so there will be a bit of back-and-forth type casting below, please bear with us.
   // ------------------------------
 
+  ind_t global_start_ind = m_library.GetStartInd();
+  ind_t global_end_ind = m_library.GetEndInd();
+  
   auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
-    using signed_ind_t = Vector<int, dims>;  
 
     // Compute the start and end indices of the chunks extended by the corresponding overlap ...
     // ... which means that these indices may be outside the bounds of the original array.    
@@ -1031,40 +1034,66 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     chunk_shape_t extended_chunk_shape = (chunk_end_ind - chunk_start_ind) + 2 * overlap;
 
     // Determine the index range that overlaps with the original array from which the contained values can be copied over
-    ind_t fill_start_ind = VectorUtils::max(m_library.GetStartInd(), extended_chunk_start_ind);
-    ind_t fill_end_ind = VectorUtils::min(m_library.GetEndInd(), extended_chunk_end_ind);
+    ind_t fill_start_ind = VectorUtils::max(global_start_ind, extended_chunk_start_ind);
+    ind_t fill_end_ind = VectorUtils::min(global_end_ind, extended_chunk_end_ind);
 
     // position in the output chunk where the copying should start
     ind_t output_start = (fill_start_ind.template as_type<int>() - extended_chunk_start_ind).template as_type<std::size_t>();
-
-    std::cout << "------------------" << std::endl;
-    std::cout << "chunk_start_ind = " << chunk_start_ind << std::endl;
-    std::cout << "chunk_end_ind = " << chunk_end_ind << std::endl;
-    std::cout << "fill_start_ind = " << fill_start_ind << std::endl;
-    std::cout << "fill_end_ind = " << fill_end_ind << std::endl;
-    std::cout << "output_start = " << output_start << std::endl;
     
     // fill rebuilt chunk into local buffer ...    
-    chunk_buffer.resize(extended_chunk_shape);
+    chunk_buffer.resize(extended_chunk_shape);    
     FillArray(chunk_buffer, fill_start_ind, fill_end_ind, output_start);
-
-    // ... if introducing the overlap would go beyond the global shape of the array, take care of the boundary values manually ...
-    if(fill_end_ind - fill_start_ind != extended_chunk_shape) {
-      [[unlikely]];
-      
-      std::cout << "not full chunk filled" << std::endl;
-    }
     
+    // ... if introducing the overlap takes us beyond the global shape of the array, manually iterate over the boundary faces and ask the boundary evaluator
+    // to fill in the field values there
+    auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
+      ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
+      boundary_evaluator(*this, boundary_ind, chunk_buffer[local_ind]);
+    };
+    index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
     
-    std::cout << "------------------" << std::endl;
-    
-    // ... and register it as a new chunk in the new library under the original start index, and pass on the information about the overlap
+    // ... and finally register the thus constructed chunk in the new library under the original start index, and pass on the information about the overlap
     rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap);
   };
-  index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
+  IteratorUtils::index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
   // Ensure that everything is written to disk before we finish here
   rebuilt_library.FlushLibrary();
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class CallableT>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over_penetrating_chunk_elements(const ind_t& start_ind, const ind_t& end_ind,
+												  const signed_ind_t& chunk_start_ind, const signed_ind_t& chunk_end_ind,
+												  CallableT&& worker) {
+  // Determine the range where the chunk intersects the specified array range
+  ind_t intersect_start_ind = VectorUtils::max(start_ind, chunk_start_ind);
+  ind_t intersect_end_ind = VectorUtils::min(end_ind, chunk_end_ind);
+
+  // Check penetrating slices along all directions
+  for(std::size_t dim = 0; dim < dims; dim++) {
+
+    // Chunk starts "to the left" of the array along this direction ...
+    if(std::cmp_less(chunk_start_ind[dim], start_ind[dim])) {
+
+      // ... need to iterate over the region that starts at the `chunk_start_ind` and extends up to the
+      // `intersect_start_ind` along the direction of `dim`
+      signed_ind_t boundary_slice_end_ind = chunk_end_ind;
+      boundary_slice_end_ind[dim] = intersect_start_ind[dim];      
+      IteratorUtils::index_loop_over_elements(chunk_start_ind, boundary_slice_end_ind, worker);
+    }
+
+    // Chunk ends "to the right" of the array along this direction ...
+    if(std::cmp_greater(chunk_end_ind[dim], end_ind[dim])) {
+
+      // ... need to iterate over the region that ends at the `chunk_end_ind` and extends backwards
+      // along `dim` to where the intersection begins
+      signed_ind_t boundary_slice_start_ind = chunk_start_ind;
+      boundary_slice_start_ind[dim] = intersect_end_ind[dim];
+      IteratorUtils::index_loop_over_elements(boundary_slice_start_ind, chunk_end_ind, worker);
+    }
+  }  
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,

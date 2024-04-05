@@ -397,7 +397,7 @@ public:
 			    const ind_t& requested_chunk_shape, std::filesystem::path outdir);
 
   // Rebuild chunks in a certain region while introducing overlap between chunks
-  // Use `BoundaryCallableT` with signature (DistributedNDVecArray&, const Vector<int, dims>& ind)
+  // Use `BoundaryCallableT` with signature (DistributedNDVecArray&, Vector<int, dims>&, )
   // to specify the value of `ind` that lies outside the shape of this distributed array
   template <class BoundaryCallableT>
   void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
@@ -414,6 +414,15 @@ public:
   // Chunk-aware iterators
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
+
+private:
+
+  // utility function to iterate over chunk indices of elements that sit outside the index range specified by `start_ind` and `end_ind`
+  using signed_ind_t = Vector<int, dims>;
+  template <class CallableT>
+  static void index_loop_over_penetrating_chunk_elements(const ind_t& start_ind, const ind_t& end_ind,
+							 const signed_ind_t& chunk_start_ind, const signed_ind_t& chunk_end_ind,
+							 CallableT&& worker);
   
 private:
 
