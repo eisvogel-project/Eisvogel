@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <cmath>
-#include <cstdlib>
+#include <random>
 
 #include "NDVecArray.hh"
 #include "DistributedNDVecArray.hh"
@@ -13,13 +13,15 @@ using T = float;
 template <std::size_t dims, std::size_t vec_dims>
 Vector<T, vec_dims> ind_sum(const Vector<std::size_t, dims>& ind) {
 
+  std::mt19937 gen64;
+  
   std::size_t hash = 0;
   std::size_t mulfact = 1;
   for(std::size_t i = 0; i < dims; i++) {
     hash += ind[i] * mulfact;
     mulfact *= 100;
   }
-  srand(hash);
+  gen64.seed(hash);
   
   std::size_t sum = 0;
   for(std::size_t i = 0; i < dims; i++) {
@@ -28,7 +30,8 @@ Vector<T, vec_dims> ind_sum(const Vector<std::size_t, dims>& ind) {
 
   Vector<T, vec_dims> retvec;
   for(std::size_t i = 0; i < vec_dims; i++) {
-    float randval = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+    float randval = static_cast <float> (gen64()) / static_cast <float> (gen64.max());
+    // std::cout << randval << std::endl;
     retvec[i] = std::sin(sum + i) + randval;
   }
   
@@ -169,15 +172,15 @@ int main(int argc, char* argv[]) {
   
   darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
   
-  Vector<std::size_t, dims> chunk_size(3);
+  Vector<std::size_t, dims> chunk_size(30);
   Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(11);
+  Vector<std::size_t, dims> end_ind(110);
 
   auto filler = [&](const Vector<std::size_t, dims>& ind){return ind_sum<dims, vec_dims>(ind);};
   
   register_chunks(darr, start_ind, end_ind, chunk_size, filler);
 
-  Vector<std::size_t, dims> slice_shape(3);
+  Vector<std::size_t, dims> slice_shape(30);
   slice_shape[0] = 10;
   
   append_slices<0>(darr, slice_shape, filler);
@@ -202,7 +205,7 @@ int main(int argc, char* argv[]) {
   auto boundary_evaluator = [](){};
   
   std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(4);  
+  Vector<std::size_t, dims> requested_chunk_size(30);  
   darr.RebuildChunks(requested_chunk_size, workdir_tmp, 1, boundary_evaluator);
 
   std::cout << darr.GetShape() << std::endl;
