@@ -1037,20 +1037,26 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     // position in the output chunk where the copying should start
     ind_t output_start = (fill_start_ind.template as_type<int>() - extended_chunk_start_ind).template as_type<std::size_t>();
 
-    // std::cout << "------------------" << std::endl;
-    // std::cout << "chunk_start_ind = " << chunk_start_ind << std::endl;
-    // std::cout << "chunk_end_ind = " << chunk_end_ind << std::endl;
-    // std::cout << "fill_start_ind = " << fill_start_ind << std::endl;
-    // std::cout << "fill_end_ind = " << fill_end_ind << std::endl;
-    // std::cout << "output_start = " << output_start << std::endl;
-    // std::cout << "------------------" << std::endl;
+    std::cout << "------------------" << std::endl;
+    std::cout << "chunk_start_ind = " << chunk_start_ind << std::endl;
+    std::cout << "chunk_end_ind = " << chunk_end_ind << std::endl;
+    std::cout << "fill_start_ind = " << fill_start_ind << std::endl;
+    std::cout << "fill_end_ind = " << fill_end_ind << std::endl;
+    std::cout << "output_start = " << output_start << std::endl;
     
     // fill rebuilt chunk into local buffer ...    
     chunk_buffer.resize(extended_chunk_shape);
     FillArray(chunk_buffer, fill_start_ind, fill_end_ind, output_start);
 
     // ... if introducing the overlap would go beyond the global shape of the array, take care of the boundary values manually ...
+    if(fill_end_ind - fill_start_ind != extended_chunk_shape) {
+      [[unlikely]];
+      
+      std::cout << "not full chunk filled" << std::endl;
+    }
     
+    
+    std::cout << "------------------" << std::endl;
     
     // ... and register it as a new chunk in the new library under the original start index, and pass on the information about the overlap
     rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap);
