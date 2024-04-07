@@ -170,7 +170,7 @@ private:
     return m_offset + ind[0] * m_strides[0] + ind[1] * m_strides[1] + ind[2] * m_strides[2];
   }
 
-  static stride_t ComputeStrides(const shape_t& shape) requires(dims == 1) {
+  static stride_t ComputeStrides(const shape_t&) requires(dims == 1) {
     stride_t strides{vec_dims};
     return strides;
   }

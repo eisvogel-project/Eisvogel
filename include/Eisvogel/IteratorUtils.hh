@@ -91,7 +91,7 @@ namespace IteratorUtils {
 	    typename T, std::size_t dims, std::size_t vec_dims, class CallableT>
   constexpr void index_loop_over_array_chunks(const ArrayT<T, dims, vec_dims>& arr,
 					      const Vector<std::size_t, dims>& chunk_size, CallableT&& worker) {
-    Vector<std::size_t, dims> begin(0);
+    Vector<std::size_t, dims> begin(0u);
     Vector<std::size_t, dims> end = arr.GetShape();
     index_loop_over_chunks(begin, end, chunk_size, worker);
   }

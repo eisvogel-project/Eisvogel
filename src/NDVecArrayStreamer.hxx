@@ -187,7 +187,7 @@ namespace stor {
       // deserialize data and fill into array
       type val_view = val.View(chunk_begin, chunk_end);
       
-      std::size_t elems_read = 0;
+      [[maybe_unused]] std::size_t elems_read = 0;
       switch(chunk_meta.ser_mode) {
 	
       case StreamerMode::dense:

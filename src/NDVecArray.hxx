@@ -88,7 +88,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T&
     std::fill_n(std::execution::unseq, dest, m_shape[dims - 1] * vec_dims, other);
   };
 
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = m_shape[dims - 1];
   IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, fill_chunk_contiguous);
 
