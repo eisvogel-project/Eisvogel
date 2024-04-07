@@ -8,7 +8,6 @@
 #include <span>
 
 #include "Eisvogel/IteratorUtils.hh"
-#include "Serialization.hh"
 #include "Vector.hh"
 #include "MemoryUtils.hh"
 
@@ -17,6 +16,23 @@ namespace stor {
   template <template<typename, std::size_t, std::size_t> class ArrayT,
 	    typename T, std::size_t dims, std::size_t vec_dims>
   class NDVecArrayStreamer;
+}
+
+// Forward declaration of interpolation routine for NDVecArrays
+template <typename T, std::size_t dims, std::size_t vec_dims>
+class NDVecArray;
+
+namespace Interpolation::Kernel {
+  struct Keys;
+  struct Linear;
+}
+
+namespace Interpolation {
+  
+  template <class KernelT, typename T, std::size_t dims, std::size_t vec_dims>
+  void interpolate(const NDVecArray<T, dims, vec_dims>& arr, NDVecArray<T, 1, vec_dims>& retval,
+		   const Vector<scalar_t, dims-1>& outer_inds,
+		   scalar_t inner_ind_start, scalar_t inner_ind_end, scalar_t inner_ind_delta);
 }
 
 template <typename T, std::size_t vec_dims>
@@ -43,7 +59,23 @@ class NDVecArray {
   static_assert(vec_dims > 0);
   
 private:
+
+  // Streamer becomes a friend for (de)serialization
   friend class stor::NDVecArrayStreamer<NDVecArray, T, dims, vec_dims>;
+
+  // Interpolators become friends for efficiency
+  // (Note: need to manually list kernels because ISO C++20 does not allow partial template specializations as friends)
+  friend void
+  Interpolation::interpolate<Interpolation::Kernel::Keys, T, dims, vec_dims>(const NDVecArray<T, dims, vec_dims>&,
+									     NDVecArray<T, 1, vec_dims>&,
+									     const Vector<scalar_t, dims-1>&,
+									     scalar_t, scalar_t, scalar_t);
+
+  friend void
+  Interpolation::interpolate<Interpolation::Kernel::Linear, T, dims, vec_dims>(const NDVecArray<T, dims, vec_dims>&,
+									       NDVecArray<T, 1, vec_dims>&,
+									       const Vector<scalar_t, dims-1>&,
+									       scalar_t, scalar_t, scalar_t);
   
 public:
   using ind_t = Vector<std::size_t, dims>;
