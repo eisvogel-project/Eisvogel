@@ -286,7 +286,7 @@ public:
   
 public:
 
-  ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size, std::size_t init_cache_el_linear_size = 400);
+  ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size = 1, std::size_t init_cache_el_linear_size = 400);
   ChunkLibrary(std::filesystem::path libdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 	       const Vector<std::size_t, dims>& streamer_chunk_size);
 
@@ -325,6 +325,7 @@ public:
   shape_t GetShape() {return m_index.GetShape();};
   ind_t GetStartInd() {return m_index.get_start_ind();};
   ind_t GetEndInd() {return m_index.get_end_ind();};
+  std::filesystem::path GetLibdir() {return m_libdir;};
   
 private:
 
@@ -415,6 +416,10 @@ public:
   template <class CallableT>
   constexpr void index_loop_over_elements(CallableT&& worker);
 
+  // Other housekeeping
+  std::filesystem::path GetWorkdir() { return m_library.GetLibdir(); }
+  void Flush() { m_library.FlushLibrary(); } 
+  
 private:
 
   // utility function to iterate over chunk indices of elements that sit outside the index range specified by `start_ind` and `end_ind`
@@ -429,5 +434,9 @@ private:
   ChunkLibrary<ArrayT, T, dims, vec_dims> m_library;
   
 };
+
+// Type shortcuts for good semantics
+using Distributed_RZT_ErEz_Array = DistributedNDVecArray<NDVecArray, scalar_t, 3, 2>;
+using Distributed_TRZ_ErEz_Array = DistributedNDVecArray<NDVecArray, scalar_t, 3, 2>;
 
 #include "DistributedNDVecArray.hxx"

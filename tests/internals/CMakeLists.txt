@@ -33,3 +33,6 @@ target_link_libraries(testDistributedNDVecArray eisvogel)
 
 add_executable(testNDVecArrayInterpolation testNDVecArrayInterpolation.cxx)
 target_link_libraries(testNDVecArrayInterpolation eisvogel)
+
+add_executable(testGreensFunction testGreensFunction.cxx)
+target_link_libraries(testGreensFunction eisvogel)

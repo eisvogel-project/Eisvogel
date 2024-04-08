@@ -309,4 +309,28 @@ using IndexVector2D = Vector2D<std::size_t>;
 using IndexVector3D = Vector3D<std::size_t>;
 using IndexVector4D = Vector4D<std::size_t>;
 
+// Various kinds of vectors (for different semantics)
+template <typename T>
+using RZTVector = Vector3D<T>;
+
+template <typename T>
+using TRZVector = Vector3D<T>;
+
+template <typename T>
+using XYZTVector = Vector4D<T>;
+
+template <typename T>
+using XYZVector = Vector3D<T>;
+
+// Can later turn these into their own types if the need arises
+using XYZTCoordVector = XYZTVector<scalar_t>;
+using XYZTFieldVector = XYZTVector<scalar_t>;
+using XYZTIndexVector = XYZTVector<std::size_t>;
+using XYZCoordVector = XYZVector<scalar_t>;
+
+using RZTCoordVector = RZTVector<scalar_t>;
+using RZTIndexVector = RZTVector<std::size_t>;
+using TRZCoordVector = TRZVector<scalar_t>;
+using TRZIndexVector = TRZVector<std::size_t>;
+
 #endif
