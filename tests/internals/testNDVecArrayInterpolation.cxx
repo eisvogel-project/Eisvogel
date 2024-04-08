@@ -46,14 +46,14 @@ int main(int argc, char* argv[]) {
   
   T inner_ind_start = 2.123;
   T inner_ind_end = 350.15;
-  T inner_ind_delta = 0.55123;
+  T inner_ind_delta = 1.55123;
 
   // Interpolation::interpolate<Interpolation::Kernel::Keys>(data, interp_vals, outer_inds,
   // 							  inner_ind_start, inner_ind_end, inner_ind_delta);
   
   auto start = std::chrono::high_resolution_clock::now();
   
-  Interpolation::interpolate<Interpolation::Kernel::Linear>(data, interp_vals, outer_inds,
+  Interpolation::interpolate<Interpolation::Kernel::Keys>(data, interp_vals, outer_inds,
 							  inner_ind_start, inner_ind_end, inner_ind_delta);
 
   auto stop = std::chrono::high_resolution_clock::now();
@@ -69,21 +69,24 @@ int main(int argc, char* argv[]) {
   std::size_t fi = 0;
   for(scalar_t f = inner_ind_start; f < inner_ind_end; f += inner_ind_delta) {
     
-    // std::cout << "----" << std::endl;
-    // std::cout << interp_vals[fi][0] << ", " << interp_vals[fi][1] << std::endl;
+    std::cout << "----" << std::endl;
+    std::cout << " f = " << f << std::endl;
+    std::cout << interp_vals[fi][0] << ", " << interp_vals[fi][1] << std::endl;
 
     scalar_t indsum = outer_indsum + f;
 
     if(std::fabs(interp_vals[fi][0] - indsum) / indsum > 1e-4) {
       std::cout << "error" << std::endl;
+      // throw;
     }
 
     if(std::fabs(interp_vals[fi][1] - 2 * indsum) / indsum > 1e-4) {
       std::cout << "error" << std::endl;
+      // throw;
     }
     
-    // std::cout << indsum << ", " << 2 * indsum << std::endl;    
-    // std::cout << "----" << std::endl;
+    std::cout << indsum << ", " << 2 * indsum << std::endl;    
+    std::cout << "----" << std::endl;
 
     fi++;
     

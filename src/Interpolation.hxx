@@ -102,6 +102,9 @@ namespace Interpolation {
 	column_ind[1] = i2;
 	scalar_t* column_start = &(*(arr.m_data -> begin())) + arr.ComputeFlatInd(column_ind);
 
+	scalar_t outer_weight = outer_weights[i1 - (outer_int[0] - ind_offset)][i2 - (outer_int[1] - ind_offset)];
+	// std::cout << "outer_weight = " << outer_weight << std::endl;
+	
 	std::size_t inner_elem = 0;
 	for(scalar_t cur_inner_ind = inner_ind_start; cur_inner_ind < inner_ind_end; cur_inner_ind += inner_ind_delta) {
 
@@ -130,9 +133,6 @@ namespace Interpolation {
 	  //   std::cout << inner_interp[ii] << ", ";	    
 	  // }
 	  // std::cout << std::endl;
-
-	  scalar_t outer_weight = outer_weights[i1 - (outer_int[0] - ind_offset)][i2 - (outer_int[1] - ind_offset)];
-	  // std::cout << "outer_weight = " << outer_weight << std::endl;
 
 	  std::span<scalar_t, vec_dims> output = retval[inner_elem];
 	  for(std::size_t cv = 0; cv < vec_dims; cv++) {
