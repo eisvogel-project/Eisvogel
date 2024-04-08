@@ -1,4 +1,5 @@
 #include <iostream>
+#include <chrono>
 #include "Interpolation.hh"
 
 using T = float;
@@ -36,17 +37,59 @@ int main(int argc, char* argv[]) {
 
   std::cout << data[{10u, 10u, 10u}][0] << ", " << data[{10u, 10u, 10u}][1] << std::endl;
 
-  Vector<T, dims-1> outer_inds(10.123);
+  Vector<T, dims-1> outer_inds(0.0);
+  outer_inds[0] = 10.123;
+  outer_inds[1] = 10.567;
 
-  Vector<std::size_t, 1> shape_result(100u);
-  NDVecArray<T, 1, vec_dims> interp_vals(shape_result, 1.0);
+  Vector<std::size_t, 1> shape_result(5000u);
+  NDVecArray<T, 1, vec_dims> interp_vals(shape_result, 0.0);
   
-  T inner_ind_start = 0.123;
-  T inner_ind_end = 300.15;
-  T inner_ind_delta = 10.123;
+  T inner_ind_start = 10.123;
+  T inner_ind_end = 350.15;
+  T inner_ind_delta = 0.1123;
 
+  auto start = std::chrono::high_resolution_clock::now();
+  
   Interpolation::interpolate<Interpolation::Kernel::Keys>(data, interp_vals, outer_inds,
 			     inner_ind_start, inner_ind_end, inner_ind_delta);
+
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+  std::cout << "took " << duration << std::endl;
+  
+  scalar_t outer_indsum = 0;
+  for(std::size_t i = 0; i < dims - 1; i++) {
+    outer_indsum += outer_inds[i];
+  }
+  
+  std::size_t fi = 0;
+  for(scalar_t f = inner_ind_start; f < inner_ind_end; f += inner_ind_delta) {
+    
+    // std::cout << "----" << std::endl;
+    // std::cout << interp_vals[fi][0] << ", " << interp_vals[fi][1] << std::endl;
+
+    scalar_t indsum = outer_indsum + f;
+
+    if(std::fabs(interp_vals[fi][0] - indsum) / indsum > 1e-4) {
+      std::cout << "error" << std::endl;
+    }
+
+    if(std::fabs(interp_vals[fi][1] - 2 * indsum) / indsum > 1e-4) {
+      std::cout << "error" << std::endl;
+    }
+    
+    // std::cout << indsum << ", " << 2 * indsum << std::endl;
+    
+    // std::cout << "----" << std::endl;
+
+    fi++;
+    
+  }
+
+  std::cout << "checked " << fi << " interpolations" << std::endl;
+
+  std::cout << fi / (duration.count() * 1e-6) << " interpolations / sec" << std::endl;
   
   std::cout << "done" << std::endl;
 }

@@ -8,12 +8,12 @@ namespace Interpolation::Kernel {
 
   struct Keys {    
     static constexpr std::size_t support = 2;
-    void kern(scalar_t i_frac, scalar_t* out);
+    static void kern(scalar_t i_frac, scalar_t* out);
   };
   
   struct Linear {    
     static constexpr std::size_t support = 1;
-    void kern(scalar_t i_frac, scalar_t* out);
+    static void kern(scalar_t i_frac, scalar_t* out);
   };
 }
 

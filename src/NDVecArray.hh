@@ -125,6 +125,10 @@ public:
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
 
+  view_t operator[](const std::size_t ind) requires(dims == 1) {
+    return view_t(m_data -> begin() + vec_dims * ind);
+  }
+  
   // Sequential access
   template <class CallableT>
   constexpr void apply_sequential(const ind_t& outer_ind, const std::vector<std::size_t>& inner_ind,
