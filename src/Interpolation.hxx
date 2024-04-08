@@ -91,9 +91,11 @@ namespace Interpolation {
     // TODO: this needs to be generalized to arbitrary dimensions
 
     // TODO: add outer batch loop here
+
+    constexpr std::size_t ind_offset = KernelT::support - 1;
     
-    for(std::size_t i1 = outer_int[0] - 1; i1 < outer_int[0] - 1 + ksize; i1++) {
-      for(std::size_t i2 = outer_int[1] - 1; i2 < outer_int[1] - 1 + ksize; i2++) {
+    for(std::size_t i1 = outer_int[0] - ind_offset; i1 < outer_int[0] - ind_offset + ksize; i1++) {
+      for(std::size_t i2 = outer_int[1] - ind_offset; i2 < outer_int[1] - ind_offset + ksize; i2++) {
 
 	Vector<std::size_t, dims> column_ind(0);
 	column_ind[0] = i1;
@@ -121,7 +123,7 @@ namespace Interpolation {
 	  // }
 	  // std::cout << std::endl;
 	  
-	  interpolate_1d<KernelT, vec_dims>(inner_kernel, column_start + vec_dims * (inner_int - 1), inner_interp);
+	  interpolate_1d<KernelT, vec_dims>(inner_kernel, column_start + vec_dims * (inner_int - ind_offset), inner_interp);
 
 	  // std::cout << "inner_interp = ";
 	  // for(std::size_t ii = 0; ii < vec_dims; ii++) {
@@ -129,7 +131,7 @@ namespace Interpolation {
 	  // }
 	  // std::cout << std::endl;
 
-	  scalar_t outer_weight = outer_weights[i1 - (outer_int[0] - 1)][i2 - (outer_int[1] - 1)];
+	  scalar_t outer_weight = outer_weights[i1 - (outer_int[0] - ind_offset)][i2 - (outer_int[1] - ind_offset)];
 	  // std::cout << "outer_weight = " << outer_weight << std::endl;
 
 	  std::span<scalar_t, vec_dims> output = retval[inner_elem];

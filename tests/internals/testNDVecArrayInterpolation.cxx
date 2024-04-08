@@ -38,20 +38,23 @@ int main(int argc, char* argv[]) {
   std::cout << data[{10u, 10u, 10u}][0] << ", " << data[{10u, 10u, 10u}][1] << std::endl;
 
   Vector<T, dims-1> outer_inds(0.0);
-  outer_inds[0] = 10.123;
-  outer_inds[1] = 10.567;
+  outer_inds[0] = 250.123;
+  outer_inds[1] = 250.567;
 
   Vector<std::size_t, 1> shape_result(5000u);
   NDVecArray<T, 1, vec_dims> interp_vals(shape_result, 0.0);
   
-  T inner_ind_start = 10.123;
+  T inner_ind_start = 2.123;
   T inner_ind_end = 350.15;
-  T inner_ind_delta = 0.1123;
+  T inner_ind_delta = 0.55123;
 
+  // Interpolation::interpolate<Interpolation::Kernel::Keys>(data, interp_vals, outer_inds,
+  // 							  inner_ind_start, inner_ind_end, inner_ind_delta);
+  
   auto start = std::chrono::high_resolution_clock::now();
   
-  Interpolation::interpolate<Interpolation::Kernel::Keys>(data, interp_vals, outer_inds,
-			     inner_ind_start, inner_ind_end, inner_ind_delta);
+  Interpolation::interpolate<Interpolation::Kernel::Linear>(data, interp_vals, outer_inds,
+							  inner_ind_start, inner_ind_end, inner_ind_delta);
 
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -79,8 +82,7 @@ int main(int argc, char* argv[]) {
       std::cout << "error" << std::endl;
     }
     
-    // std::cout << indsum << ", " << 2 * indsum << std::endl;
-    
+    // std::cout << indsum << ", " << 2 * indsum << std::endl;    
     // std::cout << "----" << std::endl;
 
     fi++;
