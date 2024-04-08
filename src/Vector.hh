@@ -260,6 +260,13 @@ namespace stor {
 // Some useful utilities
 namespace VectorUtils {
 
+  template <typename T, std::size_t vec_dims>
+  T inner(const Vector<T, vec_dims>& vec_a, const Vector<T, vec_dims>& vec_b) {
+    T result = 0;
+    result = std::transform_reduce(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), 0.0, std::plus<>(), std::multiplies<>());
+    return result;
+  }
+  
   // `min` and `max` for vectors holding integers (can be signed or unsigned)
   template <std::integral T1, std::integral T2, std::size_t vec_dims>
   Vector<T1, vec_dims> min(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {

@@ -115,7 +115,8 @@ namespace Interpolation {
 	  std::size_t inner_int = (std::size_t)tmp;
 
 	  // std::cout << "inner_frac = " << inner_frac << std::endl;
-	  
+
+	  // at the moment, this recomputes the kernel for every inner interpolation -> need to batch this
 	  scalar_t inner_interp[vec_dims] = {0};
 	  scalar_t inner_kernel[ksize] = {0};
 	  KernelT::kern(inner_frac, inner_kernel);
