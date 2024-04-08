@@ -93,6 +93,8 @@ int main(int argc, char* argv[]) {
   T inner_ind_delta = 0.5123;
 
   test_closure_linear_data<Interpolation::Kernel::Keys, dims, vec_dims>(shape, coeffs, outer_inds, inner_ind_start, inner_ind_end, inner_ind_delta);
+
+  test_closure_linear_data<Interpolation::Kernel::Linear, dims, vec_dims>(shape, coeffs, outer_inds, inner_ind_start, inner_ind_end, inner_ind_delta);
   
   std::cout << "done" << std::endl;
 }
