@@ -1,19 +1,5 @@
 #include "Eisvogel/Trajectory.hh"
 
-template <class GreensFunctionT>
-void accumulate_integrate(GreensFunction& gf, const Current0D& curr, scalar_t t_start, scalar_t t_end, scalar_t t_samp, std::vector<scalar_t>& signal) {
-
-  // 1) order current segments
-
-  // 2) calculate and accumulate the signal for each segment
-  
-}
-
-template <class GreensFunctionT>
-void accumulate_integrate(GreensFunction& gf, const LineCurrentSegment& curr_seg, scalar_t t_start, scalar_t t_end, scalar_t t_samp, std::vector<scalar_t>& signal) {
-
-}
-
 // ---------------------------
 // old code, to be deprecated
 // ---------------------------
