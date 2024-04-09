@@ -272,9 +272,22 @@ using Vector4D = Vector<T, 4>;
 
 // Various kinds of vectors (for different semantics)
 template <typename T>
+struct RZVector : public Vector2D<T> {
+  using Vector2D<T>::Vector2D;
+  RZVector(Vector2D<T>&& other) : Vector2D<T>(std::forward<Vector2D<T>>(other)) { }
+
+  const T& r() const { return this -> operator[](0); };
+  const T& z() const { return this -> operator[](1); };
+
+  T& r() { return this -> operator[](0); };
+  T& z() { return this -> operator[](1); };
+};
+
+template <typename T>
 struct RZTVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;  // Inherit all constructors
   RZTVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+  RZTVector(const RZVector<T>& rz_vec, const T& t_val) : Vector3D<T>{rz_vec.r(), rz_vec.z(), t_val} { }
 
   const T& r() const { return this -> operator[](0); };
   const T& z() const { return this -> operator[](1); };
@@ -283,6 +296,10 @@ struct RZTVector : public Vector3D<T> {
   T& r() { return this -> operator[](0); };
   T& z() { return this -> operator[](1); };
   T& t() { return this -> operator[](2); };
+
+  static T& r(Vector3D<T>& vec) { return vec[0]; };
+  static T& z(Vector3D<T>& vec) { return vec[1]; };
+  static T& t(Vector3D<T>& vec) { return vec[2]; };
 };
 
 template <typename T>
@@ -333,11 +350,17 @@ struct XYZVector : Vector3D<T> {
 using XYZTCoordVector = XYZTVector<scalar_t>;
 using XYZTFieldVector = XYZTVector<scalar_t>;
 using XYZTIndexVector = XYZTVector<std::size_t>;
+
 using XYZCoordVector = XYZVector<scalar_t>;
+using XYZFieldVector = XYZVector<scalar_t>;
+
+using RZCoordVector = RZVector<scalar_t>;
+using RZIndexVector = RZVector<std::size_t>;
 
 using RZTCoordVector = RZTVector<scalar_t>;
 using RZTIndexVector = RZTVector<std::size_t>;
 using RZTSignedIndexVector = RZTVector<int>;
+
 using TZRCoordVector = TZRVector<scalar_t>;
 using TZRIndexVector = TZRVector<std::size_t>;
 
