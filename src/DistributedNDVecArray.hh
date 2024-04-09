@@ -83,6 +83,7 @@ public:
 
   using metadata_t = ChunkMetadata<dims>;
   using shape_t = Vector<std::size_t, dims>;
+  using ind_t = Vector<std::size_t, dims>;
   
 public:
 
@@ -132,9 +133,11 @@ public:
 private:
 
   void invalidate_cached_index_metadata();
-  metadata_t& find_chunk_by_index(const Vector<std::size_t, dims>& ind); 
+  void calculate_and_cache_index_metadata();
+  Vector<std::size_t, dims> calculate_start_ind();
+  Vector<std::size_t, dims> calculate_end_ind();
   
-  void calculate_shape();  
+  metadata_t& find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
   id_t get_next_chunk_id();
   
   void load_and_rebuild_index();
@@ -145,8 +148,11 @@ private:
   id_t m_next_chunk_id;
   std::filesystem::path m_index_path;
 
-  bool m_shape_valid;
+  // Overall metadata describing chunk index
+  bool m_index_metadata_valid;
   shape_t m_shape;
+  ind_t m_start_ind;
+  ind_t m_end_ind;
   
   // TODO: use R-tree to quickly find the chunks in this list
   std::vector<metadata_t> m_chunk_list;

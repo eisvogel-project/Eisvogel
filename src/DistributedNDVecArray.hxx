@@ -425,7 +425,7 @@ namespace stor{
 
 template <std::size_t dims>
 ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) :
-  m_next_chunk_id(0), m_index_path(index_path), m_shape_valid(false), m_shape(0), m_chunk_list(), m_last_accessed_ind(0) {
+  m_next_chunk_id(0), m_index_path(index_path), m_index_metadata_valid(false), m_shape(0), m_start_ind(0), m_end_ind(0), m_chunk_list(), m_last_accessed_ind(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -541,10 +541,25 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 }
 
 template <std::size_t dims>
-ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
+ChunkIndex<dims>::shape_t ChunkIndex<dims>::get_start_ind() {
+  if(!m_index_metadata_valid) {
+    calculate_and_cache_index_metadata();
+  }  
+  return m_start_ind;
+}
 
-  if(!m_shape_valid) {
-    calculate_shape();
+template <std::size_t dims>
+ChunkIndex<dims>::shape_t ChunkIndex<dims>::get_end_ind() {
+  if(!m_index_metadata_valid) {
+    calculate_and_cache_index_metadata();
+  }  
+  return m_end_ind;
+}
+
+template <std::size_t dims>
+ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
+  if(!m_index_metadata_valid) {
+    calculate_and_cache_index_metadata();
   }  
   return m_shape;
 }
@@ -664,18 +679,23 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector
 
 template <std::size_t dims>
 void ChunkIndex<dims>::invalidate_cached_index_metadata() {
-  m_shape_valid = false;
+  m_index_metadata_valid = false;
 }
 
 template <std::size_t dims>
-void ChunkIndex<dims>::calculate_shape() {
+void ChunkIndex<dims>::calculate_and_cache_index_metadata() {
 
   if(m_chunk_list.empty()) {
+    m_start_ind = 0;
+    m_end_ind = 0;
+    m_shape = 0;
+    m_index_metadata_valid = true;
     return;
   }
 
-  shape_t global_start_ind = get_start_ind();
-  shape_t global_end_ind = get_end_ind();
+  // calculate start and end indices
+  m_start_ind = calculate_start_ind();
+  m_end_ind = calculate_end_ind();
   
   // check if the total inferred shape is consistent with the total number of elements contained in all chunks:
   // if so, then all chunks taken together define a contiguous region
@@ -683,7 +703,7 @@ void ChunkIndex<dims>::calculate_shape() {
     return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
   };
 
-  std::size_t elements_from_shape = number_elements(global_end_ind - global_start_ind);
+  std::size_t elements_from_shape = number_elements(m_end_ind - m_start_ind);
   
   std::size_t elements_in_chunks = 0;
   for(const metadata_t& cur_chunk : m_chunk_list) {
@@ -692,17 +712,17 @@ void ChunkIndex<dims>::calculate_shape() {
 
   // have a contiguous region that is worth assigning a certain shape
   if(elements_in_chunks == elements_from_shape) {
-    m_shape = global_end_ind - global_start_ind;
+    m_shape = m_end_ind - m_start_ind;
   }
   else {
     m_shape = 0;
   }
 
-  m_shape_valid = true;
+  m_index_metadata_valid = true;
 }
 
 template <std::size_t dims>
-Vector<std::size_t, dims> ChunkIndex<dims>::get_start_ind() {
+Vector<std::size_t, dims> ChunkIndex<dims>::calculate_start_ind() {
   
   Vector<std::size_t, dims> start_ind(std::numeric_limits<std::size_t>::max());
 
@@ -717,7 +737,7 @@ Vector<std::size_t, dims> ChunkIndex<dims>::get_start_ind() {
 }
 
 template <std::size_t dims>
-Vector<std::size_t, dims> ChunkIndex<dims>::get_end_ind() {
+Vector<std::size_t, dims> ChunkIndex<dims>::calculate_end_ind() {
   
   Vector<std::size_t, dims> end_ind(std::numeric_limits<std::size_t>::min());
 
