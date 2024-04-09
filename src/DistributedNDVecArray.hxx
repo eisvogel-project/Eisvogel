@@ -424,7 +424,8 @@ namespace stor{
 // -------------
 
 template <std::size_t dims>
-ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) : m_next_chunk_id(0), m_index_path(index_path), m_shape(0), m_chunk_list(), m_last_accessed_ind(0) {
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) :
+  m_next_chunk_id(0), m_index_path(index_path), m_shape_valid(false), m_shape(0), m_chunk_list(), m_last_accessed_ind(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -447,6 +448,9 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
   uuid_unparse(uuid_binary, uuid_string);
   std::filesystem::path filename = std::string(uuid_string);
 
+  // adding a new chunk invalidates the previous shape
+  invalidate_cached_index_metadata();
+  
   // build metadata object for this chunk
   id_t chunk_id = get_next_chunk_id();
   metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape, overlap);
@@ -456,37 +460,26 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
 }
 
 template <std::size_t dims>
-ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
-
-  assert(m_chunk_list.size() > 0);
-    
-  // First check if we're still in the most-recently read chunk  
-  metadata_t& last_accessed_chunk = m_chunk_list[m_last_accessed_ind];
-  if(is_in_chunk(last_accessed_chunk, ind)) {
-    [[likely]];
-    return last_accessed_chunk;
-  }
-  
-  // If not, trigger full chunk lookup
-  // TODO: replace this with lookup in the R-tree, which will be much more efficient
-  for(std::size_t chunk_ind = 0; chunk_ind < m_chunk_list.size(); chunk_ind++) {
-    metadata_t& cur_chunk = m_chunk_list[chunk_ind];
-    if(is_in_chunk(cur_chunk, ind)) {
-      m_last_accessed_ind = chunk_ind;
-      return cur_chunk;
-    }
-  }
-
-  throw std::logic_error("Error: no chunk found!");
+const ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) const {
+  return find_chunk_by_index(ind);
 }
 
 template <std::size_t dims>
-std::vector<std::reference_wrapper<ChunkMetadata<dims>>> ChunkIndex<dims>::GetChunks(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind) {
+ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
 
-  std::vector<std::reference_wrapper<metadata_t>> chunks_found;
+  // since we are returning a non-const reference to the chunk metadata, assume that the caller indends to modify it and that we need to
+  // recompute any cached quantities describing the full chunk index
+  invalidate_cached_index_metadata(); 
+  return find_chunk_by_index(ind);
+}
+
+template <std::size_t dims>
+std::vector<std::reference_wrapper<const ChunkMetadata<dims>>> ChunkIndex<dims>::GetChunks(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind) {
+
+  std::vector<std::reference_wrapper<const metadata_t>> chunks_found;
   
   // TODO: this will be significantly faster once we can do the lookup in the R-tree instead of through a linear search
-  for(metadata_t& cur_chunk : m_chunk_list) {
+  for(const metadata_t& cur_chunk : m_chunk_list) {
     if(chunk_overlaps_region(cur_chunk, start_ind, end_ind)) {
       chunks_found.push_back(cur_chunk);
     }
@@ -527,6 +520,7 @@ void ChunkIndex<dims>::ClearIndex() {
   }
 
   // reset and clear everything
+  invalidate_cached_index_metadata();
   m_last_accessed_ind = 0;
   m_shape = 0;
   m_chunk_list.clear();
@@ -535,6 +529,8 @@ void ChunkIndex<dims>::ClearIndex() {
 template <std::size_t dims>
 void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 
+  invalidate_cached_index_metadata();
+  
   std::vector<metadata_t> index_entries = load_index_entries(index_path);
   m_chunk_list.insert(m_chunk_list.end(),
 		      std::make_move_iterator(index_entries.begin()),
@@ -547,8 +543,9 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 template <std::size_t dims>
 ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
 
-  // TODO: if this becomes a bottleneck, cache the shape and only invalidate it if an additional chunk gets added
-  calculate_shape();
+  if(!m_shape_valid) {
+    calculate_shape();
+  }  
   return m_shape;
 }
 
@@ -641,6 +638,36 @@ id_t ChunkIndex<dims>::get_next_chunk_id() {
 }
 
 template <std::size_t dims>
+ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector<std::size_t, dims>& ind) {
+
+  assert(m_chunk_list.size() > 0);
+  
+  // First check if we're still in the most-recently read chunk  
+  metadata_t& last_accessed_chunk = m_chunk_list[m_last_accessed_ind];
+  if(is_in_chunk(last_accessed_chunk, ind)) {
+    [[likely]];
+    return last_accessed_chunk;
+  }
+  
+  // If not, trigger full chunk lookup
+  // TODO: replace this with lookup in the R-tree, which will be much more efficient
+  for(std::size_t chunk_ind = 0; chunk_ind < m_chunk_list.size(); chunk_ind++) {
+    metadata_t& cur_chunk = m_chunk_list[chunk_ind];
+    if(is_in_chunk(cur_chunk, ind)) {
+      m_last_accessed_ind = chunk_ind;
+      return cur_chunk;
+    }
+  }
+
+  throw std::logic_error("Error: no chunk found!");
+}
+
+template <std::size_t dims>
+void ChunkIndex<dims>::invalidate_cached_index_metadata() {
+  m_shape_valid = false;
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::calculate_shape() {
 
   if(m_chunk_list.empty()) {
@@ -666,7 +693,12 @@ void ChunkIndex<dims>::calculate_shape() {
   // have a contiguous region that is worth assigning a certain shape
   if(elements_in_chunks == elements_from_shape) {
     m_shape = global_end_ind - global_start_ind;
-  }  
+  }
+  else {
+    m_shape = 0;
+  }
+
+  m_shape_valid = true;
 }
 
 template <std::size_t dims>
@@ -697,6 +729,19 @@ Vector<std::size_t, dims> ChunkIndex<dims>::get_end_ind() {
   }
   
   return end_ind;
+}
+
+template <std::size_t dims>
+auto ChunkIndex<dims>::begin() {
+  // This returns a non-const iterator, make sure to invalidate any cached values
+  invalidate_cached_index_metadata();
+  return m_chunk_list.begin();
+}
+
+template <std::size_t dims>
+auto ChunkIndex<dims>::end() {
+  invalidate_cached_index_metadata();
+  return m_chunk_list.end();
 }
 
 // -------------
@@ -756,7 +801,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, vec_dims>::operator[](const ind_t& ind) {
 
   // Find chunk that holds the element with the required index
-  metadata_t& meta = m_index.GetChunk(ind);
+  const metadata_t& meta = m_index.GetChunk(ind);
   
   // Retrieve the chunk
   const chunk_t& chunk = m_cache.RetrieveChunk(meta);
@@ -776,7 +821,7 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
   // Go through all chunks, find overlaps with the targeted region, and fill these into the target array
   
   // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
-  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(input_start, input_end);
+  std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(input_start, input_end);
   for(const metadata_t& chunk_meta : required_chunks) {
 
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
@@ -879,7 +924,7 @@ template <class CallableT>
 constexpr void ChunkLibrary<ArrayT, T, dims, vec_dims>::index_loop_over_elements(const ind_t& start_ind, const ind_t& end_ind, CallableT&& worker) {
 
   // Get chunks that (perhaps with only part of their elements) contribute to the targeted range
-  std::vector<std::reference_wrapper<metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
+  std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);
   for(const metadata_t& chunk_meta : required_chunks) {
     
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
@@ -1049,6 +1094,13 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
       ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
       boundary_evaluator(*this, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
+
+      std::cout << "set to ";
+      for(auto cur: chunk_buffer[local_ind]) {
+	std::cout << cur << " ";
+      }
+      std::cout << std::endl;
+      
     };
     index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
     

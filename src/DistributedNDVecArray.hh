@@ -93,11 +93,12 @@ public:
   metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape, std::size_t overlap);
   
   // get chunk that contains the element with index `ind`
+  const metadata_t& GetChunk(const Vector<std::size_t, dims>& ind) const;
   metadata_t& GetChunk(const Vector<std::size_t, dims>& ind);
 
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
-  std::vector<std::reference_wrapper<metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
-							    const Vector<std::size_t, dims>& end_ind);  
+  std::vector<std::reference_wrapper<const metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
+								  const Vector<std::size_t, dims>& end_ind);  
   
   shape_t GetShape();
 
@@ -108,13 +109,8 @@ public:
   void ImportIndex(std::filesystem::path index_path);
   
   // iterators over chunk metadata sets
-  auto begin() { return m_chunk_list.begin(); }
-  auto begin() const { return m_chunk_list.cbegin(); }
-  auto cbegin() { return m_chunk_list.cbegin(); }
-
-  auto end() { return m_chunk_list.end(); }
-  auto end() const { return m_chunk_list.cend(); }
-  auto cend() { return m_chunk_list.cend(); }
+  auto begin();
+  auto end();
 
 public:
   
@@ -132,8 +128,11 @@ public:
 
   Vector<std::size_t, dims> get_start_ind();
   Vector<std::size_t, dims> get_end_ind();
-
+  
 private:
+
+  void invalidate_cached_index_metadata();
+  metadata_t& find_chunk_by_index(const Vector<std::size_t, dims>& ind); 
   
   void calculate_shape();  
   id_t get_next_chunk_id();
@@ -145,7 +144,8 @@ private:
 
   id_t m_next_chunk_id;
   std::filesystem::path m_index_path;
-  
+
+  bool m_shape_valid;
   shape_t m_shape;
   
   // TODO: use R-tree to quickly find the chunks in this list
