@@ -4,8 +4,10 @@
 #include <memory>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/WeightingField.hh"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/Kernels.hh"
+
+#pragma message("IntegratorOld is deprecated, please move to the new one.")
 
 // -----------------------------------
 // old declarations, to be deprecated

@@ -3,7 +3,7 @@
 #include <array>
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 
 namespace showers {
 	class Shower1D {

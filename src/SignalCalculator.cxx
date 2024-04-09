@@ -1,5 +1,5 @@
 #include "Eisvogel/SignalCalculator.hh"
-#include "Integrator.hh"
+#include "IntegratorOld.hh"
 
 SignalCalculator::SignalCalculator(const std::filesystem::path& geometry_path) :
   m_geometry_path(geometry_path) {
@@ -16,6 +16,6 @@ scalar_t SignalCalculator::ComputeSignal(const SparseCurrentDensity3D& current_d
   return integrate<CylindricalWeightingField>(*m_wf, t_sig, current_distribution);  
 }
 
-void SignalCalculator::AccumulateSignal(const Current0D& track, std::vector<scalar_t>& ts, std::vector<scalar_t>& signal) {
-  return accumulate_integral<CylindricalWeightingField>(*m_wf, ts, track, signal);
-}
+// void SignalCalculator::AccumulateSignal(const Current0D& track, std::vector<scalar_t>& ts, std::vector<scalar_t>& signal) {
+//   return accumulate_integral<CylindricalWeightingField>(*m_wf, ts, track, signal);
+// }

@@ -4,7 +4,7 @@
 #include <filesystem>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/WeightingField.hh"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SparseCurrentDensity3D.hh"
 
 class SignalCalculator {
@@ -23,7 +23,7 @@ public:
      * @param signal   Antenna signal buffer in which the contribution is to be accumulated.
      *                 Must exist and have the same length as ts.
      */  
-  void AccumulateSignal(const Current0D& track, std::vector<scalar_t>& ts, std::vector<scalar_t>& signal);
+  // void AccumulateSignal(const Current0D& track, std::vector<scalar_t>& ts, std::vector<scalar_t>& signal);
   
 private:
   std::filesystem::path m_geometry_path;

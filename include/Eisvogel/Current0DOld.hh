@@ -4,6 +4,8 @@
 #include <vector>
 #include "CoordUtils.hh"
 
+#pragma message("Current0DOld is deprecated, please move to the new code.")
+
 class Current0D {
 
 public:

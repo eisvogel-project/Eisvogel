@@ -4,7 +4,7 @@
 #include <array>
 #include <math.h>
 #include "Eisvogel/CoordUtils.hh"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 #include "constants.h"
 #include "units.h"
 #include <vector>

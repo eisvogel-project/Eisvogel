@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/SignalCalculator.hh"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SignalExport.hh"
 #include "shower_creator.h"
 #include "shower_1D.h"

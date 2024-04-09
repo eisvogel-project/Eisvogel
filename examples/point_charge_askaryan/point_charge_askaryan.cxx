@@ -4,7 +4,7 @@
 
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/SignalCalculator.hh"
-#include "Eisvogel/Current0D.hh"
+#include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SignalExport.hh"
 
 int main(int argc, char* argv[]) {
