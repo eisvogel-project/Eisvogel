@@ -1,5 +1,23 @@
 #include "Eisvogel/Trajectory.hh"
 
+template <class GreensFunctionT>
+void accumulate_integrate(GreensFunction& gf, const Current0D& curr, scalar_t t_start, scalar_t t_end, scalar_t t_samp, std::vector<scalar_t>& signal) {
+
+  // 1) order current segments
+
+  // 2) calculate and accumulate the signal for each segment
+  
+}
+
+template <class GreensFunctionT>
+void accumulate_integrate(GreensFunction& gf, const LineCurrentSegment& curr_seg, scalar_t t_start, scalar_t t_end, scalar_t t_samp, std::vector<scalar_t>& signal) {
+
+}
+
+// ---------------------------
+// old code, to be deprecated
+// ---------------------------
+
 template <class WeightingFieldT, typename KernelT>
 scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scalar_t os_factor) {
 
@@ -64,13 +82,6 @@ scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scala
   }
 
   return signal;
-}
-
-template <class WeightingFieldT, typename KernelT>
-void accumulate_integral(WeightingFieldT& wf, std::vector<scalar_t>& ts, const Current0D& curr, std::vector<scalar_t>& accum, scalar_t os_factor) {
-
-  
-  
 }
 
 template <class WeightingFieldT, typename KernelT>

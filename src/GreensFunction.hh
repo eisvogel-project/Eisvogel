@@ -38,9 +38,12 @@ public:
 			const XYZTFieldVector& current, std::vector<scalar_t>::iterator result);
     
 private:
-   
-  static std::filesystem::path move_path_from(Distributed_RZT_ErEz_Array&& data);
 
+  // Useful for converting from coordinates to storage indices
+  
+  
+  // Used during (de)construction
+  static std::filesystem::path move_path_from(Distributed_RZT_ErEz_Array&& data);
   void load_metadata();
   void save_metadata();
   

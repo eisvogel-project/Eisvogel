@@ -7,6 +7,10 @@
 #include "Eisvogel/Current0D.hh"
 #include "Eisvogel/Kernels.hh"
 
+// -----------------------------------
+// old declarations, to be deprecated
+// -----------------------------------
+
 template <class WeightingFieldT, typename KernelT = KeysCubicInterpolationKernel>
 scalar_t integrate(WeightingFieldT& wf, scalar_t t, const Current0D& curr, scalar_t os_factor = 1.0);
 
