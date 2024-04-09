@@ -1048,7 +1048,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     // to fill in the field values there
     auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
       ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
-      boundary_evaluator(*this, boundary_ind, chunk_buffer[local_ind]);
+      boundary_evaluator(*this, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
     };
     index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
     
