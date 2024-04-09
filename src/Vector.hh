@@ -276,9 +276,13 @@ struct RZTVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;  // Inherit all constructors
   RZTVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
 
-  T r() { return this -> operator[](0); };
-  T z() { return this -> operator[](1); };
-  T t() { return this -> operator[](2); };
+  const T& r() const { return this -> operator[](0); };
+  const T& z() const { return this -> operator[](1); };
+  const T& t() const { return this -> operator[](2); };
+
+  T& r() { return this -> operator[](0); };
+  T& z() { return this -> operator[](1); };
+  T& t() { return this -> operator[](2); };
 };
 
 template <typename T>
@@ -286,9 +290,13 @@ struct TZRVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;
   TZRVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
 
-  T t() { return this -> operator[](0); };
-  T z() { return this -> operator[](1); };
-  T r() { return this -> operator[](2); };
+  const T& t() const { return this -> operator[](0); };
+  const T& z() const { return this -> operator[](1); };
+  const T& r() const { return this -> operator[](2); };
+
+  T& t() { return this -> operator[](0); };
+  T& z() { return this -> operator[](1); };
+  T& r() { return this -> operator[](2); };
 };
 
 template <typename T>
@@ -296,10 +304,15 @@ struct XYZTVector : public Vector4D<T> {
   using Vector4D<T>::Vector4D;
   XYZTVector(Vector4D<T>&& other) : Vector4D<T>(std::forward<Vector4D<T>>(other)) { }
 
-  T x() { return this -> operator[](0); };
-  T y() { return this -> operator[](1); };
-  T z() { return this -> operator[](2); };
-  T t() { return this -> operator[](3); };
+  const T& x() const { return this -> operator[](0); };
+  const T& y() const { return this -> operator[](1); };
+  const T& z() const { return this -> operator[](2); };
+  const T& t() const { return this -> operator[](3); };
+
+  T& x() { return this -> operator[](0); };
+  T& y() { return this -> operator[](1); };
+  T& z() { return this -> operator[](2); };
+  T& t() { return this -> operator[](3); };
 };
 
 template <typename T>
@@ -307,9 +320,13 @@ struct XYZVector : Vector3D<T> {
   using Vector3D<T>::Vector3D;
   XYZVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
 
-  T x() { return this -> operator[](0); };
-  T y() { return this -> operator[](1); };
-  T z() { return this -> operator[](2); };
+  const T& x() const { return this -> operator[](0); };
+  const T& y() const { return this -> operator[](1); };
+  const T& z() const { return this -> operator[](2); };
+
+  T& x() { return this -> operator[](0); };
+  T& y() { return this -> operator[](1); };
+  T& z() { return this -> operator[](2); };
 };
 
 // Can later turn these into their own types if the need arises
