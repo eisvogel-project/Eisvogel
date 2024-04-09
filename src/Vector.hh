@@ -282,13 +282,13 @@ struct RZTVector : public Vector3D<T> {
 };
 
 template <typename T>
-struct TRZVector : public Vector3D<T> {
+struct TZRVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;
-  TRZVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+  TZRVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
 
   T t() { return this -> operator[](0); };
-  T r() { return this -> operator[](1); };
-  T z() { return this -> operator[](2); };
+  T z() { return this -> operator[](1); };
+  T r() { return this -> operator[](2); };
 };
 
 template <typename T>
@@ -320,7 +320,8 @@ using XYZCoordVector = XYZVector<scalar_t>;
 
 using RZTCoordVector = RZTVector<scalar_t>;
 using RZTIndexVector = RZTVector<std::size_t>;
-using TRZCoordVector = TRZVector<scalar_t>;
-using TRZIndexVector = TRZVector<std::size_t>;
+using RZTSignedIndexVector = RZTVector<int>;
+using TZRCoordVector = TZRVector<scalar_t>;
+using TZRIndexVector = TZRVector<std::size_t>;
 
 #include "Vector.hxx"
