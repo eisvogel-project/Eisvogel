@@ -1115,11 +1115,11 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
       ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
       boundary_evaluator(*this, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
 
-      std::cout << "set to ";
-      for(auto cur: chunk_buffer[local_ind]) {
-	std::cout << cur << " ";
-      }
-      std::cout << std::endl;
+      // std::cout << "set to ";
+      // for(auto cur: chunk_buffer[local_ind]) {
+      // 	std::cout << cur << " ";
+      // }
+      // std::cout << std::endl;
       
     };
     index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
