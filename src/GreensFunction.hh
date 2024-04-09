@@ -40,7 +40,7 @@ namespace Green {
 
 // Green's function for a cylindrically-symmetric geometry. It abstracts away the discreteness of the underlying data and presents itself
 // as a continuous function that can be evaluated at an arbitrary space-time point.
-class CylindricalGreensFunction : public Green::DimTraits<CylindricalGreensFunction>::lib_t {
+class CylindricalGreensFunction : private Green::DimTraits<CylindricalGreensFunction>::lib_t {
 
 private:
 
@@ -58,7 +58,7 @@ public:
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>
   void accumulate_inner_product(const RZCoordVector& coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
-				const XYZFieldVector& current, std::vector<scalar_t>::iterator result);
+				const XYZFieldVector& source, std::vector<scalar_t>::iterator result);
     
 private:
 

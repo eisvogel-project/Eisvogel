@@ -45,15 +45,28 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
 
 template <class KernelT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
-							 const XYZFieldVector& current, std::vector<scalar_t>::iterator result) {
+							 const XYZFieldVector& source, std::vector<scalar_t>::iterator result) {
 
-  // Convert coordinates to index values
-  RZTVector rzt_start_coords(rz_coords, t_start);  
-  RZTVector rzt_start_inds = coords_to_index(rzt_start_coords);
+  // Full coordinate vector
+  RZTVector cur_coords(rz_coords, t_start);
+
+  // Get floating-point index
+  RZTVector cur_flt_ind = coords_to_index(cur_coords);
+
+  RZTIndexVector cur_ind = cur_flt_ind.template as_type<std::size_t>();
+
+  const metadata_t& meta = m_index.GetChunk(cur_ind);
+  const chunk_t& chunk = m_cache.RetrieveChunk(meta);
+
+  
+  // get chunk that contains the start index (and the corresponding metadata)
+
+  // run the interpolation on the entire time range contained in this chunk
+
+  // 
   
   RZVector rz_inds = coords_to_index(rz_coords);
     
-  
 }
 
 RZCoordVector CylindricalGreensFunction::coords_to_index(const RZCoordVector& coords) {

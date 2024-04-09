@@ -352,6 +352,8 @@ private:
   std::filesystem::path m_libdir;
   std::filesystem::path m_index_path;
 
+protected:
+  
   ChunkIndex<dims> m_index;
   ChunkCache<ArrayT, T, dims, vec_dims> m_cache;
   
