@@ -1,16 +1,19 @@
-#ifndef __VECTOR_HH
-#define __VECTOR_HH
+#pragma once
 
 #include <array>
 #include <algorithm>
 #include <stdexcept>
 #include <execution>
 #include <span>
+#include <concepts>
 
 #include "Serialization.hh"
 
+template<typename T>
+concept arithmetic = std::integral<T> or std::floating_point<T>;
+
 // fixed-length vector
-template <class T, std::size_t vec_dims>
+template <class T, std::size_t vec_dims> requires arithmetic<T>
 class Vector {
 
 private:
@@ -43,6 +46,10 @@ public:
     std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
   }
 
+  Vector(Vector<T, vec_dims>&& other) {
+    std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
+  }
+  
   // copy assignment
   Vector<T, vec_dims>& operator=(const Vector<T, vec_dims>& other) {
     std::copy_n(std::execution::unseq, other.m_data.begin(), vec_dims, m_data.begin());
@@ -239,60 +246,18 @@ private:
 
 };
 
-namespace stor {
-
-  template <typename T, std::size_t vec_dims>
-  struct Traits<Vector<T, vec_dims>> {
-    using type = Vector<T, vec_dims>;
-    using data_t = typename type::data_t;
-
-    static void serialize(std::iostream& stream, const type& val) {
-      Traits<data_t>::serialize(stream, val.m_data);
-    }
-
-    static type deserialize(std::iostream& stream) {
-      data_t data = Traits<data_t>::deserialize(stream);
-      return Vector<T, vec_dims>(std::move(data));
-    }
-  };    
-}
-
 // Some useful utilities
 namespace VectorUtils {
 
   template <typename T, std::size_t vec_dims>
-  T inner(const Vector<T, vec_dims>& vec_a, const Vector<T, vec_dims>& vec_b) {
-    T result = 0;
-    result = std::transform_reduce(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), 0.0, std::plus<>(), std::multiplies<>());
-    return result;
-  }
-  
-  // `min` and `max` for vectors holding integers (can be signed or unsigned)
+  T inner(const Vector<T, vec_dims>& vec_a, const Vector<T, vec_dims>& vec_b);
+
   template <std::integral T1, std::integral T2, std::size_t vec_dims>
-  Vector<T1, vec_dims> min(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {
-    
-    Vector<T1, vec_dims> result;
-    
-    auto take_min = [](const T1& a, const T2& b) -> T1 {
-      return std::cmp_less(a, b) ? a : static_cast<T1>(b);
-    };
-    
-    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_min);
-    return result;
-  }
-  
+  Vector<T1, vec_dims> min(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b);
+
   template <std::integral T1, std::integral T2, std::size_t vec_dims>
-  Vector<T1, vec_dims> max(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {
-    
-    Vector<T1, vec_dims> result;
-    
-    auto take_max = [](const T1& a, const T2& b) -> T1 {
-      return std::cmp_greater(a, b) ? a : static_cast<T1>(b);
-    };
-    
-    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_max);
-    return result;
-  }   
+  Vector<T1, vec_dims> max(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b);
+  
 }
 
 // Some type shortcuts
@@ -305,22 +270,47 @@ using Vector3D = Vector<T, 3>;
 template <typename T>
 using Vector4D = Vector<T, 4>;
 
-using IndexVector2D = Vector2D<std::size_t>;
-using IndexVector3D = Vector3D<std::size_t>;
-using IndexVector4D = Vector4D<std::size_t>;
-
 // Various kinds of vectors (for different semantics)
 template <typename T>
-using RZTVector = Vector3D<T>;
+struct RZTVector : public Vector3D<T> {
+  using Vector3D<T>::Vector3D;  // Inherit all constructors
+  RZTVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+
+  T r() { return this -> operator[](0); };
+  T z() { return this -> operator[](1); };
+  T t() { return this -> operator[](2); };
+};
 
 template <typename T>
-using TRZVector = Vector3D<T>;
+struct TRZVector : public Vector3D<T> {
+  using Vector3D<T>::Vector3D;
+  TRZVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+
+  T t() { return this -> operator[](0); };
+  T r() { return this -> operator[](1); };
+  T z() { return this -> operator[](2); };
+};
 
 template <typename T>
-using XYZTVector = Vector4D<T>;
+struct XYZTVector : public Vector4D<T> {
+  using Vector4D<T>::Vector4D;
+  XYZTVector(Vector4D<T>&& other) : Vector4D<T>(std::forward<Vector4D<T>>(other)) { }
+
+  T x() { return this -> operator[](0); };
+  T y() { return this -> operator[](1); };
+  T z() { return this -> operator[](2); };
+  T t() { return this -> operator[](3); };
+};
 
 template <typename T>
-using XYZVector = Vector3D<T>;
+struct XYZVector : Vector3D<T> {
+  using Vector3D<T>::Vector3D;
+  XYZVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+
+  T x() { return this -> operator[](0); };
+  T y() { return this -> operator[](1); };
+  T z() { return this -> operator[](2); };
+};
 
 // Can later turn these into their own types if the need arises
 using XYZTCoordVector = XYZTVector<scalar_t>;
@@ -333,4 +323,4 @@ using RZTIndexVector = RZTVector<std::size_t>;
 using TRZCoordVector = TRZVector<scalar_t>;
 using TRZIndexVector = TRZVector<std::size_t>;
 
-#endif
+#include "Vector.hxx"
