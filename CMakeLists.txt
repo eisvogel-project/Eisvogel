@@ -12,7 +12,7 @@ add_subdirectory(examples)
 add_subdirectory(extern)
 
 if(BUILD_PYTHON)
-    add_subdirectory(cpython)
+    # add_subdirectory(cpython)
 endif(BUILD_PYTHON)
 
 if(BUILD_TESTS)
