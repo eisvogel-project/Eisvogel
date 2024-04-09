@@ -1,5 +1,12 @@
 #include "GreensFunction.hh"
 #include "Serialization.hh"
+#include "Interpolation.hh"
+
+CylindricalGreensFunctionMetadata::CylindricalGreensFunctionMetadata() :
+  start_pos(0), end_pos(0), sample_interval(0) { }
+
+CylindricalGreensFunctionMetadata::CylindricalGreensFunctionMetadata(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval) :
+  start_pos(start_pos), end_pos(end_pos), sample_interval(sample_interval) { }
 
 namespace stor {
 
@@ -22,47 +29,42 @@ namespace stor {
   };  
 }
 
-template <class KernelT>
-CylindricalGreensFunction<KernelT>::CylindricalGreensFunction(std::filesystem::path path, std::size_t cache_size) :
+// ---------
+
+CylindricalGreensFunction::CylindricalGreensFunction(std::filesystem::path path, std::size_t cache_size) :
   m_meta_path(path / m_meta_filename), m_lib(path, cache_size) {
-
-  // Load metadata from disk
-  load_metadata();
+  load_metadata();   // Load metadata from disk
 }
 
-template <class KernelT>
-CylindricalGreensFunction<KernelT>::CylindricalGreensFunction(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval,
-							      Distributed_RZT_ErEz_Array&& data) :
+CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval,
+						     Distributed_RZT_ErEz_Array&& data) :
   m_meta(start_pos, end_pos, sample_interval), m_lib(move_path_from(std::move(data))) {
-
-  // Dump metadata to disk right away
-  save_metadata();
+  save_metadata();   // Dump metadata to disk right away
 }
 
 template <class KernelT>
-void CylindricalGreensFunction<KernelT>::accumulate_inner(const XYZCoordVector& coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
-							  const XYZTFieldVector& current, std::vector<scalar_t>::iterator result) {
+void CylindricalGreensFunction::accumulate_inner_product(const XYZCoordVector& coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
+							 const XYZTFieldVector& current, std::vector<scalar_t>::iterator result) {
 
+  // Convert (x, y, z) coordinates into indices
+  
 }
 
-template <class KernelT>
-void CylindricalGreensFunction<KernelT>::save_metadata() {
+void CylindricalGreensFunction::save_metadata() {
   std::fstream ofs;
   ofs.open(m_meta_path, std::ios::out | std::ios::binary);
   stor::Traits<CylindricalGreensFunctionMetadata>::serialize(ofs, m_meta);
   ofs.close();
 }
 
-template <class KernelT>
-void CylindricalGreensFunction<KernelT>::load_metadata() {  
+void CylindricalGreensFunction::load_metadata() {  
   std::fstream ifs;
   ifs.open(m_meta_path, std::ios::in | std::ios::binary);
   m_meta = stor::Traits<CylindricalGreensFunctionMetadata>::deserialize(ifs);
   ifs.close();
 }
 
-template <class KernelT>
-std::filesystem::path CylindricalGreensFunction<KernelT>::move_path_from(Distributed_RZT_ErEz_Array&& data) {
+std::filesystem::path CylindricalGreensFunction::move_path_from(Distributed_RZT_ErEz_Array&& data) {
   data.Flush(); // ensure that all data is ready to be read from disk
   return data.GetWorkdir();
 }
