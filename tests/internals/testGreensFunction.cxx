@@ -1,6 +1,7 @@
 #include "GreensFunction.hh"
 #include "Symmetry.hh"
 #include "Eisvogel/IteratorUtils.hh"
+#include "Interpolation.hh"
 
 using T = float;
 constexpr std::size_t dims = 3;
@@ -55,43 +56,62 @@ int main(int argc, char* argv[]) {
     std::filesystem::remove_all(workdir);
   }
 
-  // prepare empty distributed array
-  Vector<std::size_t, dims> init_cache_el_shape(10);
-  Vector<std::size_t, dims> streamer_chunk_shape(stor::INFTY);
-  streamer_chunk_shape[0] = 1;
-  
-  darr_t darr(workdir, 5, init_cache_el_shape, streamer_chunk_shape);
+  // prepare Green's function for testing purposes
+  {
+    Vector<std::size_t, dims> init_cache_el_shape(10);
+    Vector<std::size_t, dims> streamer_chunk_shape(stor::INFTY);
+    streamer_chunk_shape[0] = 1;
+    
+    darr_t darr(workdir, 5, init_cache_el_shape, streamer_chunk_shape);
+    
+    // fill distributed array with values
+    Vector<std::size_t, dims> chunk_size(100);
+    Vector<std::size_t, dims> start_ind(0);
+    Vector<std::size_t, dims> end_ind(400);
+    
+    Vector<scalar_t, dims> coeffs(1.0f);
+    auto filler = [&](const Vector<std::size_t, dims>& ind){
+      return linear<dims, vec_dims>(ind.template as_type<scalar_t>(), coeffs);
+    };
+    register_chunks(darr, start_ind, end_ind, chunk_size, filler);
+    
+    // transpose axes to go from (t, z, r) to (r, z, t)
+    darr.SwapAxes<0, 2>();
+    
+    // reshape the chunks to make sure the overlap is respected for the interpolation
+    
+    std::filesystem::path workdir_tmp = "./darr_test_tmp";
+    Vector<std::size_t, dims> requested_chunk_size(100);  
+    darr.RebuildChunks(requested_chunk_size, workdir_tmp, 2, SpatialSymmetry::Cylindrical<T, vec_dims>::boundary_evaluator);
+    
+    auto val = darr[{250u, 250u, 250u}];
+    for(auto cur : val) {
+      std::cout << cur << std::endl;
+    }  
+    
+    std::cout << darr.GetShape() << std::endl;
+    
+    RZTCoordVector start_pos{0.0f, 0.0f, 0.0f};
+    RZTCoordVector end_pos{400.0f, 400.0f, 400.0f};
+    RZTCoordVector sample_interval{1.0f, 1.0f, 1.0f};
+    
+    CylindricalGreensFunction(start_pos, end_pos, sample_interval, std::move(darr));
+  }
 
-  // fill distributed array with values
-  Vector<std::size_t, dims> chunk_size(100);
-  Vector<std::size_t, dims> start_ind(0);
-  Vector<std::size_t, dims> end_ind(400);
-  
-  Vector<scalar_t, dims> coeffs(1.0f);
-  auto filler = [&](const Vector<std::size_t, dims>& ind){
-    return linear<dims, vec_dims>(ind.template as_type<scalar_t>(), coeffs);
-  };
-  register_chunks(darr, start_ind, end_ind, chunk_size, filler);
+  // read Green's function for evaluation purposes
+  {
+    CylindricalGreensFunction gf(workdir, 5);
 
-  // transpose axes to go from (t, z, r) to (r, z, t)
-  darr.SwapAxes<0, 2>();
-  
-  // reshape the chunks to make sure the overlap is respected for the interpolation
-  
-  std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(100);  
-  darr.RebuildChunks(requested_chunk_size, workdir_tmp, 2, SpatialSymmetry::Cylindrical<T, vec_dims>::boundary_evaluator);
-  
-  auto val = darr[{250u, 250u, 250u}];
-  for(auto cur : val) {
-    std::cout << cur << std::endl;
-  }  
-  
-  RZTCoordVector start_pos{0.0f, -400.0f, 0.0f};
-  RZTCoordVector end_pos{100.0f, 400.0f, 100.0f};
-  RZTCoordVector sample_interval{1.0f, 1.0f, 1.0f};
+    std::vector<scalar_t> accum(20, 0.0);
+    RZCoordVector cur_pt{123.0f, 123.0f};
+    scalar_t t_start = 123.0f;
+    scalar_t t_end = 350.0f;
+    scalar_t t_samp = 1.5f;
 
-  std::cout << start_pos.r() << std::endl;
+    XYZFieldVector source{1.0f, 1.0f, 1.0f};
+
+    gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_end, t_samp, source, accum.begin());
+  }
   
   std::cout << "done" << std::endl;  
 }

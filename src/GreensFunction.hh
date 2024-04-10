@@ -72,7 +72,8 @@ private:
   void save_metadata();
   
 private:
-  
+
+  static constexpr std::size_t vec_dims = Green::DimTraits<CylindricalGreensFunction>::vec_dims;
   static constexpr std::string_view m_meta_filename = "green.meta";     // Filename for Green's function metadata
 
   CylindricalGreensFunctionMetadata m_meta;

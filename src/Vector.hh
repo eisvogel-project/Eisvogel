@@ -297,9 +297,9 @@ struct RZTVector : public Vector3D<T> {
   T& z() { return this -> operator[](1); };
   T& t() { return this -> operator[](2); };
 
-  static T& r(Vector3D<T>& vec) { return vec[0]; };
-  static T& z(Vector3D<T>& vec) { return vec[1]; };
-  static T& t(Vector3D<T>& vec) { return vec[2]; };
+  static const T& r(const Vector3D<T>& vec) { return vec[0]; };
+  static const T& z(const Vector3D<T>& vec) { return vec[1]; };
+  static const T& t(const Vector3D<T>& vec) { return vec[2]; };
 };
 
 template <typename T>

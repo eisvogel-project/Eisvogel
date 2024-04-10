@@ -50,9 +50,13 @@ namespace Interpolation {
 		   const Vector<scalar_t, dims-1>& outer_inds,
 		   scalar_t inner_ind_start, scalar_t inner_ind_end, scalar_t inner_ind_delta) {
 
+    // Ensure that the output array can hold all interpolated points
+    std::size_t num_inner_inds = (std::size_t)((inner_ind_end - inner_ind_start) / inner_ind_delta) + 1;
+    retval.resize(num_inner_inds);
+    
     // Note: requirement will be loosened later
-    static_assert(dims == 3);
-
+    static_assert(dims == 3);    
+    
     constexpr std::size_t ksize = 2 * KernelT::support;
 
     // compute integer and fractional parts of outer indices
