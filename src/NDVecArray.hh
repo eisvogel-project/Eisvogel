@@ -95,9 +95,11 @@ public:
 
   // Creates an array with the specified `shape` that gets initialized with `value`
   NDVecArray(const shape_t& shape, const T& value);
+  NDVecArray(std::size_t len, const T& value) requires(dims == 1);
 
   // Creates an array with the specified `shape` that remains uninitialized
   NDVecArray(const shape_t& shape);
+  NDVecArray(std::size_t len) requires(dims == 1);
 
   // copy constructor
   NDVecArray(const NDVecArray<T, dims, vec_dims>& other);
@@ -114,6 +116,7 @@ public:
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape);
+  void resize(std::size_t new_len) requires(dims == 1);
   void resize(const shape_t& new_shape, const T& value);
   
   // Single-element access, no bounds checking

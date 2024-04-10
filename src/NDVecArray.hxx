@@ -21,6 +21,13 @@ NDVecArray<T, dims, vec_dims>::NDVecArray(const shape_t& shape, const T& value) 
 }   
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
+NDVecArray<T, dims, vec_dims>::NDVecArray(std::size_t len) requires(dims == 1) : NDVecArray(shape_t{len}) { };
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+NDVecArray<T, dims, vec_dims>::NDVecArray(std::size_t len, const T& value) requires(dims == 1) : NDVecArray(shape_t{len}, value) { };
+
+// coppy constructor
+template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>::NDVecArray(const NDVecArray<T, dims, vec_dims>& other) :  
   m_owns_data(true), m_strides(other.m_strides), m_offset(other.m_offset), m_number_elements(other.m_number_elements), m_volume(other.m_volume), m_shape(other.m_shape)  {
   
@@ -51,6 +58,11 @@ template <typename T, std::size_t dims, std::size_t vec_dims>
 void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape, const T& value) {  
   resize(new_shape);
   this -> operator=(value);
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::resize(std::size_t new_len) requires(dims == 1) {
+  resize(shape_t{new_len});
 }
 
 // copy-assignment operator
