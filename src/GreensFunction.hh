@@ -34,6 +34,7 @@ namespace Green {
     static constexpr std::size_t dims = 3;        // A cylindrically-symmetric Green's function is indexed as (R, Z, T) for m = 0 ...
     static constexpr std::size_t vec_dims = 2;    // ... and stores (Er, Ez) at each location
 
+    using view_t = typename NDVecArray<scalar_t, dims, vec_dims>::view_t;
     using lib_t = ChunkLibrary<NDVecArray, scalar_t, dims, vec_dims>;
   };
 }
@@ -45,6 +46,7 @@ class CylindricalGreensFunction : private Green::DimTraits<CylindricalGreensFunc
 private:
 
   using lib_t = Green::DimTraits<CylindricalGreensFunction>::lib_t;
+  using view_t = Green::DimTraits<CylindricalGreensFunction>::view_t;
   
 public:
 
@@ -57,11 +59,14 @@ public:
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>
-  void accumulate_inner_product(const RZCoordVector& coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
-				const XYZFieldVector& source, std::vector<scalar_t>::iterator result);
+  void accumulate_inner_product(const RZCoordVector& coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
+				const RZFieldVector& source, std::vector<scalar_t>::iterator result);
     
 private:
 
+  // Performs the inner product in cylindrical coordinates
+  scalar_t inner_product(const view_t& field, const RZFieldVector& source);
+  
   // Useful for converting from coordinates to storage indices
   RZCoordVector coords_to_index(const RZCoordVector& rz_coords);
   RZTCoordVector coords_to_index(const RZTCoordVector& rzt_coords);

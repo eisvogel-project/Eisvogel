@@ -107,6 +107,8 @@ public:
   // copy-assignment operators (these copy the full array and thus also change the shape of the destination)
   // requires that the target `NDVecArray` owns its data (i.e. is not a view of another array)
   NDVecArray<T, dims, vec_dims>& operator=(const NDVecArray<T, dims, vec_dims>& other);
+
+  // fills this array with the value `other`; also works if this array actually is only a view and doesn't own its data
   NDVecArray<T, dims, vec_dims>& operator=(const T& other);
 
   // copy and fill part of the full array from `other` without changing the shape
@@ -118,6 +120,9 @@ public:
   void resize(const shape_t& new_shape);
   void resize(std::size_t new_len) requires(dims == 1);
   void resize(const shape_t& new_shape, const T& value);
+
+  // sets all entries of this array to zero; requires that data is owned
+  void clear();
   
   // Single-element access, no bounds checking
   view_t operator[](const ind_t& ind) {

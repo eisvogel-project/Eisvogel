@@ -355,6 +355,7 @@ using XYZCoordVector = XYZVector<scalar_t>;
 using XYZFieldVector = XYZVector<scalar_t>;
 
 using RZCoordVector = RZVector<scalar_t>;
+using RZFieldVector = RZVector<scalar_t>;
 using RZIndexVector = RZVector<std::size_t>;
 
 using RZTCoordVector = RZTVector<scalar_t>;

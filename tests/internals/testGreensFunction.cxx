@@ -102,15 +102,21 @@ int main(int argc, char* argv[]) {
   {
     CylindricalGreensFunction gf(workdir, 5);
 
-    std::vector<scalar_t> accum(20, 0.0);
+    std::size_t num_samples = 100;
+    
+    std::vector<scalar_t> accum(num_samples, 0.0);
     RZCoordVector cur_pt{123.0f, 123.0f};
     scalar_t t_start = 123.0f;
-    scalar_t t_end = 350.0f;
-    scalar_t t_samp = 1.5f;
+    scalar_t t_samp = 1.0f;
 
-    XYZFieldVector source{1.0f, 1.0f, 1.0f};
+    RZFieldVector source{1.0f, 1.0f};
 
-    gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_end, t_samp, source, accum.begin());
+    gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_samp, num_samples, source, accum.begin());
+
+    for(auto cur : accum) {
+      std::cout << cur << " ";
+    }
+    std::cout << std::endl;
   }
   
   std::cout << "done" << std::endl;  

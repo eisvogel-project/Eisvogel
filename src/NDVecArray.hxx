@@ -65,6 +65,12 @@ void NDVecArray<T, dims, vec_dims>::resize(std::size_t new_len) requires(dims ==
   resize(shape_t{new_len});
 }
 
+template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::clear() {
+  assert(m_owns_data);
+  std::fill(std::execution::unseq, m_data -> begin(), m_data -> end(), (T)0);
+}
+
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {

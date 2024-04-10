@@ -44,8 +44,8 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
 }
 
 template <class KernelT>
-void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_end, scalar_t t_samp,
-							 const XYZFieldVector& source, std::vector<scalar_t>::iterator result) {
+void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
+							 const RZFieldVector& source, std::vector<scalar_t>::iterator result) {
 
   // Buffer to hold the interpolated values
   constexpr std::size_t init_interp_buffer_len = 100;
@@ -54,18 +54,17 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz
   // Convert everything from coordinates to floating-point array indices (`f_ind`)
   RZVector rz_f_ind = coords_to_index(rz_coords);
   scalar_t t_start_f_ind = (t_start - m_meta.start_pos_rzt.t()) / m_meta.sample_interval_rzt.t();
-  scalar_t t_end_f_ind = (t_end - m_meta.start_pos_rzt.t()) / m_meta.sample_interval_rzt.t();
   scalar_t t_samp_f_ind = t_samp / m_meta.sample_interval_rzt.t();
-
-  // convert to the next-lowest whole sample time (in units of `t_samp_f_ind`)
-  auto to_whole_t_samp_f_ind = [&](scalar_t t_f_ind) {
-    return (std::size_t)(t_f_ind / t_samp_f_ind) * t_samp_f_ind;
-  };
   
   // Iterate over all chunks that are required to cover the range [t_start_f_ind, t_end_f_ind)
   RZTVector cur_f_ind(rz_f_ind, t_start_f_ind);
-  while(cur_f_ind.t() < t_end_f_ind) {
 
+  std::size_t cur_sample_ind = 0;
+  while(cur_sample_ind < num_samples) {
+
+    // Time coordinate of the current sample
+    cur_f_ind.t() = t_start_f_ind + cur_sample_ind * t_samp_f_ind;
+    
     // Fetch the chunk that contains this current location ...
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
     const metadata_t& meta = m_index.GetChunk(cur_ind);
@@ -74,26 +73,47 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz
     // Ensure that the overlap on the loaded chunk is large enough for the kernel that we use
     assert(meta.overlap >= KernelT::support);
     
-    // ... and request interpolation up to the last contained sample
-    scalar_t cur_t_end_f_ind = to_whole_t_samp_f_ind(std::min<scalar_t>(t_end_f_ind,
-									RZTIndexVector::t(meta.end_ind)));
+    // Check how many of the next samples are determined by the currently-loaded chunk
+    std::size_t chunk_num_samples = (std::size_t)((RZTIndexVector::t(meta.end_ind) - cur_f_ind.t()) / t_samp_f_ind) + 1;
+
+    // std::cout << "chunk_num_samples = " << chunk_num_samples << std::endl;
+    
+    // Make sure to not request more samples than needed
+    std::size_t samples_to_request = std::min(chunk_num_samples, num_samples - cur_sample_ind);
 
     // Ensure that we're not going too far (interpolation end point `cur_t_end_f_ind` is exclusive,
     // i.e. can reach up to and including the `end_ind` of the chunk)
-    assert(cur_t_end_f_ind <= RZTIndexVector::t(meta.end_ind));
+    assert(cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <= RZTIndexVector::t(meta.end_ind));
     
-    std::cout << "HHHHHHHHH" << std::endl;
-    std::cout << meta << std::endl;
-    std::cout << "requesting interpolation from start = " << cur_f_ind.t() << " to end = " << cur_t_end_f_ind << " in steps of " << t_samp_f_ind << std::endl;
-    std::cout << "HHHHHHHHH" << std::endl;
+    // std::cout << "HHHHHHHHH" << std::endl;
+    // std::cout << meta << std::endl;
+    // std::cout << "requesting interpolation from start = " << cur_f_ind.t() << " to end = " << cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <<
+    //   "; " << samples_to_request << " samples" << std::endl;
+    // std::cout << "HHHHHHHHH" << std::endl;
 
+    // Reset interpolation buffer
+    interp_buffer.clear();
+    
     // Perform interpolation
-    // Interpolation::interpolate<KernelT>(chunk, interp_buffer, rz_f_ind, cur_f_ind.t(), cur_t_end_f_ind, t_samp_f_ind);
+    // TODO: the index conversion is very clunky ... let's find a nice way to do this
+    RZCoordVector rz_chunk_ind_offset{(scalar_t)RZTIndexVector::r(meta.loc_ind_offset), (scalar_t)RZTIndexVector::z(meta.loc_ind_offset)};
+    Interpolation::interpolate<KernelT>(chunk, interp_buffer,
+					rz_f_ind - rz_chunk_ind_offset,  // convert to chunk-local coordinates
+					cur_f_ind.t() - RZTIndexVector::t(meta.loc_ind_offset),  // convert to chunk-local coordinates
+					t_samp_f_ind, samples_to_request);
 
     // Compute inner products and accumulate in output range
+    for(std::size_t i = 0; i < samples_to_request; i++) {
+      *result += inner_product(interp_buffer[i], source);
+      std::advance(result, 1);
+    }
     
-    cur_f_ind.t() = cur_t_end_f_ind;
+    cur_sample_ind += samples_to_request;
   }
+}
+
+scalar_t CylindricalGreensFunction::inner_product(const view_t& field, const RZFieldVector& source) {
+  return field[0] * source[0] + field[1] * source[1];
 }
 
 RZCoordVector CylindricalGreensFunction::coords_to_index(const RZCoordVector& coords) {
