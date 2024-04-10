@@ -53,7 +53,7 @@ void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const
 
   // perform interpolation
   auto start = std::chrono::high_resolution_clock::now();
-  Interpolation::interpolate<KernelT>(data, interp_vals, outer_inds, inner_ind_start, inner_ind_end, inner_ind_delta);
+  Interpolation::interpolate<KernelT>(data, interp_vals, outer_inds, inner_ind_start, inner_ind_delta, num_inner_inds);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);  
 
@@ -65,6 +65,7 @@ void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const
 
   std::size_t elem_ind = 0;
   for(T cur_inner = inner_ind_start; cur_inner < inner_ind_end; cur_inner += inner_ind_delta) {
+    
     cur_pos[dims-1] = cur_inner;
     Vector<scalar_t, vec_dims> expected_value = linear<dims, vec_dims>(cur_pos, coeffs);
     auto interpolated_value = interp_vals[elem_ind];
@@ -87,10 +88,10 @@ int main(int argc, char* argv[]) {
   Vector<scalar_t, dims> coeffs(1.0f);
 
   // interpolation target
-  Vector<T, dims-1> outer_inds{250.123f, 250.567f};  
-  T inner_ind_start = 2.123;
-  T inner_ind_end = 350.15;
-  T inner_ind_delta = 0.5123;
+  Vector<T, dims-1> outer_inds{250.0f, 250.0f};  
+  T inner_ind_start = 4;
+  T inner_ind_end = 388;
+  T inner_ind_delta = 1;
 
   test_closure_linear_data<Interpolation::Kernel::Keys, dims, vec_dims>(shape, coeffs, outer_inds, inner_ind_start, inner_ind_end, inner_ind_delta);
 

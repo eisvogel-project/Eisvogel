@@ -32,7 +32,7 @@ namespace Interpolation {
   template <class KernelT, typename T, std::size_t dims, std::size_t vec_dims>
   void interpolate(const NDVecArray<T, dims, vec_dims>& arr, NDVecArray<T, 1, vec_dims>& retval,
 		   const Vector<scalar_t, dims-1>& outer_inds,
-		   scalar_t inner_ind_start, scalar_t inner_ind_end, scalar_t inner_ind_delta);
+		   scalar_t inner_ind_start, scalar_t inner_ind_delta, std::size_t num_samples);
 }
 
 template <typename T, std::size_t vec_dims>
@@ -69,13 +69,13 @@ private:
   Interpolation::interpolate<Interpolation::Kernel::Keys, T, dims, vec_dims>(const NDVecArray<T, dims, vec_dims>&,
 									     NDVecArray<T, 1, vec_dims>&,
 									     const Vector<scalar_t, dims-1>&,
-									     scalar_t, scalar_t, scalar_t);
+									     scalar_t, scalar_t, std::size_t);
 
   friend void
   Interpolation::interpolate<Interpolation::Kernel::Linear, T, dims, vec_dims>(const NDVecArray<T, dims, vec_dims>&,
 									       NDVecArray<T, 1, vec_dims>&,
 									       const Vector<scalar_t, dims-1>&,
-									       scalar_t, scalar_t, scalar_t);
+									       scalar_t, scalar_t, std::size_t);
   
 public:
   using ind_t = Vector<std::size_t, dims>;

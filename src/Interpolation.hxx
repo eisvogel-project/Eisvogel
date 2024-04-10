@@ -48,11 +48,10 @@ namespace Interpolation {
   template <class KernelT, typename T, std::size_t dims, std::size_t vec_dims>
   void interpolate(const NDVecArray<T, dims, vec_dims>& arr, NDVecArray<T, 1, vec_dims>& retval,
 		   const Vector<scalar_t, dims-1>& outer_inds,
-		   scalar_t inner_ind_start, scalar_t inner_ind_end, scalar_t inner_ind_delta) {
+		   scalar_t inner_ind_start, scalar_t inner_ind_delta, std::size_t num_samples) {
 
     // Ensure that the output array can hold all interpolated points
-    std::size_t num_inner_inds = (std::size_t)((inner_ind_end - inner_ind_start) / inner_ind_delta) + 1;
-    retval.resize(num_inner_inds);
+    retval.resize(num_samples);
     
     // Note: requirement will be loosened later
     static_assert(dims == 3);    
@@ -109,9 +108,10 @@ namespace Interpolation {
 	scalar_t outer_weight = outer_weights[i1 - (outer_int[0] - ind_offset)][i2 - (outer_int[1] - ind_offset)];
 	// std::cout << "outer_weight = " << outer_weight << std::endl;
 	
-	std::size_t inner_elem = 0;
-	for(scalar_t cur_inner_ind = inner_ind_start; cur_inner_ind < inner_ind_end; cur_inner_ind += inner_ind_delta) {
+	for(std::size_t cur_sample_ind = 0; cur_sample_ind < num_samples; cur_sample_ind++) {
+	  //for(scalar_t cur_inner_ind = inner_ind_start; cur_inner_ind < inner_ind_end; cur_inner_ind += inner_ind_delta) {
 
+	  scalar_t cur_inner_ind = inner_ind_start + cur_sample_ind * inner_ind_delta;
 	  // std::cout << "on inner_elem = " << inner_elem << std::endl;
 	  
 	  scalar_t tmp = 0.0;
@@ -139,12 +139,10 @@ namespace Interpolation {
 	  // }
 	  // std::cout << std::endl;
 
-	  std::span<scalar_t, vec_dims> output = retval[inner_elem];
+	  std::span<scalar_t, vec_dims> output = retval[cur_sample_ind];
 	  for(std::size_t cv = 0; cv < vec_dims; cv++) {
 	    output[cv] += inner_interp[cv] * outer_weight;
-	  }
-	  
-	  inner_elem++;	  
+	  }	 
 	}	
       }
     }       
