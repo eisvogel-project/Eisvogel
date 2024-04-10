@@ -56,6 +56,8 @@ int main(int argc, char* argv[]) {
     std::filesystem::remove_all(workdir);
   }
 
+  Vector<scalar_t, dims> coeffs(1.0f);
+  
   // prepare Green's function for testing purposes
   {
     Vector<std::size_t, dims> init_cache_el_shape(10);
@@ -69,7 +71,6 @@ int main(int argc, char* argv[]) {
     Vector<std::size_t, dims> start_ind(0);
     Vector<std::size_t, dims> end_ind(400);
     
-    Vector<scalar_t, dims> coeffs(1.0f);
     auto filler = [&](const Vector<std::size_t, dims>& ind){
       return linear<dims, vec_dims>(ind.template as_type<scalar_t>(), coeffs);
     };
@@ -113,10 +114,22 @@ int main(int argc, char* argv[]) {
 
     gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_samp, num_samples, source, accum.begin());
 
-    for(auto cur : accum) {
-      std::cout << cur << " ";
+    // test closure
+    std::cout << "Testing closure ... ";
+    for(std::size_t sample_ind = 0; sample_ind < num_samples; sample_ind++) {
+      RZTCoordVector pos{cur_pt.r(), cur_pt.z(), t_start + t_samp * sample_ind};
+      Vector<scalar_t, vec_dims> field = linear<dims, vec_dims>(pos, coeffs);
+      
+      scalar_t inner_product = 0.0;
+      for(std::size_t i = 0; i < vec_dims; i++) {
+	inner_product += field[i] * source[i];
+      }
+
+      if(std::fabs((inner_product - accum[sample_ind]) / inner_product) > 1e-6) {
+	std::cout << "Problem!" << std::endl;
+      }
     }
-    std::cout << std::endl;
+    std::cout << "OK!" << std::endl;
   }
   
   std::cout << "done" << std::endl;  
