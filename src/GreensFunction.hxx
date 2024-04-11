@@ -51,7 +51,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   scalar_t delta_t_p = 1.0f;
   
   // Determine total number of integration steps (always integer) ...
-  const std::size_t num_int_steps = std::ceil((seg.end_time - seg.start_time) / delta_t_p);
+  const std::size_t num_itgr_steps = std::ceil((seg.end_time - seg.start_time) / delta_t_p);
 
   // ... and the actual integration step size
   delta_t_p = (seg.end_time - seg.start_time) / num_steps_p;
@@ -63,10 +63,10 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by delta_t_p
 
   const std::size_t sample_block_size = 10; // number of signal samples in block
-  const std::size_t int_block_size = 10; // number of integration steps in block
+  const std::size_t itgr_block_size = 10; // number of integration steps in block
 
   // Iterate over (integration, output sample) blocks
-  for(std::size_t int_block_start = 0; int_block_start < num_int_steps; int_block_start += int_block_size) {
+  for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += itgr_block_size) {
 
     // precalculate (r, z) coordinates of the segment evaluation points in this integration block
 
@@ -75,26 +75,33 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     // precalculate quadrature weights for the evaluation points in this integration block
     
     for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += sample_block_size) {
+
+      std::size_t sample_block_end = std::min(sample_block_start + sample_block_size, num_samples);
       
       // Here we are at the beginning of a certain integration block
       
       // iterate over the segment evaluation points in this integration block      
       for(std::size_t i_pt = 0; i_pt < int_block_size; i_pt++) {
 
-	// tp = (i_pt + int_block_start * int_block_size) * delta_t_p;
-	// t_start_bla = sample_block_start * t_sig_samp;
-	
-	// t_start = t - tp --> figure out the first sample that has t - tp > 0 and thus contributes to the signal
-	
-	// num_samples = sample_block_size
-	// t_samp = output sample rate
-	
-	// weight = quadrature_weights[i_pt]
+	// index of the current integration point
+	std::size_t itgr_pt = i_pt + itgr_block_start;
 
-	// result = iterator to index of the first sample with t - tp > 0
-	
-	// accumulate_inner_product(rz_coords[i_pt], )
-	
+	scalar_t t_p = itgr_pt * delta_t_p + seg.start_time; 	// current t_p
+
+	// Index of the first nonzero output sample that this block contributes
+	std::size_t sample_ind_causal = std::ceil((t_p - seg.start_time) / t_sig_samp);
+	std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
+
+	// number of samples we're computing now
+	std::size_t block_num_samples = sample_block_end - sample_ind_start;	
+
+	// start time in integration block
+	scalar_t block_t_sig_start = sample_ind_start * t_sig_samp - t_p;
+		
+	scalar_t weight = quadrature_weights[i_pt];
+
+	auto block_result = signal.begin() + sample_ind_start;	
+	accumulate_inner_product(rz_coords[i_pt], block_t_sig_start, block_t_sig_start, t_sig_samp, block_num_samples, source[i_pt], block_result, weight);	
       }      
     }         
   }  
