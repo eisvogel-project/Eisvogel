@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <span>
 #include <iterator>
 #include <algorithm>
@@ -33,6 +34,16 @@ struct VectorView : public std::span<T, vec_dims> {
   VectorView& operator=(const VectorView<T, vec_dims>& other) {
     std::copy_n(std::execution::unseq, other.begin(), vec_dims, this -> begin());
     return *this;
+  }
+
+  // printing
+  friend std::ostream& operator<<(std::ostream& stream, const VectorView<T, vec_dims>& view) {
+    std::cout << "[ ";
+    for(const T& cur: view) {
+      std::cout << cur << " ";
+    }
+    std::cout << "]";
+    return stream;
   }
 };
 
