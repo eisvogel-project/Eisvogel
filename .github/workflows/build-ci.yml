@@ -31,9 +31,3 @@ jobs:
     - name: Run C++ tests
       run: |
         bash tests/run_tests.sh build/
-
-    : # - name: Run python tests
-    : #   run: |
-    : #     source build/setup.sh &&
-    : #     python3 -m unittest discover -s cpython/tests/
-
