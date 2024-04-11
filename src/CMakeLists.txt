@@ -9,6 +9,7 @@ pkg_check_modules(UUID REQUIRED uuid)
 add_library(eisvogel SHARED
             WeightingFieldUtilsOld.cxx
 	    IteratorUtils.cxx
+	    Current.cxx
             Trajectory.cxx
             MathUtils.cxx
             SignalExport.cxx

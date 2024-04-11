@@ -2,9 +2,10 @@
 
 #include <fstream>
 #include <filesystem>
-#include "Eisvogel/Common.hh"
 #include "Vector.hh"
 #include "DistributedNDVecArray.hh"
+#include "Eisvogel/Common.hh"
+#include "Eisvogel/Current.hh"
 
 struct CylindricalGreensFunctionMetadata {
 
@@ -56,6 +57,12 @@ public:
   // To create a Green's function from existing sampled data
   CylindricalGreensFunction(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval,
 			    Distributed_RZT_ErEz_Array&& data);
+
+  // Apply this Green's function to the line current segment `curr_seg` and accumulate the result in `signal`.
+  // The signal is calculated starting from time `t_sig_start` with `num_samples` samples using `t_sig_samp` as sampling interval.
+  template <class KernelT>
+  void apply_accumulate(const LineCurrentSegment& curr_seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+			std::vector<scalar_t>& signal);
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>

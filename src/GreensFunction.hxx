@@ -44,6 +44,12 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
 }
 
 template <class KernelT>
+void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& curr_seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+						 std::vector<scalar_t>& signal) {
+  
+}
+
+template <class KernelT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
 							 const RZFieldVector& source, std::vector<scalar_t>::iterator result) {
 
