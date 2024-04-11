@@ -149,13 +149,14 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	std::cout << "num_samples = " << block_num_samples << std::endl;
 	std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
 	std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
-	std::cout << " . . . . . . . . " << std::endl;
 
 	// The above should make sure we're only interested in the causal part of the Green's function
 	assert(convolution_t_start >= 0.0);
 	
-	// auto block_result = signal.begin() + block_sample_ind_start;	
-	// accumulate_inner_product(rz_coords[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result, quadrature_weights[i_pt]);
+	auto block_result = signal.begin() + block_sample_ind_start;	
+	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result, quadrature_weights[i_pt]);
+
+	std::cout << " . . . . . . . . " << std::endl;
       }
 
       std::cout << "-----------" << std::endl;
@@ -213,16 +214,19 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // std::cout << "requesting interpolation from start = " << cur_f_ind.t() << " to end = " << cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <<
     //   "; " << samples_to_request << " samples" << std::endl;
     // std::cout << "HHHHHHHHH" << std::endl;
+       
+    // Convert to chunk-local coordinates
+    // TODO: this is very clunky, make better
+    RZTIndexVector rzt_chunk_ind_offset{RZTIndexVector::r(meta.loc_ind_offset), RZTIndexVector::z(meta.loc_ind_offset), RZTIndexVector::t(meta.loc_ind_offset)};
+    RZTVector rzt_chunk_local_ind = (cur_ind - rzt_chunk_ind_offset).template as_type<scalar_t>() + (cur_f_ind - cur_ind.template as_type<scalar_t>());
+    RZCoordVector rz_chunk_local_ind{rzt_chunk_local_ind.r(), rzt_chunk_local_ind.z()};
 
     // Reset interpolation buffer
     interp_buffer.clear();
     
     // Perform interpolation
-    // TODO: the index conversion is very clunky ... let's find a nice way to do this
-    RZCoordVector rz_chunk_ind_offset{(scalar_t)RZTIndexVector::r(meta.loc_ind_offset), (scalar_t)RZTIndexVector::z(meta.loc_ind_offset)};
     Interpolation::interpolate<KernelT>(chunk, interp_buffer,
-					rz_f_ind - rz_chunk_ind_offset,  // convert to chunk-local coordinates
-					cur_f_ind.t() - RZTIndexVector::t(meta.loc_ind_offset),  // convert to chunk-local coordinates
+					rz_chunk_local_ind, rzt_chunk_local_ind.t(),
 					t_samp_f_ind, samples_to_request);
 
     // Compute inner products and accumulate in output range

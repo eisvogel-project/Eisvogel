@@ -110,11 +110,14 @@ int main(int argc, char* argv[]) {
     std::size_t num_samples = 100;
     
     std::vector<scalar_t> accum(num_samples, 0.0);
-    RZCoordVector cur_pt{123.0f, 123.0f};
-    scalar_t t_start = 123.0f;
+    // RZCoordVector cur_pt{123.0f, 123.0f};
+    RZCoordVector cur_pt{28.2843f, 20.0f};
+    //scalar_t t_start = 123.0f;
+    scalar_t t_start = 90.0f;
     scalar_t t_samp = 1.0f;
 
-    RZFieldVector source{1.0f, 1.0f};
+    // RZFieldVector source{1.0f, 1.0f};
+    RZFieldVector source{7.07107f, 0.0f};
 
     gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_samp, num_samples,
 							     source, accum.begin());
@@ -137,26 +140,32 @@ int main(int argc, char* argv[]) {
     std::cout << "OK!" << std::endl;
   }
 
-  // // test some integration against a current
-  // {
-  //   CylindricalGreensFunction gf(workdir, 5);
+  // test some integration against a current
+  {
+    CylindricalGreensFunction gf(workdir, 5);
 
-  //   scalar_t t_sig_start = 123.0f;
-  //   scalar_t t_sig_samp = 1.0f;
-  //   std::size_t num_samples = 100;
-  //   std::vector<scalar_t> signal_buffer(num_samples);
+    scalar_t t_sig_start = 123.0f;
+    scalar_t t_sig_samp = 1.0f;
+    std::size_t num_samples = 100;
+    std::vector<scalar_t> signal_buffer(num_samples);
 
-  //   // build current segment
-  //   scalar_t track_start_time = 10.0f;
-  //   scalar_t track_end_time = 200.0f;
-  //   scalar_t track_charge = 1.0f;
-  //   LineCurrentSegment track(XYZCoordVector{0.0f, 20.0f, 20.0f},    // track start position
-  // 			     XYZCoordVector{20.0f, 0.0f, 100.0f},   // track end position
-  // 			     track_start_time, track_end_time, track_charge);
+    // build current segment
+    scalar_t track_start_time = 122.0f;
+    scalar_t track_end_time = 124.0f;
+    scalar_t track_charge = 1.0f;
+    LineCurrentSegment track(XYZCoordVector{10.0f, 10.0f, 20.0f},    // track start position
+			     XYZCoordVector{20.0f, 20.0f, 20.0f},   // track end position
+			     track_start_time, track_end_time, track_charge);
 
-  //   // integrate the current against the Green's function
-  //   gf.apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
-  // }
+    // integrate the current against the Green's function
+    gf.apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
+
+    std::cout << "BBBB got final signal BBBB" << std::endl;
+    for(auto cur : signal_buffer) {
+      std::cout << cur << " ";
+    }
+    std::cout << std::endl;
+  }
   
   std::cout << "done" << std::endl;  
 }
