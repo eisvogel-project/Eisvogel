@@ -1,6 +1,8 @@
+#include <cmath>
 #include "GreensFunction.hh"
 #include "Serialization.hh"
 #include "Interpolation.hh"
+#include "MemoryUtils.hh"
 
 CylindricalGreensFunctionMetadata::CylindricalGreensFunctionMetadata() :
   start_pos_rzt(0), end_pos_rzt(0), sample_interval_rzt(0) { }
@@ -43,73 +45,99 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
   save_metadata();   // Dump metadata to disk right away
 }
 
-template <class KernelT>
+template <class KernelT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<scalar_t>& signal) {
 
   // Max. integration step size delta_t_p
-  scalar_t delta_t_p = 1.0f;
+  scalar_t max_itgr_step = 1.0f;
   
-  // Determine total number of integration steps (always integer) ...
-  const std::size_t num_itgr_steps = std::ceil((seg.end_time - seg.start_time) / delta_t_p);
+  // Determine total number of quadrature intervals (always integer) ...
+  const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
 
   // ... and the actual integration step size
-  delta_t_p = (seg.end_time - seg.start_time) / num_steps_p;
+  scalar_t itgr_step = (seg.end_time - seg.start_time) / num_quadrature_intervals;
 
-  // calculate velocity vector
+  // The set of integration steps includes the first and last point of the full interval
+  const std::size_t num_itgr_steps = num_quadrature_intervals + 1;
+
+  // calculate velocity vector and step size along the trajectory
+  XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / (seg.end_time - seg.start_time);
+  XYZCoordVector seg_step = seg_vel * itgr_step;
+
+  // the current represented by this segment
+  XYZCoordVector source_xyz = seg_vel * seg.charge;
   
-  // Guess a good integration block size
+  // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
+  
   // For the t_sig direction, can just take the average chunk size along t -> convert into number of samples by dividing by t_sig_samp
-  // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by delta_t_p
+  // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by itgr_step
 
-  const std::size_t sample_block_size = 10; // number of signal samples in block
-  const std::size_t itgr_block_size = 10; // number of integration steps in block
+  const std::size_t max_sample_block_size = 10; // number of signal samples in block
+  const std::size_t max_itgr_block_size = 10; // number of integration steps in block
+  
+  // std::vector<RZCoordVector> coords_rz(max_itgr_block_size);
+  // std::vector<RZFieldVector> source_rz(max_itgr_block_size);
 
+  NDVecArray<scalar_t, 1, vec_dims> coords_rz(max_itgr_block_size);
+  NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
+  std::vector<scalar_t, no_init_alloc<scalar_t>> quadrature_weights(max_itgr_block_size);
+  
   // Iterate over (integration, output sample) blocks
-  for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += itgr_block_size) {
-
-    // precalculate (r, z) coordinates of the segment evaluation points in this integration block
-
-    // precalculate (r, z) field components of the current source in this integration block
-
-    // precalculate quadrature weights for the evaluation points in this integration block
+  for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += max_itgr_block_size) {
+    std::size_t itgr_block_size = std::min(max_itgr_block_size, num_itgr_steps - itgr_block_start);  // actual size of this integration block
     
-    for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += sample_block_size) {
+    // Precompute a few things that we can then reuse for all sample blocks
+    for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
 
-      std::size_t sample_block_end = std::min(sample_block_start + sample_block_size, num_samples);
+      // Current position along the segment
+      std::size_t itgr_pt = i_pt + itgr_block_start;
+      XYZCoordVector seg_pos = seg.start_pos + itgr_pt * seg_step;
       
-      // Here we are at the beginning of a certain integration block
+      // precalculate (r, z) coordinates of the segment evaluation points in this integration block
+      coord_cart_to_cyl(seg_pos, coords_rz[i_pt]);
       
-      // iterate over the segment evaluation points in this integration block      
-      for(std::size_t i_pt = 0; i_pt < int_block_size; i_pt++) {
+      // precalculate (r, z) field components of the current source in this integration block
+      field_cart_to_cyl(source_xyz, seg_pos, source_rz[i_pt]);
+    }
 
-	// index of the current integration point
+    // Precompute quadrature weights for the evaluation points in this integration block
+    quadrature_weights.resize(itgr_block_size);
+    QuadratureT::fill_weights(itgr_block_start, itgr_block_start + itgr_block_size, num_itgr_steps, quadrature_weights.begin(), quadrature_weights.end());
+
+    // Iterate over sample blocks
+    for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += max_sample_block_size) {
+      std::size_t sample_block_end = std::min(sample_block_start + max_sample_block_size, num_samples);
+      
+      // iterate over the segment evaluation points in this integration block
+      for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
+
+	// Global index of the current integration point
 	std::size_t itgr_pt = i_pt + itgr_block_start;
 
-	scalar_t t_p = itgr_pt * delta_t_p + seg.start_time; 	// current t_p
-
 	// Index of the first nonzero output sample that this block contributes
+	scalar_t t_p = itgr_pt * itgr_step + seg.start_time;
 	std::size_t sample_ind_causal = std::ceil((t_p - seg.start_time) / t_sig_samp);
-	std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
+	// std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
 
 	// number of samples we're computing now
-	std::size_t block_num_samples = sample_block_end - sample_ind_start;	
+	//std::size_t block_num_samples = sample_block_end - sample_ind_start;	
 
 	// start time in integration block
-	scalar_t block_t_sig_start = sample_ind_start * t_sig_samp - t_p;
+	// scalar_t block_t_sig_start = sample_ind_start * t_sig_samp - t_p;
 		
-	scalar_t weight = quadrature_weights[i_pt];
+	// scalar_t weight = quadrature_weights[i_pt];
 
-	auto block_result = signal.begin() + sample_ind_start;	
-	accumulate_inner_product(rz_coords[i_pt], block_t_sig_start, block_t_sig_start, t_sig_samp, block_num_samples, source[i_pt], block_result, weight);	
+	// auto block_result = signal.begin() + sample_ind_start;	
+	// accumulate_inner_product(rz_coords[i_pt], block_t_sig_start, block_t_sig_start, t_sig_samp, block_num_samples, source[i_pt], block_result, weight);	
       }      
     }         
   }  
 }
 
 template <class KernelT>
-void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-							 const RZFieldVector& source, std::vector<scalar_t>::iterator result, scalar_t weight) {
+void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
+							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight) {
 
   // Buffer to hold the interpolated values
   constexpr std::size_t init_interp_buffer_len = 100;
@@ -179,16 +207,40 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz
   }
 }
 
-scalar_t CylindricalGreensFunction::inner_product(const view_t& field, const RZFieldVector& source) {
+void CylindricalGreensFunction::coord_cart_to_cyl(const XYZCoordVector& coords_cart, RZCoordVectorView coords_cyl) {
+  scalar_t x = coords_cart.x();
+  scalar_t y = coords_cart.y();
+  RZCoordVectorView::r(coords_cyl) = std::sqrt(x * x + y * y);
+  RZCoordVectorView::z(coords_cyl) = coords_cart.z();
+}
+
+void CylindricalGreensFunction::field_cart_to_cyl(const XYZFieldVector& field_cart, const XYZCoordVector& coords_cart, RZFieldVectorView field_cyl) {
+  scalar_t x = coords_cart.x();
+  scalar_t y = coords_cart.y();  
+  scalar_t r_xy = std::sqrt(x * x + y * y);
+
+  scalar_t cos_phi = 0.0, sin_phi = 0.0;
+  if(r_xy > 0) {
+    cos_phi = x / r_xy;
+    sin_phi = y / r_xy;
+  }
+    
+  RZFieldVectorView::r(field_cyl) = field_cart.x() * cos_phi + field_cart.y() * sin_phi;
+  RZFieldVectorView::z(field_cyl) = field_cart.z();
+}
+
+scalar_t CylindricalGreensFunction::inner_product(const RZFieldVectorView field, const RZFieldVectorView source) {
   return field[0] * source[0] + field[1] * source[1];
 }
 
-RZCoordVector CylindricalGreensFunction::coords_to_index(const RZCoordVector& coords) {
-  return (coords - m_meta.start_pos_rz) / m_meta.sample_interval_rz;
+RZCoordVector CylindricalGreensFunction::coords_to_index(const RZCoordVectorView rz_coords) {
+  
+  RZCoordVector coord_vec(rz_coords);
+  return (coord_vec - m_meta.start_pos_rz) / m_meta.sample_interval_rz;
 }
 
-RZTCoordVector CylindricalGreensFunction::coords_to_index(const RZTCoordVector& coords) {
-  return (coords - m_meta.start_pos_rzt) / m_meta.sample_interval_rzt;
+RZTCoordVector CylindricalGreensFunction::coords_to_index(const RZTCoordVector& rzt_coords) {
+  return (rzt_coords - m_meta.start_pos_rzt) / m_meta.sample_interval_rzt;
 }
 
 void CylindricalGreensFunction::save_metadata() {

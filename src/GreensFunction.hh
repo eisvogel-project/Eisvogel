@@ -4,6 +4,8 @@
 #include <filesystem>
 #include "Vector.hh"
 #include "DistributedNDVecArray.hh"
+#include "Quadrature.hh"
+#include "NDVecArray.hh"
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/Current.hh"
 
@@ -60,22 +62,30 @@ public:
 
   // Apply this Green's function to the line current segment `curr_seg` and accumulate the result in `signal`.
   // The signal is calculated starting from time `t_sig_start` with `num_samples` samples using `t_sig_samp` as sampling interval.
-  template <class KernelT>
+  template <class KernelT, class QuadratureT = Quadrature::TrapezoidalRule>
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 			std::vector<scalar_t>& signal);
+
+public: // TODO: make this private
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>
-  void accumulate_inner_product(const RZCoordVector& coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-				const RZFieldVector& source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f);
+  void accumulate_inner_product(const RZCoordVectorView coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
+				const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f);
     
 private:
+
+  // Converts cartesian (x, y, z) coordinates into cylindrical (r, z) coordinates
+  void coord_cart_to_cyl(const XYZCoordVector& coords_cart, RZCoordVectorView coords_cyl);
+
+  // Converts a field vector (A_x, A_y, A_z) defined at (x, y, z) into cylindrical field components (A_r, A_z)
+  void field_cart_to_cyl(const XYZFieldVector& field_cart, const XYZCoordVector& coords_cart, RZFieldVectorView field_cyl);
   
   // Performs the inner product in cylindrical coordinates
-  scalar_t inner_product(const view_t& field, const RZFieldVector& source);
+  scalar_t inner_product(const RZFieldVectorView field, const RZFieldVectorView source);
   
   // Useful for converting from coordinates to storage indices
-  RZCoordVector coords_to_index(const RZCoordVector& rz_coords);
+  RZCoordVector coords_to_index(const RZCoordVectorView rz_coords);
   RZTCoordVector coords_to_index(const RZTCoordVector& rzt_coords);
   
   // Used during (de)construction
