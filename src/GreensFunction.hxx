@@ -44,14 +44,65 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
 }
 
 template <class KernelT>
-void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& curr_seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<scalar_t>& signal) {
+
+  // Max. integration step size delta_t_p
+  scalar_t delta_t_p = 1.0f;
   
+  // Determine total number of integration steps (always integer) ...
+  const std::size_t num_int_steps = std::ceil((seg.end_time - seg.start_time) / delta_t_p);
+
+  // ... and the actual integration step size
+  delta_t_p = (seg.end_time - seg.start_time) / num_steps_p;
+
+  // calculate velocity vector
+  
+  // Guess a good integration block size
+  // For the t_sig direction, can just take the average chunk size along t -> convert into number of samples by dividing by t_sig_samp
+  // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by delta_t_p
+
+  const std::size_t sample_block_size = 10; // number of signal samples in block
+  const std::size_t int_block_size = 10; // number of integration steps in block
+
+  // Iterate over (integration, output sample) blocks
+  for(std::size_t int_block_start = 0; int_block_start < num_int_steps; int_block_start += int_block_size) {
+
+    // precalculate (r, z) coordinates of the segment evaluation points in this integration block
+
+    // precalculate (r, z) field components of the current source in this integration block
+
+    // precalculate quadrature weights for the evaluation points in this integration block
+    
+    for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += sample_block_size) {
+      
+      // Here we are at the beginning of a certain integration block
+      
+      // iterate over the segment evaluation points in this integration block      
+      for(std::size_t i_pt = 0; i_pt < int_block_size; i_pt++) {
+
+	// tp = (i_pt + int_block_start * int_block_size) * delta_t_p;
+	// t_start_bla = sample_block_start * t_sig_samp;
+	
+	// t_start = t - tp --> figure out the first sample that has t - tp > 0 and thus contributes to the signal
+	
+	// num_samples = sample_block_size
+	// t_samp = output sample rate
+	
+	// weight = quadrature_weights[i_pt]
+
+	// result = iterator to index of the first sample with t - tp > 0
+	
+	// accumulate_inner_product(rz_coords[i_pt], )
+	
+      }      
+    }         
+  }  
 }
 
 template <class KernelT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-							 const RZFieldVector& source, std::vector<scalar_t>::iterator result) {
+							 const RZFieldVector& source, std::vector<scalar_t>::iterator result, scalar_t weight) {
 
   // Buffer to hold the interpolated values
   constexpr std::size_t init_interp_buffer_len = 100;
@@ -74,6 +125,9 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz
     // Fetch the chunk that contains this current location ...
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
     const metadata_t& meta = m_index.GetChunk(cur_ind);
+
+    // TODO; if meta.chunk_type == ChunkType.all_null, simply skip everything else and jump to the next chunk
+    
     const chunk_t& chunk = m_cache.RetrieveChunk(meta);
 
     // Ensure that the overlap on the loaded chunk is large enough for the kernel that we use
@@ -110,7 +164,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVector& rz
 
     // Compute inner products and accumulate in output range
     for(std::size_t i = 0; i < samples_to_request; i++) {
-      *result += inner_product(interp_buffer[i], source);
+      *result += inner_product(interp_buffer[i], source) * weight;
       std::advance(result, 1);
     }
     

@@ -61,16 +61,16 @@ public:
   // Apply this Green's function to the line current segment `curr_seg` and accumulate the result in `signal`.
   // The signal is calculated starting from time `t_sig_start` with `num_samples` samples using `t_sig_samp` as sampling interval.
   template <class KernelT>
-  void apply_accumulate(const LineCurrentSegment& curr_seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+  void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 			std::vector<scalar_t>& signal);
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>
   void accumulate_inner_product(const RZCoordVector& coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-				const RZFieldVector& source, std::vector<scalar_t>::iterator result);
+				const RZFieldVector& source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f);
     
 private:
-
+  
   // Performs the inner product in cylindrical coordinates
   scalar_t inner_product(const view_t& field, const RZFieldVector& source);
   
