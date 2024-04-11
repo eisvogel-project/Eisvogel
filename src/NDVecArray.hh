@@ -5,10 +5,10 @@
 #include <fstream>
 #include <memory>
 #include <vector>
-#include <span>
 
 #include "Eisvogel/IteratorUtils.hh"
 #include "Vector.hh"
+#include "VectorView.hh"
 #include "MemoryUtils.hh"
 
 // Forward declaration of (de)serializer
@@ -34,23 +34,6 @@ namespace Interpolation {
 		   const Vector<scalar_t, dims-1>& outer_inds,
 		   scalar_t inner_ind_start, scalar_t inner_ind_delta, std::size_t num_samples);
 }
-
-template <typename T, std::size_t vec_dims>
-struct VectorView : public std::span<T, vec_dims> {
-
-  template <class It>
-  constexpr VectorView(It first) : std::span<T, vec_dims>(first, vec_dims) { }
-
-  VectorView& operator=(const Vector<T, vec_dims>& other) {
-    std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this -> begin());
-    return *this;
-  }
-
-  VectorView& operator=(const VectorView<T, vec_dims>& other) {
-    std::copy_n(std::execution::unseq, other.begin(), vec_dims, this -> begin());
-    return *this;
-  }
-};
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
 class NDVecArray {
@@ -135,6 +118,14 @@ public:
 
   view_t operator[](const std::size_t ind) requires(dims == 1) {
     return view_t(m_data -> begin() + vec_dims * ind);
+  }
+
+  T& operator[](const ind_t& ind) requires(vec_dims == 1) {
+    return *(m_data.begin() + ComputeFlatInd(ind));
+  }
+
+  T& operator[](const std::size_t ind) requires((dims == 1) && (vec_dims == 1)) {
+    return m_data[ind];
   }
   
   // Sequential access

@@ -7,10 +7,8 @@
 #include <span>
 #include <concepts>
 
+#include "VectorView.hh"
 #include "Serialization.hh"
-
-template<typename T>
-concept arithmetic = std::integral<T> or std::floating_point<T>;
 
 // fixed-length vector
 template <class T, std::size_t vec_dims> requires arithmetic<T>
@@ -281,6 +279,16 @@ struct RZVector : public Vector2D<T> {
 
   T& r() { return this -> operator[](0); };
   T& z() { return this -> operator[](1); };
+
+  template <class SubscriptableT>
+  static const T& r(const SubscriptableT& vec) { return vec[0]; }
+  template <class SubscriptableT>
+  static const T& z(const SubscriptableT& vec) { return vec[1]; }
+
+  template <class SubscriptableT>
+  static T& r(SubscriptableT& vec) { return vec[0]; }
+  template <class SubscriptableT>
+  static T& z(SubscriptableT& vec) { return vec[1]; }
 };
 
 template <typename T>
@@ -297,9 +305,12 @@ struct RZTVector : public Vector3D<T> {
   T& z() { return this -> operator[](1); };
   T& t() { return this -> operator[](2); };
 
-  static const T& r(const Vector3D<T>& vec) { return vec[0]; };
-  static const T& z(const Vector3D<T>& vec) { return vec[1]; };
-  static const T& t(const Vector3D<T>& vec) { return vec[2]; };
+  template <class SubscriptableT>
+  static const T& r(const SubscriptableT& vec) { return vec[0]; }
+  template <class SubscriptableT>
+  static const T& z(const SubscriptableT& vec) { return vec[1]; }
+  template <class SubscriptableT>
+  static const T& t(const SubscriptableT& vec) { return vec[2]; }
 };
 
 template <typename T>
