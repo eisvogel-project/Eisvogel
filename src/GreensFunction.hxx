@@ -147,7 +147,6 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	
 	// Find index of the first nonzero output sample that we can determine, i.e. the first sample for which t - t' > 0 in the convolution integral
 	std::size_t sample_ind_causal = std::max<int>(0, std::ceil((t_p - t_sig_start) / t_sig_samp));
-	//std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
 	std::size_t block_sample_ind_start = std::clamp(sample_ind_causal, sample_block_start, sample_block_end);
 
 	// Number of samples we're computing now
