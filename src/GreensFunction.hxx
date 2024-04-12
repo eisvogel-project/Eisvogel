@@ -34,6 +34,25 @@ namespace stor {
 
 // ---------
 
+// utilities
+template <std::size_t dims>
+Vector<scalar_t, dims> to_chunk_local_ind(const Vector<scalar_t, dims>& global_ind, const ChunkMetadata<dims>& meta) {
+  
+  Vector<scalar_t, dims> local_ind;
+  for(std::size_t i = 0; i < dims; i++) {
+    
+    scalar_t tmp;
+    scalar_t frac_part = std::modf(global_ind[i], &tmp);
+    std::size_t int_part = (std::size_t)tmp;
+    
+    local_ind[i] = (scalar_t)(int_part - meta.loc_ind_offset[i]) + frac_part;
+  }
+  
+  return local_ind;
+}
+
+// ---------
+
 CylindricalGreensFunction::CylindricalGreensFunction(std::filesystem::path path, std::size_t cache_size) :
   lib_t(path, cache_size), m_meta(), m_meta_path(path / m_meta_filename) {
   load_metadata();   // Load metadata from disk
@@ -217,17 +236,12 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // std::cout << "HHHHHHHHH" << std::endl;
        
     // Convert to chunk-local coordinates
-    // TODO: this is very clunky, make better
-    RZTIndexVector rzt_chunk_ind_offset{RZTIndexVector::r(meta.loc_ind_offset), RZTIndexVector::z(meta.loc_ind_offset), RZTIndexVector::t(meta.loc_ind_offset)};
-    RZTVector rzt_chunk_local_ind = (cur_ind - rzt_chunk_ind_offset).template as_type<scalar_t>() + (cur_f_ind - cur_ind.template as_type<scalar_t>());
-    RZCoordVector rz_chunk_local_ind{rzt_chunk_local_ind.r(), rzt_chunk_local_ind.z()};
-
-    // Reset interpolation buffer
-    interp_buffer.clear();
+    RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, meta);
     
     // Perform interpolation
+    interp_buffer.clear();
     Interpolation::interpolate<KernelT>(chunk, interp_buffer,
-					rz_chunk_local_ind, rzt_chunk_local_ind.t(),
+					chunk_local_ind.rz_view(), chunk_local_ind.t(),
 					t_samp_f_ind, samples_to_request);
 
     // Compute inner products and accumulate in output range

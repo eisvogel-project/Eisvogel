@@ -280,15 +280,11 @@ struct RZVector : public Vector2D<T> {
   T& r() { return this -> operator[](0); };
   T& z() { return this -> operator[](1); };
 
-  template <class SubscriptableT>
-  static const T& r(const SubscriptableT& vec) { return vec[0]; }
-  template <class SubscriptableT>
-  static const T& z(const SubscriptableT& vec) { return vec[1]; }
+  static const T& r(const Vector2D<T>& vec) { return vec[0]; }
+  static const T& z(const Vector2D<T>& vec) { return vec[1]; }
 
-  template <class SubscriptableT>
-  static T& r(SubscriptableT& vec) { return vec[0]; }
-  template <class SubscriptableT>
-  static T& z(SubscriptableT& vec) { return vec[1]; }
+  static T& r(Vector2D<T>& vec) { return vec[0]; }
+  static T& z(Vector2D<T>& vec) { return vec[1]; }
 };
 
 template <typename T>
@@ -305,12 +301,11 @@ struct RZTVector : public Vector3D<T> {
   T& z() { return this -> operator[](1); };
   T& t() { return this -> operator[](2); };
 
-  template <class SubscriptableT>
-  static const T& r(const SubscriptableT& vec) { return vec[0]; }
-  template <class SubscriptableT>
-  static const T& z(const SubscriptableT& vec) { return vec[1]; }
-  template <class SubscriptableT>
-  static const T& t(const SubscriptableT& vec) { return vec[2]; }
+  static const T& r(const Vector3D<T>& vec) { return vec[0]; }
+  static const T& z(const Vector3D<T>& vec) { return vec[1]; }
+  static const T& t(const Vector3D<T>& vec) { return vec[2]; }
+
+  RZVectorView<T> rz_view() { return RZVectorView<T>( this -> begin()); };
 };
 
 template <typename T>
