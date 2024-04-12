@@ -19,10 +19,44 @@ namespace Interpolation::Kernel {
     assert((i_frac >= 0) && (i_frac < 1));
 
     // Evaluate the kernel at the four participating positions
-    *(out+0) = i_frac * (-0.5 + (1.0 - 0.5 * i_frac) * i_frac);    // weight for sample at `i_int - 1`
-    *(out+1) = 1.0 + i_frac * i_frac * (-2.5 + 1.5 * i_frac);      // weight for sample at `i_int`
-    *(out+2) = i_frac * (0.5 + (2.0 - 1.5 * i_frac) * i_frac);     // weight for sample at `i_int + 1`
-    *(out+3) = (-0.5 + 0.5 * i_frac) * i_frac * i_frac;            // weight for sample at `i_int + 2`
+
+    // weight for sample at `i_int - 1`
+    // *(out+0) = i_frac * (-0.5 + (1.0 - 0.5 * i_frac) * i_frac);
+    scalar_t p1_1 = -0.5 * i_frac;
+    scalar_t p1_2 = i_frac - 1.0;
+    scalar_t p1_3 = p1_1 * p1_2;
+    *(out+0) = p1_3 * p1_2;
+
+    // weight for sample at `i_int`
+    // *(out+1) = 1.0 + i_frac * i_frac * (-2.5 + 1.5 * i_frac);
+    constexpr scalar_t c2_1 = (1.0 - std::sqrt(7.0)) / 3.0;
+    scalar_t p2_1 = i_frac - c2_1;
+    constexpr scalar_t c2_2 = (1.0 + std::sqrt(7.0)) / 3.0;
+    scalar_t p2_2 = i_frac - c2_2;
+    scalar_t p2_3 = i_frac - 1.0;
+    scalar_t p2_4 = p2_2 * p2_3;
+    constexpr scalar_t c2_5 = 3.0 / 2.0;
+    scalar_t p2_5 = c2_5 * p2_1;
+    *(out+1) = p2_5 * p2_4;
+
+    // weight for sample at `i_int + 1`
+    // *(out+2) = i_frac * (0.5 + (2.0 - 1.5 * i_frac) * i_frac);
+    constexpr scalar_t c3_1 = 1.0 / 3.0 * (2.0 - std::sqrt(7.0));
+    scalar_t p3_1 = i_frac - c3_1;
+    constexpr scalar_t c3_2 = 1.0 / 3.0 * (2.0 + std::sqrt(7.0));
+    scalar_t p3_2 = i_frac - c3_2;
+    scalar_t p3_3 = p3_1 * p3_2;
+    constexpr scalar_t c3_4 = -3.0 / 2.0;
+    scalar_t p3_4 = i_frac * c3_4;        
+    *(out+2) = p3_3 * p3_4;
+
+    // weight for sample at `i_int + 2`
+    // *(out+3) = (-0.5 + 0.5 * i_frac) * i_frac * i_frac;
+    scalar_t p4_1 = i_frac - 1.0;
+    scalar_t p4_2 = i_frac * i_frac;
+    constexpr scalar_t c4_3 = 1.0 / 2.0;
+    scalar_t p4_3 = p4_1 * c4_3;
+    *(out+3) = p4_3 * p4_2;
   }
 }
 
