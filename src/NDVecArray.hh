@@ -2,6 +2,7 @@
 
 #include <iostream> // for debug only---remove at the end
 
+#include <cassert>
 #include <fstream>
 #include <memory>
 #include <vector>
@@ -106,25 +107,39 @@ public:
 
   // sets all entries of this array to zero; requires that data is owned
   void clear();
+
+  bool index_within_bounds(const ind_t& ind) const {
+    for(std::size_t i = 0; i < dims; i++) {
+      if(ind[i] >= m_shape[i]) {
+	return false;
+      }
+    }
+    return true;
+  }
   
   // Single-element access, no bounds checking
   view_t operator[](const ind_t& ind) {
+    assert(index_within_bounds(ind));
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
 
   const view_t operator[](const ind_t& ind) const {
+    assert(index_within_bounds(ind));
     return view_t(m_data -> begin() + ComputeFlatInd(ind));
   }
 
   view_t operator[](const std::size_t ind) requires(dims == 1) {
+    assert(index_within_bounds(ind));
     return view_t(m_data -> begin() + vec_dims * ind);
   }
 
   T& operator[](const ind_t& ind) requires(vec_dims == 1) {
+    assert(index_within_bounds(ind));
     return *(m_data.begin() + ComputeFlatInd(ind));
   }
 
   T& operator[](const std::size_t ind) requires((dims == 1) && (vec_dims == 1)) {
+    assert(index_within_bounds(ind));
     return m_data[ind];
   }
   
