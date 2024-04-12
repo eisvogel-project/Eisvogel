@@ -88,12 +88,14 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   XYZCoordVector source_xyz = seg_vel * seg.charge;
   
   // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
-  
+
+  // ------
+  // TODO: add heuristic to find good block sizes
   // For the t_sig direction, can just take the average chunk size along t -> convert into number of samples by dividing by t_sig_samp
   // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by itgr_step
-
-  const std::size_t max_sample_block_size = 10; // number of signal samples in block
-  const std::size_t max_itgr_block_size = 10; // number of integration steps in block
+  const std::size_t max_sample_block_size = 100; // number of signal samples in block
+  const std::size_t max_itgr_block_size = 100; // number of integration steps in block
+  // ------
   
   NDVecArray<scalar_t, 1, vec_dims> coords_rz(max_itgr_block_size);
   NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
@@ -171,6 +173,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 
 	// The above should make sure we're only interested in the causal part of the Green's function
 	assert(convolution_t_start >= 0.0);
+
+	// Make sure we don't run over the end of the vector
+	assert(block_sample_ind_start + block_num_samples <= signal.size());
 	
 	auto block_result = signal.begin() + block_sample_ind_start;	
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
