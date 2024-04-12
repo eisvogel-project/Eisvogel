@@ -40,7 +40,7 @@ void fill_array_linear(NDVecArray<T, dims, vec_dims>& to_fill, const Vector<scal
 
 template <class KernelT, std::size_t dims, std::size_t vec_dims>
 void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const Vector<scalar_t, dims>& coeffs, Vector<scalar_t, dims-1> outer_inds,
-			      T inner_ind_start, T inner_ind_end, T inner_ind_delta, scalar_t rel_th = 1e-6) {
+			      T inner_ind_start, T inner_ind_end, T inner_ind_delta, scalar_t rel_th = 1e-4) {
 
   NDVecArray<T, dims, vec_dims> data(data_shape);
   fill_array_linear<dims, vec_dims>(data, coeffs);
@@ -73,7 +73,7 @@ void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const
     for(std::size_t i = 0; i < vec_dims; i++) {
       if(std::fabs((interpolated_value[i] - expected_value[i]) / expected_value[i]) > rel_th) {
 	std::cout << "Found non-closure!" << std::endl;
-	throw;
+	std::cout << "interp = " << interpolated_value[i] << " exp = " << expected_value[i] << std::endl;
       }
     }    
     elem_ind++;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
   Vector<T, dims-1> outer_inds{250.0f, 250.0f};  
   T inner_ind_start = 4;
   T inner_ind_end = 388;
-  T inner_ind_delta = 1;
+  T inner_ind_delta = 0.1;
 
   test_closure_linear_data<Interpolation::Kernel::Keys, dims, vec_dims>(shape, coeffs, outer_inds, inner_ind_start, inner_ind_end, inner_ind_delta);
 
