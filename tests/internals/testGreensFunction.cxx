@@ -201,13 +201,13 @@ int main(int argc, char* argv[]) {
 			     XYZCoordVector{20.0f, 20.0f, 40.0f},   // track end position
 			     track_start_time, track_end_time, track_charge);
 
-    gf.apply_accumulate<Interpolation::Kernel::Linear>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
+    gf.apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
     std::fill(signal_buffer.begin(), signal_buffer.end(), 0.0);
     
     auto start = std::chrono::high_resolution_clock::now();
     
     // integrate the current against the Green's function
-    gf.apply_accumulate<Interpolation::Kernel::Linear>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
+    gf.apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
 
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);  
