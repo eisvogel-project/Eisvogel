@@ -69,7 +69,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 						 std::vector<scalar_t>& signal) {
 
   // Max. integration step size delta_t_p
-  scalar_t max_itgr_step = 1.0f;
+  scalar_t max_itgr_step = 0.001f;
   
   // Determine total number of quadrature intervals (always integer) ...
   const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
@@ -132,9 +132,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += max_sample_block_size) {
       std::size_t sample_block_end = std::min(sample_block_start + max_sample_block_size, num_samples);
 
-      std::cout << "---------" << std::endl;
-      std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
-      std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
+      // std::cout << "---------" << std::endl;
+      // std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
+      // std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
       
       // iterate over the segment evaluation points in this integration block
       for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
@@ -147,29 +147,35 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	
 	// Find index of the first nonzero output sample that we can determine, i.e. the first sample for which t - t' > 0 in the convolution integral
 	std::size_t sample_ind_causal = std::max<int>(0, std::ceil((t_p - t_sig_start) / t_sig_samp));
-	std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
+	//std::size_t block_sample_ind_start = std::max(sample_ind_causal, sample_block_start);
+	std::size_t block_sample_ind_start = std::clamp(sample_ind_causal, sample_block_start, sample_block_end);
 
 	// Number of samples we're computing now
 	std::size_t block_num_samples = sample_block_end - block_sample_ind_start;	
 
+	// If this block doesn't contribute anything due to causality, no future iteration of the `i_pt` loop will
+	if(block_num_samples == 0) {
+	  break;
+	}
+	
 	// Time of the first output sample that we are computing in this block
 	scalar_t block_t_sig_start = block_sample_ind_start * t_sig_samp + t_sig_start;
 	
 	// start time in integration block
 	scalar_t convolution_t_start = block_t_sig_start - t_p;
 
-	std::cout << " . . . . . . . . " << std::endl;
-	std::cout << "start to call accumulate_inner_product" << std::endl;
-	std::cout << "t_p = " << t_p << std::endl;
-	std::cout << "t_sig_start = " << t_sig_start << std::endl;
-	std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
-	std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
-	std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
-	std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
-	std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
-	std::cout << "num_samples = " << block_num_samples << std::endl;
-	std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
-	std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
+	// std::cout << " . . . . . . . . " << std::endl;
+	// std::cout << "start to call accumulate_inner_product" << std::endl;
+	// std::cout << "t_p = " << t_p << std::endl;
+	// std::cout << "t_sig_start = " << t_sig_start << std::endl;
+	// std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
+	// std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
+	// std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
+	// std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
+	// std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
+	// std::cout << "num_samples = " << block_num_samples << std::endl;
+	// std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
+	// std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
 
 	// The above should make sure we're only interested in the causal part of the Green's function
 	assert(convolution_t_start >= 0.0);
@@ -181,10 +187,10 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
 					  quadrature_weights[i_pt] * itgr_step);
 
-	std::cout << " . . . . . . . . " << std::endl;
+	//std::cout << " . . . . . . . . " << std::endl;
       }
 
-      std::cout << "-----------" << std::endl;
+      //std::cout << "-----------" << std::endl;
     }         
   }  
 }
@@ -252,6 +258,10 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // Compute inner products and accumulate in output range
     for(std::size_t i = 0; i < samples_to_request; i++) {
       *result += inner_product(interp_buffer[i], source) * weight;
+      // std::cout << "rz_start = " << chunk_local_ind.rz_view() << std::endl;
+      // std::cout << "t_start = " << chunk_local_ind.t() << std::endl;
+      // std::cout << "G: " << interp_buffer[i] << std::endl;
+      // std::cout << "accum: " << inner_product(interp_buffer[i], source) * weight << std::endl;
       std::advance(result, 1);
     }
     
