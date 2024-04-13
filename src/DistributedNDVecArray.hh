@@ -392,7 +392,7 @@ public:
   view_t operator[](const ind_t& ind);  
 
   // Imports another distributed array and add it to this one
-  void Import(const DistributedNDVecArray<ArrayT, T, dims, vec_dims>& other);
+  void Import(std::filesystem::path dir);
   
   // Rebalance chunks in-place, i.e. output will remain in the same location
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir);

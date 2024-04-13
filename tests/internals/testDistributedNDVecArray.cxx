@@ -125,6 +125,40 @@ void test_darr_correctness(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>&
 }
 
 template <std::size_t dims, std::size_t vec_dims, class CallableT>
+void test_darr_correctness_subscription_op(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, CallableT&& filler) {
+
+  std::cout << "testing closure ... ";
+
+  std::size_t num_elements_visited = 0;
+  using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;  
+  auto checker = [&](const Vector<std::size_t, dims>& ind) {
+
+    num_elements_visited++;
+    
+    Vector<T, vec_dims> filled_values = filler(ind);
+    view_t darr_element = darr[ind];
+    
+    for(std::size_t i = 0; i < vec_dims; i++) {
+
+      T darr_value = darr_element[i];
+      T filled_value = filled_values[i];
+      
+      if(darr_value != filled_value) {
+	std::cout << "Error: discrepancy for element index " << ind << ", vector index " << i << ": found " << darr_value
+		  << ", expected " << filled_value << "!" << std::endl;
+	throw;
+      }
+    }
+  };
+  Vector<std::size_t, dims> start_ind(0);
+  IteratorUtils::index_loop_over_elements(start_ind, darr.GetShape(), checker);  
+  
+  std::cout << "OK!" << std::endl;
+
+  std::cout << "visited " << num_elements_visited << " elements" << std::endl;
+}
+
+template <std::size_t dims, std::size_t vec_dims, class CallableT>
 void test_fill_array(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr,
 		     const Vector<std::size_t, dims>& region_start_ind, const Vector<std::size_t, dims>& region_end_ind,
 		     CallableT&& filler) {
@@ -195,6 +229,7 @@ int main(int argc, char* argv[]) {
   append_slices<0>(darr, slice_shape, filler);
   
   test_darr_correctness(darr, filler);
+  test_darr_correctness_subscription_op(darr, filler);
 
   std::cout << darr.GetShape() << std::endl;
   
@@ -209,6 +244,7 @@ int main(int argc, char* argv[]) {
   };  
 
   test_darr_correctness(darr, swapped_filler);
+  test_darr_correctness_subscription_op(darr, swapped_filler);
 
   using view_t = typename DistributedNDVecArray<NDVecArray, T, dims, vec_dims>::view_t;
   auto boundary_evaluator = [](darr_t& darr, const Vector<int, dims>& ind, view_t elem){
@@ -219,18 +255,56 @@ int main(int argc, char* argv[]) {
     default_val[1] = 123345;
     elem = darr[default_ind];
   };
-  
-  std::filesystem::path workdir_tmp = "./darr_test_tmp";
-  Vector<std::size_t, dims> requested_chunk_size(40);  
-  darr.RebuildChunks(requested_chunk_size, workdir_tmp, 1, boundary_evaluator);
 
-  std::cout << darr.GetShape() << std::endl;
+  {
+    std::filesystem::path workdir_tmp = "./darr_test_tmp";
+    Vector<std::size_t, dims> requested_chunk_size(40);  
+    darr.RebuildChunks(requested_chunk_size, workdir_tmp, 1, boundary_evaluator);
+    
+    std::cout << darr.GetShape() << std::endl;
+    
+    test_darr_correctness(darr, swapped_filler);
+    test_darr_correctness_subscription_op(darr, swapped_filler);
+    
+    darr_t darr_read(workdir);
+    std::cout << darr_read.GetShape() << std::endl;
+    test_darr_correctness(darr_read, swapped_filler);
+    test_darr_correctness_subscription_op(darr, swapped_filler);
+  }
   
-  test_darr_correctness(darr, swapped_filler);
+  Vector<std::size_t, dims> requested_chunk_size(40);
+  Vector<std::size_t, dims> job_partition(80);
 
-  darr_t darr_read(workdir);
-  std::cout << darr_read.GetShape() << std::endl;
-  test_darr_correctness(darr_read, swapped_filler);
+  std::size_t job_id = 0;
+  
+  {
+    auto rechunker = [&](const Vector<std::size_t, dims>& chunk_start, const Vector<std::size_t, dims>& chunk_end) {
+      
+      std::filesystem::path outpath = "./rechunk_" + std::to_string(job_id);
+      
+      std::size_t overlap = 2;
+      darr.RebuildChunksPartial(chunk_start, chunk_end, requested_chunk_size, outpath, overlap, boundary_evaluator);
+      
+      job_id++;   
+    };
+    
+    Vector<std::size_t, dims> global_start_ind(0);
+    IteratorUtils::index_loop_over_chunks(global_start_ind, darr.GetShape(), job_partition, rechunker);
+  }
+  
+  std::filesystem::path workdir_final = "./darr_test_final";
+
+  {
+    darr_t darr_merge(workdir_final);
+    for(std::size_t i = 0; i < job_id; i++) {
+      darr_merge.Import("./rechunk_" + std::to_string(i));
+    }
+  }
+
+  darr_t darr_final(workdir_final);
+  std::cout << darr_final.GetShape() << std::endl;
+  test_darr_correctness(darr_final, swapped_filler);
+  test_darr_correctness_subscription_op(darr, swapped_filler);
   
   std::cout << "done" << std::endl;
 }
