@@ -5,9 +5,100 @@
 #include "GreensFunction.hh"
 #include "Symmetry.hh"
 
-namespace GreensFunctionUtils {
+namespace GreensFunctionUtils::Analytic {
 
-  
+  void EvaluateElectricDipoleGreensFunction(const RZTCoordVector& start_coords, const RZTCoordVector& stepsize, scalar_t ior,
+					    scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
+					    SpatialSymmetry::Cylindrical<scalar_t, 2>::chunk_t& buffer) {
+
+    scalar_t Qw = 1.0;
+    scalar_t eps0 = 1.0;  // vacuum dielectric constant
+    scalar_t ds = 1.0;
+    scalar_t c = 1.0;  // speed of light in vacuum
+    
+    auto filtered_theta = [&](scalar_t t) -> scalar_t {
+      if(t <= 0) {
+	return 0.0;
+      }
+      return 1.0 - MathUtils::incomplete_gamma(1 + filter_order, filter_order * t / filter_t_peak) / std::exp(std::lgamma(filter_order + 1));
+    };
+    
+    auto filtered_delta = [&](scalar_t t) -> scalar_t {
+      if(t <= 0) {
+	return 0.0;
+      }
+      return std::pow(t / filter_t_peak * filter_order, filter_order) * std::exp(-t / filter_t_peak * filter_order) / (filter_t_peak * std::exp(std::lgamma(filter_order)));
+    };
+
+    auto filtered_delta_prime = [&](scalar_t t) -> scalar_t {
+      if(t <= 0) {
+	return 0.0;
+      }
+      return filtered_delta(t) * (filter_t_peak - t) * filter_order / (filter_t_peak * t);
+    };  
+
+    // Weighting field in spherical coordinates
+    auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
+      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      if(r < r_min) {
+	return std::nan("");
+      }
+      scalar_t t_prop = r * ior / c, t_del = t - t_prop;
+      scalar_t cos_theta = z / r;
+
+      return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del) + 
+										t_prop * filtered_delta(t_del));
+    };
+
+    auto E_theta = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
+      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      if(r < r_min) {
+	return std::nan("");
+      }
+      scalar_t t_prop = r * ior / c, t_del = t - t_prop;
+      scalar_t sin_theta = r_xy / r;
+      return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del) + t_prop * filtered_delta(t_del)
+									  + std::pow(t_prop, 2) * filtered_delta_prime(t_del));
+    };
+
+    // Weighting field in cylindrical coordinates
+    auto E_rxy = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
+      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t cos_theta = z / r, sin_theta = r_xy / r;
+      return E_r(t, r_xy, z) * sin_theta + E_theta(t, r_xy, z) * cos_theta;
+    };
+    
+    auto E_z = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
+      r_xy = std::fabs(r_xy);
+      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t cos_theta = z / r, sin_theta = r_xy / r;
+      return E_r(t, r_xy, z) * cos_theta - E_theta(t, r_xy, z) * sin_theta;
+    };
+    
+    using view_t = typename SpatialSymmetry::Cylindrical<scalar_t, 2>::view_t;    
+    auto evaluator = [&](const RZTIndexVector& ind, view_t cur_element) {
+
+      // Coordinates of current point
+      RZTCoordVector cur_pt = start_coords + stepsize * (ind.template as_type<scalar_t>());
+
+      // Fields at this location
+      scalar_t cur_E_rxy = E_rxy(cur_pt.t(), cur_pt.r(), cur_pt.z());
+      scalar_t cur_E_z = E_z(cur_pt.t(), cur_pt.r(), cur_pt.z());
+
+      // Store
+      cur_element[0] = cur_E_rxy;
+      cur_element[1] = cur_E_z;
+    };
+    
+    // evaluate the Green's function and fill the buffer
+    buffer.index_loop_over_elements(evaluator);    
+  }
+}
+
+namespace GreensFunctionUtils {
   
   void CreateElectricDipoleGreensFunction(std::filesystem::path gf_path, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
 					  scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
@@ -65,15 +156,14 @@ namespace GreensFunctionUtils {
       // Prepare the start- and end coordinates of this chunk ...
       RZTVector<std::size_t> cur_chunk_size = chunk_end_ind - chunk_start_ind;
       RZTCoordVector chunk_start_coords = start_coords_rzt + chunk_start_ind.template as_type<scalar_t>() * stepsize;
-      RZTCoordVector chunk_end_coords = start_coords_rzt + chunk_end_ind.template as_type<scalar_t>() * stepsize;
 
       // ... and make sure the chunk buffer matches the required shape
       chunk_buffer.resize(cur_chunk_size);
 
       // Fill the buffer ...
+      Analytic::EvaluateElectricDipoleGreensFunction(chunk_start_coords, stepsize, ior, filter_t_peak, filter_order, r_min, chunk_buffer);
       
       std::cout << "filling chunk with start = " << chunk_start_ind << " and end = " << chunk_end_ind << std::endl;
-      std::cout << "chunk_start_coords = " << chunk_start_coords << " chunk_end_coords = " << chunk_end_coords << std::endl;
 
       // ... and register it
       darr.RegisterChunk(chunk_buffer, chunk_start_ind);

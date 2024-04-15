@@ -291,6 +291,7 @@ template <typename T>
 struct RZTVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;  // Inherit all constructors
   RZTVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+  RZTVector(Vector3D<T>& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
   RZTVector(const RZVector<T>& rz_vec, const T& t_val) : Vector3D<T>{rz_vec.r(), rz_vec.z(), t_val} { }
 
   const T& r() const { return this -> operator[](0); };
