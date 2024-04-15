@@ -200,8 +200,8 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight) {
 
   // Buffer to hold the interpolated values
-  constexpr std::size_t init_interp_buffer_len = 100;
-  NDVecArray<scalar_t, 1, vec_dims> interp_buffer(init_interp_buffer_len);
+  // TODO: check if this reallocation is slow
+  NDVecArray<scalar_t, 1, vec_dims> interp_buffer(num_samples);
 
   // Convert everything from coordinates to floating-point array indices (`f_ind`)
   RZVector rz_f_ind = coords_to_index(rz_coords);
@@ -250,6 +250,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, meta);
     
     // Perform interpolation
+    // TODO: check if computing the inner product right during the interpolation is faster (gets rid of the `interp_buffer`, but computes many more inner products)
     interp_buffer.clear();
     Interpolation::interpolate<KernelT>(chunk, interp_buffer,
 					chunk_local_ind.rz_view(), chunk_local_ind.t(),
