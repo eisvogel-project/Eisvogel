@@ -69,7 +69,7 @@ namespace IteratorUtils {
       chunk_end[cur_dim] = std::min(chunk_begin[cur_dim] + chunk_size[cur_dim], end[cur_dim]);
       
       if constexpr(cur_dim == vec_dims - 1) {
-	worker(chunk_begin, chunk_end);
+	worker(std::forward<Vector<NumT, vec_dims>>(chunk_begin), std::forward<Vector<NumT, vec_dims>>(chunk_end));
       }
       else {
 	index_loop_over_chunks_dimension<cur_dim + 1>(begin, end, chunk_size, chunk_begin, chunk_end, worker);
