@@ -41,6 +41,9 @@ class NDVecArray {
 
   static_assert(dims > 0);
   static_assert(vec_dims > 0);
+
+private:
+  friend struct stor::Traits<NDVecArray<T, dims, vec_dims>>;
   
 private:
 

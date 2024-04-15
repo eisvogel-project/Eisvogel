@@ -317,3 +317,15 @@ bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_
   }
   return true;
 }
+
+namespace stor {
+
+  template <typename T, std::size_t dims, std::size_t vec_dims>
+  struct Traits<NDVecArray<T, dims, vec_dims>> {
+    using type = NDVecArray<T, dims, vec_dims>;
+
+    static void serialize_to_python(std::iostream& stream, const type& val) {
+      
+    }
+  };  
+}
