@@ -148,25 +148,27 @@ int main(int argc, char* argv[]) {
   {
     CylindricalGreensFunction gf(workdir, 5);
 
-    std::size_t num_samples = 1;
+    std::size_t num_samples = 150;
     
     std::vector<scalar_t> accum(num_samples, 0.0);
     // RZCoordVector cur_pt{123.0f, 123.0f};
+    // RZCoordVector cur_pt{28.2843f, 20.0f};
     RZCoordVector cur_pt{28.2843f, 20.0f};
-    //scalar_t t_start = 123.0f;
+    // scalar_t t_start = 123.0f;
     scalar_t t_start = 0.001f;
+    // scalar_t t_start = 16.801;
     scalar_t t_samp = 0.1;
 
     // RZFieldVector source{1.0f, 1.0f};
     RZFieldVector source{7.07107f, 0.0f};
 
-    gf.accumulate_inner_product<Interpolation::Kernel::Linear>(cur_pt, t_start, t_samp, num_samples,
+    gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_samp, num_samples,
 							     source, accum.begin());
 
     // test closure
     std::cout << "Testing closure ... ";
     for(std::size_t sample_ind = 0; sample_ind < num_samples; sample_ind++) {
-      RZTCoordVector pos{cur_pt.r(), cur_pt.z(), t_start + t_samp * sample_ind};
+      RZTCoordVector pos{t_start + t_samp * sample_ind, cur_pt.r(), cur_pt.z()};
       Vector<scalar_t, vec_dims> field = toy_green<dims, vec_dims>(pos, coeffs);
       
       scalar_t inner_product = 0.0;
@@ -174,10 +176,12 @@ int main(int argc, char* argv[]) {
 	inner_product += field[i] * source[i];
       }
 
-      if(std::fabs((inner_product - accum[sample_ind]) / inner_product) > 1e-6) {
+      if(std::fabs((inner_product - accum[sample_ind]) / inner_product) > 1e-3) {
 	std::cout << "---------" << std::endl;
 	std::cout << "Problem!" << std::endl;
 	std::cout << "pos = " << pos << std::endl;
+	std::cout << "field = " << field << std::endl;
+	std::cout << "interpolated = " << accum[sample_ind] << " vs expected = " << inner_product << std::endl;
 	std::cout << "---------" << std::endl;
       }
     }
@@ -188,19 +192,25 @@ int main(int argc, char* argv[]) {
   {
     CylindricalGreensFunction gf(workdir, 5);
 
-    scalar_t t_sig_start = 110.0f;
+    scalar_t t_sig_start = -100.0f;
     scalar_t t_sig_samp = 1.0f;
     std::size_t num_samples = 240;
     std::vector<scalar_t> signal_buffer(num_samples);
 
     // build current segment
-    scalar_t track_start_time = 120.0f;
-    scalar_t track_end_time = 350.0f;
+    // scalar_t track_start_time = 120.0f;
+    scalar_t track_start_time = -50.0f;
+    // scalar_t track_end_time = 350.0f;
+    scalar_t track_end_time = 50.0f;
     scalar_t track_charge = 1.0f;
-    LineCurrentSegment track(XYZCoordVector{10.0f, 10.0f, 20.0f},    // track start position
-			     XYZCoordVector{20.0f, 20.0f, 40.0f},   // track end position
-			     track_start_time, track_end_time, track_charge);
+    // LineCurrentSegment track(XYZCoordVector{10.0f, 10.0f, 20.0f},    // track start position
+    // 			     XYZCoordVector{20.0f, 20.0f, 40.0f},   // track end position
+    // 			     track_start_time, track_end_time, track_charge);
 
+    LineCurrentSegment track(XYZCoordVector{-100.0f, 0.0f, 40.0f},    // track start position
+			     XYZCoordVector{100.0f, 0.0f, 40.0f},   // track end position
+			     track_start_time, track_end_time, track_charge);
+    
     gf.apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal_buffer);
     std::fill(signal_buffer.begin(), signal_buffer.end(), 0.0);
     
