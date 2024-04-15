@@ -1,10 +1,14 @@
+#include <cassert>
 #include "Eisvogel/GreensFunctionUtils.hh"
 #include "Eisvogel/IteratorUtils.hh"
 #include "DistributedNDVecArray.hh"
 #include "GreensFunction.hh"
+#include "Symmetry.hh"
 
 namespace GreensFunctionUtils {
 
+  
+  
   void CreateElectricDipoleGreensFunction(std::filesystem::path gf_path, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
 					  scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
 					  scalar_t os_factor, std::size_t max_pts_in_chunk) {
@@ -29,26 +33,54 @@ namespace GreensFunctionUtils {
     std::cout << "end_coords: t = " << t_end << ", r = " << end_coords.r() << ", z = " << end_coords.z() << std::endl;
     std::cout << "---------------------------" << std::endl;
 
+    RZTCoordVector start_coords_rzt{start_coords.r(), start_coords.z(), t_start};
+    RZTCoordVector end_coords_rzt{end_coords.r(), end_coords.z(), t_end};
+
+    // Determine step size so that an integer number of samples fits into the domain of the Green's function
     RZTVector<scalar_t> stepsize_requested{delta_pos, delta_pos, delta_t};
-    RZTCoordVector start_coords_rzt;
-    RZTCoordVector end_coords_rzt;
+    RZTVector<std::size_t> number_pts = ((end_coords_rzt - start_coords_rzt) / stepsize_requested).template as_type<std::size_t>() + 1;
+    RZTVector<scalar_t> stepsize = (end_coords_rzt - start_coords_rzt) / number_pts.template as_type<scalar_t>();
     
-    auto fill_and_register_chunk = [](const RZTIndexVector& chunk_start, const RZTIndexVector& chunk_end){
-
-      
-    };
-
+    // Resulting start- and end indices
     RZTIndexVector start_inds(0);
-    RZTIndexVector end_inds = ((end_coords_rzt - start_coords_rzt) / stepsize_requested).template as_type<std::size_t>();
-    RZTVector<std::size_t> chunk_size(max_pts_in_chunk);
-    IteratorUtils::index_loop_over_chunks(start_inds, end_inds, chunk_size);
+    RZTIndexVector end_inds = ((end_coords_rzt - start_coords_rzt) / stepsize).template as_type<std::size_t>();
+
+    // Prepare chunk buffer: need 3-dim array storing 2-dim vectors
+    constexpr std::size_t vec_dims = 2;     // we only need to store E_r and E_z
+    using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::chunk_t;
+    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::darr_t;
     
-    // DeltaVector domain_size = end_coords - start_coords;
-    // CoordVector number_pts = domain_size / stepsize_requested;
+    RZTVector<std::size_t> chunk_size(max_pts_in_chunk);
+    chunk_t chunk_buffer(chunk_size);
+    
+    // Prepare distributed array
+    std::size_t cache_depth = 1;   // all chunks are prepared as final, no need for a large cache here
+    RZTVector<std::size_t> init_cache_el_shape = chunk_size;
+    RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one outermost slice at a time
+    darr_t darr(gf_path, cache_depth, init_cache_el_shape, streamer_chunk_shape);
 
-    // IndexVector number_chunks = number_pts / max_pts_in_chunk + 1;
-    // DeltaVector chunk_size = domain_size / (DeltaVector)(number_chunks);
-    // IndexVector number_pts_in_chunk = chunk_size / stepsize_requested + 1;    
+    // Loop over chunks, fill them, and register them in the distributed array
+    auto fill_and_register_chunk = [&](const RZTIndexVector& chunk_start_ind, const RZTIndexVector& chunk_end_ind){
 
+      // Prepare the start- and end coordinates of this chunk ...
+      RZTVector<std::size_t> cur_chunk_size = chunk_end_ind - chunk_start_ind;
+      RZTCoordVector chunk_start_coords = start_coords_rzt + chunk_start_ind.template as_type<scalar_t>() * stepsize;
+      RZTCoordVector chunk_end_coords = start_coords_rzt + chunk_end_ind.template as_type<scalar_t>() * stepsize;
+
+      // ... and make sure the chunk buffer matches the required shape
+      chunk_buffer.resize(cur_chunk_size);
+
+      // Fill the buffer ...
+      
+      std::cout << "filling chunk with start = " << chunk_start_ind << " and end = " << chunk_end_ind << std::endl;
+      std::cout << "chunk_start_coords = " << chunk_start_coords << " chunk_end_coords = " << chunk_end_coords << std::endl;
+
+      // ... and register it
+      darr.RegisterChunk(chunk_buffer, chunk_start_ind);
+    };    
+    IteratorUtils::index_loop_over_chunks(start_inds, end_inds, chunk_size, fill_and_register_chunk);
+
+    // Create the actual Green's function from the sampled data
+    CylindricalGreensFunction(start_coords_rzt, end_coords_rzt, stepsize, std::move(darr));
   }
 }

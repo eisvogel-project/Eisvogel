@@ -12,8 +12,9 @@ int main(int argc, char* argv[]) {
   std::string gf_path = argv[1];
 
   // Domain of weighting field
-  RZTCoordVector start_coords{0.0f, 0.0f, -50.0f};
-  RZTCoordVector end_coords{50.0f, 70.0f, 50.0f};
+  RZCoordVector start_coords{0.0f, -50.0f};
+  RZCoordVector end_coords{70.0f, 50.0f};
+  scalar_t t_end = 100;
 
   // Index of refraction
   scalar_t ior = 1.0;
@@ -26,5 +27,5 @@ int main(int argc, char* argv[]) {
   scalar_t os_factor = 30;
   scalar_t r_min = 0.1;
 
-  GFU::CreateElectricDipoleGreensFunction(gf_path, start_coords, end_coords, ior, filter_t_peak, filter_order, r_min, os_factor);
+  GFU::CreateElectricDipoleGreensFunction(gf_path, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }
