@@ -146,7 +146,7 @@ namespace GreensFunctionUtils {
     chunk_t chunk_buffer(chunk_size);
     
     // Prepare distributed array
-    std::size_t cache_depth = 1;   // all chunks are prepared as final, no need for a large cache here
+    std::size_t cache_depth = 5;   // all chunks are prepared as final, no need for a large cache here
     RZTVector<std::size_t> init_cache_el_shape = chunk_size;
     RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one outermost slice at a time
     darr_t darr(gf_path, cache_depth, init_cache_el_shape, streamer_chunk_shape);
