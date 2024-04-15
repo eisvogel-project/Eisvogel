@@ -7,6 +7,7 @@ pkg_check_modules(TBB REQUIRED tbb)
 pkg_check_modules(UUID REQUIRED uuid)
 
 add_library(eisvogel SHARED
+            GreensFunctionUtils.cxx
             WeightingFieldUtilsOld.cxx
 	    IteratorUtils.cxx
 	    Current.cxx
