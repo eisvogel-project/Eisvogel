@@ -1,8 +1,6 @@
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
-set(CMAKE_CXX_FLAGS "-O3 -Wall -Wpedantic -Wextra -ftree-vectorize -ffast-math -fno-trapping-math -ftree-vectorizer-verbose=2 -march=native -save-temps -fverbose-asm -g -DNDEBUG")
-
 add_executable(point_charge_coulomb point_charge_coulomb.cxx)
 target_link_libraries(point_charge_coulomb eisvogel)
 

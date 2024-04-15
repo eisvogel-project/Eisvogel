@@ -1,3 +1,5 @@
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wpedantic -Wextra -ftree-vectorize -ffast-math -fno-trapping-math -ftree-vectorizer-verbose=2 -march=native -save-temps -fverbose-asm -g")
+
 if(BUILD_WFC)
     add_subdirectory(dipole_free_space)
     add_subdirectory(dipole_ice)
