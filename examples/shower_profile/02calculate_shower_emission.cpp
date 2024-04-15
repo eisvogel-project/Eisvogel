@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
+#include "Eisvogel/SignalCalculatorOld.hh"
 #include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SignalExport.hh"
 #include "shower_creator.h"
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     } else {
         output_path = argv[2];
     }
-    SignalCalculator signal_calc(wf_path);
+    SignalCalculatorOld signal_calc(wf_path);
                     
     showers::ShowerCreator shower_creator(std::string(std::getenv("EISVOGELDIR")) + "/extern/shower_profile/shower_file");   
     showers::Shower1D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);

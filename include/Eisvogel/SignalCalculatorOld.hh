@@ -7,11 +7,11 @@
 #include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SparseCurrentDensity3D.hh"
 
-class SignalCalculator {
+class SignalCalculatorOld {
 
 public:
   
-  SignalCalculator(const std::filesystem::path& geometry_path);
+  SignalCalculatorOld(const std::filesystem::path& geometry_path);
   scalar_t ComputeSignal(const Current0D& track, scalar_t t_sig);
   scalar_t ComputeSignal(const SparseCurrentDensity3D& current_distribution, scalar_t t_sig);
 

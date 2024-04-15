@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
+#include "Eisvogel/SignalCalculatorOld.hh"
 #include "Eisvogel/Current0DOld.hh"
 #include "Eisvogel/SignalExport.hh"
 
@@ -14,7 +14,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::string wf_path = argv[1];
-  SignalCalculator calc(wf_path);
+  SignalCalculatorOld calc(wf_path);
 
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis

@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
+#include "Eisvogel/SignalCalculatorOld.hh"
 #include "Eisvogel/SparseCurrentDensity3D.hh"
 #include "Eisvogel/SignalExport.hh"
 #include "Eisvogel/CoordUtils.hh"
@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::string wf_path = argv[1];
-  SignalCalculator calc(wf_path);
+  SignalCalculatorOld calc(wf_path);
 
   DeltaVector voxel_size = CU::MakeCoordVectorTXYZ(0.1, 0.1, 0.1, 0.1);
 
