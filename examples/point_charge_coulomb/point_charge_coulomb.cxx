@@ -2,9 +2,9 @@
 #include <fstream>
 
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculatorOld.hh"
-#include "Eisvogel/Current0DOld.hh"
-#include "Eisvogel/SignalExport.hh"
+#include "Eisvogel/SignalCalculator.hh"
+#include "Eisvogel/Current.hh"
+// #include "Eisvogel/SignalExport.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -13,32 +13,32 @@ int main(int argc, char* argv[]) {
   }
 
   std::string wf_path = argv[1];
-  SignalCalculatorOld calc(wf_path);
+  SignalCalculator calc(wf_path);
 
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis
   scalar_t b = 10;
-  scalar_t tstart = -200, tend = 200;
+  scalar_t tstart = -250, tend = 250;
   scalar_t charge = 1;
   scalar_t beta = 0.9;
 
-  std::cout << "Building trajectory ..." << std::endl;
-  Current0D track({
-      CoordUtils::MakeCoordVectorTXYZ(tstart, beta * tstart, 0, b),
-  	CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b)
-  	},
-    {charge}
-    );
+  std::cout << "Building trajectory ..." << std::endl;  
+  LineCurrentSegment track(XYZCoordVector{beta * tstart, 0.0f, b},    // track start position
+			   XYZCoordVector{beta * tend, 0.0f, b},   // track end position
+			   tstart, tend, charge);
 
+  scalar_t t_sig_start = -10;
+  scalar_t t_sig_samp = 1.0;
+  std::size_t num_samples = 30;
+  std::vector<scalar_t> signal_values(num_samples);
+  
   std::cout << "Computing signal ..." << std::endl;
-  std::vector<scalar_t> signal_times, signal_values;
-  for(scalar_t cur_t = -10; cur_t < 20; cur_t += 1) {
-    scalar_t cur_signal = calc.ComputeSignal(track, cur_t);
-    signal_times.push_back(cur_t);
-    signal_values.push_back(cur_signal);
+
+  calc.AccumulateSignal(track, t_sig_start, t_sig_samp, num_samples, signal_values);
+
+  for(scalar_t& cur: signal_values) {
+    std::cout << cur << std::endl;
   }
-
-  ExportSignal(signal_times, signal_values, "./test_signal.csv");
-
+  
   return 0;
 }
