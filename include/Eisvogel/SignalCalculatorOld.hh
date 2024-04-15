@@ -1,5 +1,5 @@
-#ifndef __SIGNAL_CALCULATOR_HH
-#define __SIGNAL_CALCULATOR_HH
+#ifndef __SIGNAL_CALCULATOR_OLD_HH
+#define __SIGNAL_CALCULATOR_OLD_HH
 
 #include <filesystem>
 #include "Eisvogel/Common.hh"

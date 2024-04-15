@@ -1182,6 +1182,8 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
 
+  std::cout << "global_shape in rebuilding chunks = " << global_shape << std::endl;
+  
   RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator);
 
   // Clear the contents of the original library ...

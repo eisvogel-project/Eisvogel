@@ -10,3 +10,5 @@ namespace GreensFunctionUtils {
 					  scalar_t os_factor = 10, std::size_t max_pts_in_chunk = 400);
 
 }
+
+#include "GreensFunctionUtils.hxx"

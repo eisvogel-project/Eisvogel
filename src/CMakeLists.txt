@@ -7,14 +7,12 @@ pkg_check_modules(TBB REQUIRED tbb)
 pkg_check_modules(UUID REQUIRED uuid)
 
 add_library(eisvogel SHARED
-            GreensFunctionUtils.cxx
-            WeightingFieldUtilsOld.cxx
 	    IteratorUtils.cxx
-	    Current.cxx
+	    WeightingFieldUtilsOld.cxx
             Trajectory.cxx
             MathUtils.cxx
             SignalExport.cxx
-            SignalCalculator.cxx
+            SignalCalculatorOld.cxx
 	    FieldStorage.cxx)
 target_include_directories(eisvogel
 	PUBLIC "${PROJECT_SOURCE_DIR}/include"

@@ -1,5 +1,4 @@
 #include <cassert>
-#include "Eisvogel/GreensFunctionUtils.hh"
 #include "Eisvogel/IteratorUtils.hh"
 #include "DistributedNDVecArray.hh"
 #include "GreensFunction.hh"
@@ -136,6 +135,8 @@ namespace GreensFunctionUtils {
     RZTIndexVector start_inds(0);
     RZTIndexVector end_inds = ((end_coords_rzt - start_coords_rzt) / stepsize).template as_type<std::size_t>();
 
+    std::cout << "global end_inds = " << end_inds << std::endl;
+
     // Prepare chunk buffer: need 3-dim array storing 2-dim vectors
     constexpr std::size_t vec_dims = 2;     // we only need to store E_r and E_z
     using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::chunk_t;
@@ -170,6 +171,11 @@ namespace GreensFunctionUtils {
     };    
     IteratorUtils::index_loop_over_chunks(start_inds, end_inds, chunk_size, fill_and_register_chunk);
 
+    // Reshape the chunks to make sure the overlap required for the interpolation is respected
+    std::size_t overlap = 2;
+    std::filesystem::path workdir_tmp = "./darr_test_tmp";
+    darr.RebuildChunks(chunk_size, workdir_tmp, overlap, SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::boundary_evaluator);
+    
     // Create the actual Green's function from the sampled data
     CylindricalGreensFunction(start_coords_rzt, end_coords_rzt, stepsize, std::move(darr));
   }

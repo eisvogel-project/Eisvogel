@@ -12,3 +12,5 @@ struct LineCurrentSegment {
   scalar_t end_time;
   scalar_t charge;  
 };
+
+#include "Current.hxx"
