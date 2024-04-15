@@ -324,7 +324,7 @@ namespace stor {
   struct Traits<NDVecArray<T, dims, vec_dims>> {
     using type = NDVecArray<T, dims, vec_dims>;
 
-    static void serialize_to_python(std::iostream& stream, const type& val) {
+    static void serialize_to_numpy(std::iostream& stream, const type& val) {
       
     }
   };  
