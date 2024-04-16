@@ -12,8 +12,8 @@ int main(int argc, char* argv[]) {
   std::string gf_path = argv[1];
 
   // Domain of weighting field
-  RZCoordVector start_coords{0.0f, 0.0f};
-  RZCoordVector end_coords{300.0f, 15.0f};
+  RZCoordVector start_coords{0.0f, -100.0f};
+  RZCoordVector end_coords{300.0f, 100.0f};
   scalar_t t_end = 300;
 
   // Index of refraction
