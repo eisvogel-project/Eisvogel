@@ -99,7 +99,7 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
     
   // Get all chunks that contribute to the range spanned by `start_f_ind` and `end_f_ind`
   RZTIndexVector start_ind = start_f_ind.template as_type<std::size_t>();
-  RZTIndexVector end_ind = end_f_ind.template as_type<std::size_t>() + 1;
+  RZTIndexVector end_ind = end_f_ind.template as_type<std::size_t>();
   std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);  
 
   std::cout << "start_ind = " << start_ind << std::endl;
@@ -114,14 +114,21 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
     
-    RZTIndexVector chunk_start_ind(chunk_meta.start_ind);
-    RZTIndexVector chunk_end_ind(chunk_meta.end_ind);
+    RZTVector<scalar_t> chunk_start_f_ind = chunk_meta.start_ind.template as_type<scalar_t>();
+    RZTVector<scalar_t> chunk_end_f_ind = chunk_meta.end_ind.template as_type<scalar_t>();
 
     // Find the output start and output end indices determined by this chunk
-    RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(chunk_start_ind.template as_type<scalar_t>() / stepsize_f_ind);
-    RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(chunk_end_ind.template as_type<scalar_t>() / stepsize_f_ind) + 1;
+    RZTVector<scalar_t> output_start_f_ind = (chunk_start_f_ind - start_f_ind) / stepsize_f_ind;
+    RZTVector<scalar_t> output_end_f_ind = (chunk_end_f_ind - start_f_ind) / stepsize_f_ind;
+    
+    RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(VectorUtils::max(output_start_f_ind, 0.0f));
+    RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(VectorUtils::min(output_end_f_ind + 1, num_samples.template as_type<scalar_t>()));
 
     std::cout << chunk_meta << std::endl;
+
+    std::cout << "provides output_start_f_ind = " << output_start_f_ind << std::endl;
+    std::cout << "provides output_end_f_ind = " << output_end_f_ind << std::endl;
+    
     std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
     std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
 
@@ -141,13 +148,19 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
     
     auto interpolate_and_fill = [&](const RZIndexVector& cur_output_outer_ind){
 
-      RZCoordVector cur_output_outer_f_ind = cur_output_outer_ind.template as_type<scalar_t>() * stepsize_f_ind.rz_view();
-
+      RZTCoordVector cur_outer_f_ind(cur_output_outer_ind.template as_type<scalar_t>() * stepsize_f_ind.rz_view(),
+				     output_start_inner_f_ind);
+      RZTVector chunk_local_f_ind = to_chunk_local_ind(cur_outer_f_ind, chunk_meta);
+      
       // Interpolate onto the required output grid ...
       interp_buffer.clear();
       Interpolation::interpolate<KernelT>(chunk, interp_buffer,
-					  cur_output_outer_f_ind, output_start_inner_f_ind,
+					  chunk_local_f_ind.rz_view(), chunk_local_f_ind.t(),
 					  stepsize_f_ind.t(), num_inner_samples);
+
+      // for(std::size_t i = 0; i < num_inner_samples; i++) {
+      // 	std::cout << std::format("{}, {}", interp_buffer[i][0], interp_buffer[i][1]) << std::endl;
+      // }
       
       // ... and store the interpolated values in the output array along the innermost axis
       RZTIndexVector cur_output_ind(cur_output_outer_ind, output_start_ind.t());

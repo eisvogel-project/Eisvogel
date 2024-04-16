@@ -72,6 +72,38 @@ namespace VectorUtils {
     return result;
   }
 
+  template <std::floating_point T, std::size_t vec_dims>
+  Vector<T, vec_dims> max(const Vector<T, vec_dims>& vec_a, const Vector<T, vec_dims>& vec_b) {
+    Vector<T, vec_dims> result;
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(),
+		   [](auto a, auto b){return std::max(a, b);});
+    return result;
+  }
+
+  template <std::floating_point T, std::size_t vec_dims>
+  Vector<T, vec_dims> min(const Vector<T, vec_dims>& vec_a, const Vector<T, vec_dims>& vec_b) {
+    Vector<T, vec_dims> result;
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(),
+		   [](auto a, auto b){return std::min(a, b);});
+    return result;
+  }
+
+  template <std::floating_point T, std::size_t vec_dims>
+  Vector<T, vec_dims> min(const Vector<T, vec_dims>& vec_a, const T val_b) {
+    Vector<T, vec_dims> result;
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), result.begin(),
+		   [&](auto a){return std::min(a, val_b);});
+    return result;
+  }
+
+  template <std::floating_point T, std::size_t vec_dims>
+  Vector<T, vec_dims> max(const Vector<T, vec_dims>& vec_a, const T val_b) {
+    Vector<T, vec_dims> result;
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), result.begin(),
+		   [&](auto a){return std::max(a, val_b);});
+    return result;
+  }
+  
   template <typename T, std::size_t vec_dims>
   Vector<std::size_t, vec_dims> ceil_nonneg(const Vector<T, vec_dims>& vec) {
     Vector<std::size_t, vec_dims> result;

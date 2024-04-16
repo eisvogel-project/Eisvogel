@@ -166,6 +166,7 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, 1, vec_dims>& 
   std::cout << "output_start = " << output_start << std::endl;
   std::cout << "output_end = " << output_end << std::endl;
   std::cout << "own shape = " << GetShape() << std::endl;
+  std::cout << "other shape = " << other.GetShape() << std::endl;
   
   assert(has_index(output_start));
   assert(has_index(output_end));
