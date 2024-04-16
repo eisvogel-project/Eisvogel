@@ -1,3 +1,6 @@
+#include <cassert>
+#include <cmath>
+
 // Serialization
 namespace stor {
 
@@ -67,6 +70,32 @@ namespace VectorUtils {
     
     std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_max);
     return result;
-  }   
+  }
+
+  template <typename T, std::size_t vec_dims>
+  Vector<std::size_t, vec_dims> ceil_nonneg(const Vector<T, vec_dims>& vec) {
+    Vector<std::size_t, vec_dims> result;
+
+    auto ceil_element_nonneg = [](const T& a) -> std::size_t {
+      assert(a >= 0);
+      return (std::size_t)std::ceil(a);
+    };
+
+    std::transform(std::execution::unseq, vec.begin(), vec.end(), result.begin(), ceil_element_nonneg);
+    return result;
+  }
+
+  template <typename T, std::size_t vec_dims>
+  Vector<std::size_t, vec_dims> floor_nonneg(const Vector<T, vec_dims>& vec) {
+    Vector<std::size_t, vec_dims> result;
+
+    auto floor_element_nonneg = [](const T& a) -> std::size_t {
+      assert(a >= 0);
+      return (std::size_t)std::floor(a);
+    };
+
+    std::transform(std::execution::unseq, vec.begin(), vec.end(), result.begin(), floor_element_nonneg);
+    return result;
+  }  
 }
 

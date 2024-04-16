@@ -70,6 +70,16 @@ struct RZVectorView : public Vector2DView<T> {
   static T& z(RZVectorView& vec) { return vec[1]; }
 };
 
+template <typename T>
+struct RZTVectorView : public Vector3DView<T> {
+  using Vector3DView<T>::Vector3DView;
+  RZTVectorView(const Vector3DView<T>& other) : Vector3DView<T>(other) { }
+
+  T& r() { return this -> operator[](0); }
+  T& z() { return this -> operator[](1); }
+  T& t() { return this -> operator[](2); }
+};
+
 // More typedefs (can later turn them into their own types if needed)
 using RZCoordVectorView = RZVectorView<scalar_t>;
 using RZFieldVectorView = RZVectorView<scalar_t>;

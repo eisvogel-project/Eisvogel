@@ -39,6 +39,7 @@ namespace Green {
 
     using view_t = typename NDVecArray<scalar_t, dims, vec_dims>::view_t;
     using lib_t = ChunkLibrary<NDVecArray, scalar_t, dims, vec_dims>;
+    using chunk_t = typename ChunkLibrary<NDVecArray, scalar_t, dims, vec_dims>::chunk_t;
   };
 }
 
@@ -50,6 +51,10 @@ private:
 
   using lib_t = Green::DimTraits<CylindricalGreensFunction>::lib_t;
   using view_t = Green::DimTraits<CylindricalGreensFunction>::view_t;
+
+public:
+
+  using chunk_t = Green::DimTraits<CylindricalGreensFunction>::chunk_t;
   
 public:
 
@@ -66,6 +71,9 @@ public:
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 			std::vector<scalar_t>& signal);
 
+  template <class KernelT>
+  void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
+  
 public: // TODO: make this private
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`

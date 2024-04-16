@@ -34,21 +34,36 @@ namespace stor {
 
 // ---------
 
-// utilities
-template <std::size_t dims>
-Vector<scalar_t, dims> to_chunk_local_ind(const Vector<scalar_t, dims>& global_ind, const ChunkMetadata<dims>& meta) {
-  
-  Vector<scalar_t, dims> local_ind;
-  for(std::size_t i = 0; i < dims; i++) {
+namespace {
+
+  // utilities
+  template <std::size_t dims>
+  Vector<scalar_t, dims> to_chunk_local_ind(const Vector<scalar_t, dims>& global_ind, const ChunkMetadata<dims>& meta) {
     
-    scalar_t tmp;
-    scalar_t frac_part = std::modf(global_ind[i], &tmp);
-    std::size_t int_part = (std::size_t)tmp;
+    Vector<scalar_t, dims> local_ind;
+    for(std::size_t i = 0; i < dims; i++) {
+      
+      scalar_t tmp;
+      scalar_t frac_part = std::modf(global_ind[i], &tmp);
+      std::size_t int_part = (std::size_t)tmp;
+      
+      local_ind[i] = (scalar_t)(int_part - meta.loc_ind_offset[i]) + frac_part;
+    }
     
-    local_ind[i] = (scalar_t)(int_part - meta.loc_ind_offset[i]) + frac_part;
+    return local_ind;
   }
-  
-  return local_ind;
+
+  template <std::size_t dims>
+  bool is_in_range(const Vector<scalar_t, dims>& pt, const Vector<scalar_t, dims>& start_coords, const Vector<scalar_t, dims>& end_coords) {
+
+    for(std::size_t i = 0; i < dims; i++) {
+      if((pt[i] < start_coords[i]) || (pt[i] > end_coords[i])) {
+	return false;
+      }
+    }
+    
+    return true;
+  }
 }
 
 // ---------
@@ -62,6 +77,52 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
 						     Distributed_RZT_ErEz_Array&& data) :
   lib_t(move_path_from(std::move(data))), m_meta(start_pos, end_pos, sample_interval), m_meta_path(GetLibdir() / m_meta_filename) {
   save_metadata();   // Dump metadata to disk right away
+}
+
+template <class KernelT>
+void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTVector<std::size_t>& num_samples, chunk_t& array) {
+
+  // Check if both `start_pos` and `end_pos` are in the range covered by this Green's function
+  assert(is_in_range(start_pos, m_meta.start_pos_rzt, m_meta.end_pos_rzt));
+  assert(is_in_range(end_pos, m_meta.start_pos_rzt, m_meta.end_pos_rzt));
+
+  // Make sure the passed array has enough space
+  array.resize(num_samples);
+  
+  // Clear the output array so that later we can simply skip over empty chunks
+  array.clear();
+  
+  // Convert `start_pos`, `end_pos` and `sample_interval` into floating-point array indices
+  RZTVector start_f_ind = coords_to_index(start_pos);
+  RZTVector end_f_ind = coords_to_index(end_pos);  
+  RZTVector stepsize_f_ind = (end_f_ind - start_f_ind) / (num_samples.template as_type<scalar_t>() - 1);
+    
+  // Get all chunks that contribute to the range spanned by `start_f_ind` and `end_f_ind`
+  RZTIndexVector start_ind = start_f_ind.template as_type<std::size_t>();
+  RZTIndexVector end_ind = end_f_ind.template as_type<std::size_t>() + 1;
+  std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);  
+
+  std::cout << "start_ind = " << start_ind << std::endl;
+  std::cout << "end_ind = " << end_ind << std::endl;
+  std::cout << "start_f_ind = " << start_f_ind << std::endl;
+  std::cout << "end_f_ind = " << end_f_ind << std::endl;
+  
+  std::cout << "stepsize_f_ind = " << stepsize_f_ind << std::endl;
+  
+  // Iterate over all participating chunks
+  for(const metadata_t& chunk_meta : required_chunks) {
+
+    RZTIndexVector chunk_start_ind(chunk_meta.start_ind);
+    RZTIndexVector chunk_end_ind(chunk_meta.end_ind);
+
+    // find the output start and output end indices determined by this chunk
+    // RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(chunk_start_ind.template as_type<scalar_t>() / stepsize_f_ind);
+    // RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(chunk_end_ind.template as_type<scalar_t>() / stepsize_f_ind) + 1;
+
+    std::cout << chunk_meta << std::endl;
+    // std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
+    // std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
+  }  
 }
 
 template <class KernelT, class QuadratureT>
