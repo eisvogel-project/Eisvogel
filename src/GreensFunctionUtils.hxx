@@ -39,7 +39,7 @@ namespace GreensFunctionUtils::Analytic {
     // Weighting field in spherical coordinates
     auto E_r = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t r = std::sqrt(r_xy * r_xy + z * z);
       if(r < r_min) {
 	return std::nan("");
       }
@@ -52,7 +52,7 @@ namespace GreensFunctionUtils::Analytic {
 
     auto E_theta = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t r = std::sqrt(r_xy * r_xy + z * z);
       if(r < r_min) {
 	return std::nan("");
       }
@@ -65,14 +65,14 @@ namespace GreensFunctionUtils::Analytic {
     // Weighting field in cylindrical coordinates
     auto E_rxy = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t r = std::sqrt(r_xy * r_xy + z * z);
       scalar_t cos_theta = z / r, sin_theta = r_xy / r;
       return E_r(t, r_xy, z) * sin_theta + E_theta(t, r_xy, z) * cos_theta;
     };
     
     auto E_z = [&](scalar_t t, scalar_t r_xy, scalar_t z) -> scalar_t {
       r_xy = std::fabs(r_xy);
-      scalar_t r = std::sqrt(std::pow(r_xy, 2) + std::pow(z, 2));
+      scalar_t r = std::sqrt(r_xy * r_xy + z * z);
       scalar_t cos_theta = z / r, sin_theta = r_xy / r;
       return E_r(t, r_xy, z) * cos_theta - E_theta(t, r_xy, z) * sin_theta;
     };
