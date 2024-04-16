@@ -133,7 +133,7 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
     std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
 
     // Range of inner indices at that location in this chunk
-    std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t() + 1;
+    std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t();
     scalar_t output_start_inner_f_ind = output_start_ind.t() * stepsize_f_ind.t();
 
     // Interplation buffer with enough space
@@ -149,14 +149,9 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 					  cur_output_outer_f_ind, output_start_inner_f_ind,
 					  stepsize_f_ind.t(), num_inner_samples);
       
-      // ... and store the interpolated values in the output array
+      // ... and store the interpolated values in the output array along the innermost axis
       RZTIndexVector cur_output_ind(cur_output_outer_ind, output_start_ind.t());
-      std::size_t buffer_ind = 0;
-      for(std::size_t cur_output_inner_ind = output_start_ind.t(); cur_output_inner_ind < output_end_ind.t(); cur_output_inner_ind++) {
-	cur_output_ind.t() = cur_output_inner_ind;
-	array[cur_output_ind] = interp_buffer[buffer_ind];
-	buffer_ind++;
-      }
+      array.fill_from<2>(interp_buffer, cur_output_ind);
     };    
     IteratorUtils::index_loop_over_elements(output_start_outer_ind, output_end_outer_ind, interpolate_and_fill);
   }  

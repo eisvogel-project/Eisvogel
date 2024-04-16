@@ -102,6 +102,15 @@ public:
   void fill_from(const NDVecArray<T, dims, vec_dims>& other,
 		 const ind_t& input_start, const ind_t& input_end,
 		 const ind_t& output_start);
+
+  // Fill a 1-dimensional column along the direction of `axis`
+  template <std::size_t axis>
+  void fill_from(const NDVecArray<T, 1, vec_dims>& other,
+		 const ind_t& output_start);
+
+  template <std::size_t axis>
+  void fill_from(const NDVecArray<T, 1, vec_dims>& other,
+		 const ind_t& output_start) requires(axis == dims - 1);
   
   // element values are undefined after this operation (if size is increased), need to be set explicitly again
   void resize(const shape_t& new_shape);
@@ -204,6 +213,9 @@ public:
   // Other utilities
   bool has_index(const ind_t& ind) const;
   static bool has_index(const ind_t& ind, const shape_t& shape);
+
+  bool owns_data() const {return m_owns_data;}
+  auto data() const {return m_data -> begin();}
   
 private:
 

@@ -141,6 +141,42 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, 1, vec_dims>& other,
+					      const ind_t& output_start) {
+  static_assert(axis < dims);
+  assert(m_owns_data);
+  throw std::logic_error("Not implemented yet!");
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+template <std::size_t axis>
+void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, 1, vec_dims>& other,
+					      const ind_t& output_start) requires(axis == dims - 1) {
+  assert(m_owns_data);
+  assert(other.owns_data());
+
+  // The `other` array is 1-dimensional
+  std::size_t other_shape = other.GetShape()[0];
+  
+  // make sure the full range is available
+  ind_t output_end = output_start;
+  output_end[axis] += other_shape - 1;  // the upper range is exclusive, as always
+
+  std::cout << "output_start = " << output_start << std::endl;
+  std::cout << "output_end = " << output_end << std::endl;
+  std::cout << "own shape = " << GetShape() << std::endl;
+  
+  assert(has_index(output_start));
+  assert(has_index(output_end));
+
+  // `other` fits into this array as a single contiguous block, can simply copy
+  auto src = other.data();
+  auto dest = m_data -> begin() + ComputeFlatInd(output_start);
+  std::copy_n(std::execution::unseq, src, vec_dims * other_shape, dest);
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
 bool NDVecArray<T, dims, vec_dims>::has_index(const ind_t& ind, const shape_t& shape) {
   for(std::size_t i = 0; i < dims; i++) {
     if(ind[i] >= shape[i]) {
