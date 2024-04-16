@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <format>
 
 // constructors
 template <typename T, std::size_t dims, std::size_t vec_dims>
@@ -318,14 +319,99 @@ bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_
   return true;
 }
 
+// Serialization to numpy binary file
 namespace stor {
 
+  namespace Numpy {
+
+    template <typename T>
+    struct Traits;
+
+    template <>
+    struct Traits<float> {
+      // Everything is serialized in network byte-order, which is defined to be big-endian
+      static constexpr std::string dtype = ">f4";
+      using ser_type = uint32_t;
+    };
+  }
+  
   template <typename T, std::size_t dims, std::size_t vec_dims>
   struct Traits<NDVecArray<T, dims, vec_dims>> {
     using type = NDVecArray<T, dims, vec_dims>;
+    using ser_type = typename Numpy::Traits<T>::ser_type;
 
+    // See description of Numpy file format (v1.0) at https://numpy.org/doc/stable/reference/generated/numpy.lib.format.html
     static void serialize_to_numpy(std::iostream& stream, const type& val) {
+
+      assert(val.m_owns_data);
       
+      // Magic string to signify a numpy file
+      const std::string init = "\x93NUMPY";
+      serialize_string(stream, init);
+
+      // File format version
+      const char major_version = 0x01;
+      const char minor_version = 0x00;
+      stream.write(&major_version, 1);
+      stream.write(&minor_version, 1);
+
+      // Header with some metadata
+      std::string header = std::format("{{'descr': '{}', 'fortran_order': False, 'shape': {}, }}",
+				       Numpy::Traits<T>::dtype, shape_string(val));
+
+      std::size_t header_length = header.size();
+      
+      // Now need to determine how many "\x20" to append to the header string to make the total file header
+      // (from the beginning) to be divisible by 64      
+      std::size_t length_before_padding = init.size() + sizeof(major_version) + sizeof(minor_version) + 2 + header_length;
+      std::size_t padding_length = (length_before_padding / 64 + 1) * 64 - length_before_padding;
+      header.append(padding_length - 1, 0x20);
+      header.append("\n");
+
+      std::size_t padded_header_length = header.size();
+      
+      // Serialize header length and header data
+      serialize_short_little_endian(stream, padded_header_length);
+      serialize_string(stream, header);
+
+      // Serialize array data
+      serialize_data(stream, val);
+    }
+
+  private:
+    
+    static void serialize_string(std::iostream& stream, const std::string& str) {
+      stream.write(str.data(), str.size());
+    }
+
+    static void serialize_short_little_endian(std::iostream& stream, unsigned short int val) {
+      char lo = (val >> 0) & 0xFF;
+      char hi = (val >> 8) & 0xFF;      
+      stream.write(&lo, sizeof(lo));
+      stream.write(&hi, sizeof(hi));      
+    }
+    
+    static std::string shape_string(const type& val) {
+      std::string retval = "(";
+      for(std::size_t i = 0; i < dims; i++) {
+	retval += std::to_string(val.m_shape[i]) + ", ";
+      }
+      retval += std::to_string(vec_dims) + ")";
+      return retval;
+    }
+
+    static void serialize_data(std::iostream& stream, const type& val, std::size_t block_size = 10000) {
+      std::size_t vec_size = val.m_data -> size();
+      std::size_t vec_ind = 0;
+
+      while(vec_ind < vec_size) {
+	std::vector<ser_type> outbuf(std::min(vec_size - vec_ind, block_size));
+	for(std::size_t buf_ind = 0; (buf_ind < block_size) && (vec_ind < vec_size); buf_ind++, vec_ind++) {
+	  ser_type ser_val = reinterpret_cast<const ser_type&>((*val.m_data)[vec_ind]);
+	  outbuf[buf_ind] = htonl(ser_val);
+	}
+	stream.write((char*)outbuf.data(), sizeof(outbuf[0]) * outbuf.size());
+      }
     }
   };  
 }
