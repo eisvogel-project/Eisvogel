@@ -128,14 +128,12 @@ namespace GreensFunctionUtils {
 
     // Determine step size so that an integer number of samples fits into the domain of the Green's function
     RZTVector<scalar_t> stepsize_requested{delta_pos, delta_pos, delta_t};
-    RZTVector<std::size_t> number_pts = ((end_coords_rzt - start_coords_rzt) / stepsize_requested).template as_type<std::size_t>() + 1;
+    RZTVector<std::size_t> number_pts = ((end_coords_rzt - start_coords_rzt) / stepsize_requested).template as_type<std::size_t>();
     RZTVector<scalar_t> stepsize = (end_coords_rzt - start_coords_rzt) / number_pts.template as_type<scalar_t>();
     
     // Resulting start- and end indices
     RZTIndexVector start_inds(0);
-    RZTIndexVector end_inds = ((end_coords_rzt - start_coords_rzt) / stepsize).template as_type<std::size_t>();
-
-    std::cout << "global end_inds = " << end_inds << std::endl;
+    RZTIndexVector end_inds = number_pts + 1;
 
     // Prepare chunk buffer: need 3-dim array storing 2-dim vectors
     constexpr std::size_t vec_dims = 2;     // we only need to store E_r and E_z
@@ -163,14 +161,12 @@ namespace GreensFunctionUtils {
 
       // Fill the buffer ...
       Analytic::EvaluateElectricDipoleGreensFunction(chunk_start_coords, stepsize, ior, filter_t_peak, filter_order, r_min, chunk_buffer);
-      
-      std::cout << "filling chunk with start = " << chunk_start_ind << " and end = " << chunk_end_ind << std::endl;
 
       // ... and register it
       darr.RegisterChunk(chunk_buffer, chunk_start_ind);
     };    
     IteratorUtils::index_loop_over_chunks(start_inds, end_inds, chunk_size, fill_and_register_chunk);
-
+    
     // Reshape the chunks to make sure the overlap required for the interpolation is respected
     std::size_t overlap = 2;
     std::filesystem::path workdir_tmp = "./darr_test_tmp";

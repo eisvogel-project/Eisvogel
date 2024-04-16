@@ -273,6 +273,7 @@ template <typename T>
 struct RZVector : public Vector2D<T> {
   using Vector2D<T>::Vector2D;
   RZVector(Vector2D<T>&& other) : Vector2D<T>(std::forward<Vector2D<T>>(other)) { }
+  RZVector(Vector2D<T>& other) : Vector2D<T>(std::forward<Vector2D<T>>(other)) { }
 
   const T& r() const { return this -> operator[](0); };
   const T& z() const { return this -> operator[](1); };

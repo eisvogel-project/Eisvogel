@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
 
   RZTCoordVector start_coords{0.0f, 0.0f, 0.0f};
   RZTCoordVector end_coords{300.0f, 15.0f, 300.0f};
-  RZTVector<std::size_t> num_samples{30u, 2u, 30u};
+  RZTVector<std::size_t> num_samples{100u, 15u, 100u};
   
   gf.fill_array<Interpolation::Kernel::Keys>(start_coords, end_coords, num_samples, array);
 

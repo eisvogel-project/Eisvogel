@@ -74,7 +74,7 @@ public:
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
   
-public: // TODO: make this private
+public: // TODO: make this private, called by unit test at the moment
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>

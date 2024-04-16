@@ -112,16 +112,53 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
   // Iterate over all participating chunks
   for(const metadata_t& chunk_meta : required_chunks) {
 
+    const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
+    
     RZTIndexVector chunk_start_ind(chunk_meta.start_ind);
     RZTIndexVector chunk_end_ind(chunk_meta.end_ind);
 
-    // find the output start and output end indices determined by this chunk
-    // RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(chunk_start_ind.template as_type<scalar_t>() / stepsize_f_ind);
-    // RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(chunk_end_ind.template as_type<scalar_t>() / stepsize_f_ind) + 1;
+    // Find the output start and output end indices determined by this chunk
+    RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(chunk_start_ind.template as_type<scalar_t>() / stepsize_f_ind);
+    RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(chunk_end_ind.template as_type<scalar_t>() / stepsize_f_ind) + 1;
 
     std::cout << chunk_meta << std::endl;
-    // std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
-    // std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
+    std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
+    std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
+
+    // Iterate over the outer output indices available in this chunk
+    RZIndexVector output_start_outer_ind = output_start_ind.rz_view();
+    RZIndexVector output_end_outer_ind = output_end_ind.rz_view();
+
+    std::cout << "provides output_start_outer_ind = " << output_start_outer_ind << std::endl;
+    std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
+
+    // Range of inner indices at that location in this chunk
+    std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t() + 1;
+    scalar_t output_start_inner_f_ind = output_start_ind.t() * stepsize_f_ind.t();
+
+    // Interplation buffer with enough space
+    NDVecArray<scalar_t, 1, vec_dims> interp_buffer(num_inner_samples);
+    
+    auto interpolate_and_fill = [&](const RZIndexVector& cur_output_outer_ind){
+
+      RZCoordVector cur_output_outer_f_ind = cur_output_outer_ind.template as_type<scalar_t>() * stepsize_f_ind.rz_view();
+
+      // Interpolate onto the required output grid ...
+      interp_buffer.clear();
+      Interpolation::interpolate<KernelT>(chunk, interp_buffer,
+					  cur_output_outer_f_ind, output_start_inner_f_ind,
+					  stepsize_f_ind.t(), num_inner_samples);
+      
+      // ... and store the interpolated values in the output array
+      RZTIndexVector cur_output_ind(cur_output_outer_ind, output_start_ind.t());
+      std::size_t buffer_ind = 0;
+      for(std::size_t cur_output_inner_ind = output_start_ind.t(); cur_output_inner_ind < output_end_ind.t(); cur_output_inner_ind++) {
+	cur_output_ind.t() = cur_output_inner_ind;
+	array[cur_output_ind] = interp_buffer[buffer_ind];
+	buffer_ind++;
+      }
+    };    
+    IteratorUtils::index_loop_over_elements(output_start_outer_ind, output_end_outer_ind, interpolate_and_fill);
   }  
 }
 
