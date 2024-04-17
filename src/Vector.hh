@@ -333,6 +333,7 @@ template <typename T>
 struct TZRVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;
   TZRVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
+  TZRVector(const T& t_val, const ZRVector<T>& zr_vec) : Vector3D<T>{t_val, zr_vec.z(), zr_vec.r()} { }
 
   const T& t() const { return this -> operator[](0); };
   const T& z() const { return this -> operator[](1); };

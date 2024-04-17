@@ -94,7 +94,8 @@ struct ChunkloopData {
   using meep_chunk_ind_t = int;
   using sim_chunk_meta_t = SimulationChunkMetadata<SpatialSymmetryT>;
   using darr_t = typename SpatialSymmetryT::darr_t;
-  using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;  
+  using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;
+  using view_t = typename chunk_t::view_t;  
   using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
 
   ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field,
@@ -148,7 +149,7 @@ namespace meep {
     }
 
     // Build and record the chunk metadata
-    RZVector<std::size_t> chunk_shape{shape[1], shape[0]};
+    ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
     CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape);    
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
 
@@ -162,12 +163,82 @@ namespace meep {
 				 ivec shift, std::complex<double> shift_phase,
 				 const symmetry& S, int sn, void* cld) {
 
-  
+    CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
+    
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 400;
+
+    // Make sure the buffers are of the correct size for this simulation chunk
+    ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);
+    TZRVector<std::size_t> field_slice_shape(1, spatial_chunk_shape);
+
+    chunkloop_data -> field_stat_buffer.resize(spatial_chunk_shape);
+    chunkloop_data -> field_buffer.resize(field_slice_shape);
+
+    assert(is.z() >= 0);
+    assert(is.r() >= 0);
+
+    // Start index of this simulation chunk
+    ZRIndexVector spatial_chunk_start_ind{
+      (std::size_t)((is.z() - 1) / 2),
+      (std::size_t)((is.r() - 1) / 2)
+    };    
+    TZRIndexVector chunk_start_ind(chunkloop_data -> ind_time, spatial_chunk_start_ind);
+      
+    // some preliminary setup
+    vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
     
-    
-    
+    // prepare the list of field components to fetch at each grid point
+    component components[] = {Ez, Er};
+    chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
+
+    // loop over all grid points in chunk
+    LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
+
+      // get grid indices and coordinates of parent point
+      IVEC_LOOP_ILOC(fc->gv, iparent);  // grid indices
+      IVEC_LOOP_LOC(fc->gv, rparent);   // cartesian coordinates
+      
+      // apply symmetry transform to get grid indices and coordinates of child point
+      ivec ichild = S.transform(iparent, sn) + shift;
+      vec rchild = S.transform(rparent, sn) + rshift;	    
+
+      // Index of current simulation point
+      ZRIndexVector cur_spatial_ind{
+	(std::size_t)((ichild.z() - 1) / 2),
+	(std::size_t)((ichild.r() - 1) / 2)
+      };
+      TZRIndexVector cur_ind(chunkloop_data -> ind_time, cur_spatial_ind);
+      
+      // fetch field components at child point ...
+      data.update_values(idx);
+      double E_z_val = data.values[0].real();
+      double E_r_val = data.values[1].real();      
+      double E_abs_val = std::sqrt(E_z_val * E_z_val + E_r_val * E_r_val);
+
+      // ... and store them
+      CylindricalChunkloopData::view_t field_elem = chunkloop_data -> field_buffer[cur_ind - chunk_start_ind];
+      field_elem[0] = E_r_val;
+      field_elem[1] = E_z_val;
+      chunkloop_data -> field_stat_buffer[cur_spatial_ind - spatial_chunk_start_ind] = E_abs_val;      
+    }
+
+    // Update statistics tracker
+    chunkloop_data -> fstats.UpdateStatisticsForRegion(ichunk, chunkloop_data -> field_stat_buffer);
+
+    // -------------
+    // TODO: put truncation of small field values here
+    // -------------
+
+    if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
+
+      // Register this slice as the beginning of a new chunk ...
+      chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_buffer, chunk_start_ind);
+    }
+    else {
+      // ... or append it to an already-existing chunk along the outermost (time) direction
+      chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind, chunkloop_data -> field_buffer);
+    }
   }  
 } // end namespace meep
 
@@ -227,6 +298,9 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
     meep_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
   }
 
+  // Swap axes 0 and 2 to go from TZR to RZT
+  darr.SwapAxes<0, 2>();
+  
   // Move Green's function to the requested output location
   darr.Move(outdir);  
 }
@@ -247,7 +321,7 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
 }
 
 void CylindricalGreensFunctionCalculator::rechunk(std::filesystem::path outdir, std::filesystem::path indir, int cur_mpi_id, int number_mpi_jobs) {
-
+  
 }
 
 void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
@@ -302,9 +376,9 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
     merge_mpi_chunks(mergedir, to_merge);
   }
 
-  // Third stage: rechunk the complete Green's function
+  // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
 
-  // Fourth stage: create the final Green's function and import all the rechunked pieces
+  // Fourth stage: create the actual Green's function object
   
 }
 
