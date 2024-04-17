@@ -147,7 +147,7 @@ public:
 
   T& operator[](const ind_t& ind) requires(vec_dims == 1) {
     assert(index_within_bounds(ind));
-    return *(m_data.begin() + ComputeFlatInd(ind));
+    return *(m_data -> begin() + ComputeFlatInd(ind));
   }
 
   T& operator[](const std::size_t ind) requires((dims == 1) && (vec_dims == 1)) {

@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include "Eisvogel/Common.hh"
-// #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
+#include "Eisvogel/CylindricalGreensFunctionCalculator.hh"
 #include "Eisvogel/Antenna.hh"
 #include "Eisvogel/Geometry.hh"
 
@@ -23,7 +23,7 @@ int main(int argc, char* argv[]) {
     throw std::runtime_error("Error: need to pass path to output directory!");
   }
 
-  std::string wf_path = argv[1];
+  std::string gf_path = argv[1];
   
   auto eps = [](scalar_t r, scalar_t z) {
     
@@ -54,16 +54,16 @@ int main(int argc, char* argv[]) {
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
 
-  // CylinderGeometry geom(20, -15, 15, eps);
-  // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  // scalar_t t_end = 250;
+  CylinderGeometry geom(20, -15, 15, eps);
+  InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
+  scalar_t t_end = 250;
   
-  CylinderGeometry geom(300, -300, 300, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
-  scalar_t t_end = 450;
+  // CylinderGeometry geom(300, -300, 300, eps);
+  // InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
+  // scalar_t t_end = 450;
   
-  // CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
-  // wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
+  CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
+  gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/eisvogel/", "/scratch/midway3/windischhofer/eisvogel/");
 
   std::cout << "done" << std::endl;
   
