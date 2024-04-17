@@ -6,7 +6,7 @@
 #include <unordered_map>
 
 CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
-  m_t_end(0), m_geom(geom), m_antenna(antenna) {
+  m_t_end(t_end), m_geom(geom), m_antenna(antenna) {
   
   m_start_coords = std::make_shared<RZTCoordVector>((scalar_t)0.0, geom.GetZMin(), (scalar_t)0.0);
   m_end_coords = std::make_shared<RZTCoordVector>(geom.GetRMax(), geom.GetZMax(), t_end);
@@ -347,12 +347,15 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
 
   std::cout << "loading array from " << indir << std::endl;
   std::cout << "now rechunking; have input array with shape " << darr.GetShape() << std::endl;
-  std::cout << "rechunking with " << number_mpi_jobs << " jobs" << std::endl;
+  std::cout << "this is rechunking job " << cur_mpi_id << " / " << number_mpi_jobs << " jobs" << std::endl;
   std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
 
   // Determine nonoverlapping rectangular regions that are handled by each job; try to make them of similar size for optimal work sharing
+
+  RZTIndexVector global_start_ind(0);
+  RZTIndexVector global_end_ind = darr.GetShape();
   
-  
+  darr.RebuildChunksPartial(global_start_ind, global_end_ind, requested_chunk_size, outdir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
 }
 
 void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,

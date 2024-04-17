@@ -5,16 +5,6 @@
 #include "Eisvogel/Antenna.hh"
 #include "Eisvogel/Geometry.hh"
 
-unsigned int fact(unsigned arg) {
-  unsigned int retval = 1;
-
-  for(unsigned int cur = 1; cur <= arg; cur++) {
-    retval *= cur;
-  }
-  
-  return retval;
-}
-
 int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
@@ -56,7 +46,7 @@ int main(int argc, char* argv[]) {
 
   CylinderGeometry geom(20, -15, 15, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  scalar_t t_end = 250;
+  scalar_t t_end = 25;
   
   // CylinderGeometry geom(300, -300, 300, eps);
   // InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
@@ -65,6 +55,8 @@ int main(int argc, char* argv[]) {
   CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
   gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/eisvogel/", "/scratch/midway3/windischhofer/eisvogel/");
 
+  
+  
   std::cout << "done" << std::endl;
   
   return 0;
