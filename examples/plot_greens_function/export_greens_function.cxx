@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
   RZTCoordVector start_coords{0.0f, -100.0f, 0.0f};
   RZTCoordVector end_coords{300.0f, 100.0f, 300.0f};
   // RZTVector<std::size_t> num_samples{3u, 3u, 3u};
-  RZTVector<std::size_t> num_samples{100u, 30u, 100u};
+  RZTVector<std::size_t> num_samples{300u, 200u, 300u};
   
   gf.fill_array<Interpolation::Kernel::Linear>(start_coords, end_coords, num_samples, array);
 
