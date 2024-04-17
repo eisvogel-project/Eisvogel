@@ -2,6 +2,7 @@
 #include "Vector.hh"
 #include "NDVecArray.hh"
 #include "Symmetry.hh"
+#include "GreensFunction.hh"
 #include <unordered_map>
 
 CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
@@ -163,6 +164,8 @@ namespace meep {
 				 ivec shift, std::complex<double> shift_phase,
 				 const symmetry& S, int sn, void* cld) {
 
+    std::cout << "in saving chunkloop" << std::endl;
+    
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
     
     // Number of time slices before a new chunk is started
@@ -320,7 +323,8 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
   }
 }
 
-void CylindricalGreensFunctionCalculator::rechunk(std::filesystem::path outdir, std::filesystem::path indir, int cur_mpi_id, int number_mpi_jobs) {
+void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
+						      int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size) {
   
 }
 
@@ -362,7 +366,7 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   meep::all_wait();   // Wait for all processes to have finished providing their output
   
   // Second stage: create a new distributed array and import all the chunks. This is now a complete Green's function!
-  std::filesystem::path mergedir = global_scratchdir / "merge";
+  std::filesystem::path mergedir = global_scratchdir / "merge";      
   if(meep::am_master()) {
 
     // Assemble output directories from all jobs
@@ -376,9 +380,19 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
     merge_mpi_chunks(mergedir, to_merge);
   }
 
-  // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
-
-  // Fourth stage: create the actual Green's function object
+  meep::all_wait();
   
+  // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
+  RZTVector<std::size_t> requested_chunk_size(400);
+  rechunk_mpi(outdir, mergedir, global_scratchdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size);
+  
+  meep::all_wait();
+  
+  // Fourth stage: create the actual Green's function object
+  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+  darr_t darr(outdir);
+  RZTVector<std::size_t> darr_shape = darr.GetShape();
+  RZTCoordVector step_size = (*m_end_coords - *m_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
+  CylindricalGreensFunction(*m_start_coords, *m_end_coords, step_size, std::move(darr));
 }
 

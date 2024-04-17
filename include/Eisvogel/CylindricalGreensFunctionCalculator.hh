@@ -8,6 +8,9 @@
 
 struct RZTCoordVector;
 
+template <typename T>
+struct RZTVector;
+
 class CylindricalGreensFunctionCalculator {
 
 public:
@@ -21,7 +24,8 @@ private:
 
   void calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, double courant_factor, double resolution, double pml_width);
   static void merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs);
-  static void rechunk(std::filesystem::path outdir, std::filesystem::path indir, int cur_mpi_id, int number_mpi_jobs);
+  static void rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratchdir, int cur_mpi_id, int number_mpi_jobs,
+			  const RZTVector<std::size_t>& requested_chunk_size);
   
 private:
 
