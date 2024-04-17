@@ -235,10 +235,15 @@ namespace meep {
 
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
+      std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
+      
       // Register this slice as the beginning of a new chunk ...
       chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_buffer, chunk_start_ind);
     }
     else {
+      
+      std::cout << "appending slice at start_ind = " << chunk_start_ind << std::endl;
+      
       // ... or append it to an already-existing chunk along the outermost (time) direction
       chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind, chunkloop_data -> field_buffer);
     }
@@ -310,8 +315,15 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
 
 void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs) {
 
+  // This must only be run by one process
+  assert(meep::am_master());
+  
   using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
 
+  if(std::filesystem::exists(outdir)) {
+    std::filesystem::remove_all(outdir);
+  }
+  
   std::size_t cache_depth = 1;
   TZRVector<std::size_t> init_cache_el_shape(1);
   TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
@@ -324,7 +336,22 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
 }
 
 void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
-						      int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size) {
+						      int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap) {
+
+  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+
+  std::size_t cache_depth = 5;
+  RZTVector<std::size_t> init_cache_el_shape(1);
+  RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
+  darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
+
+  std::cout << "loading array from " << indir << std::endl;
+  std::cout << "now rechunking; have input array with shape " << darr.GetShape() << std::endl;
+  std::cout << "rechunking with " << number_mpi_jobs << " jobs" << std::endl;
+  std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
+
+  // Determine nonoverlapping rectangular regions that are handled by each job; try to make them of similar size for optimal work sharing
+  
   
 }
 
@@ -384,7 +411,8 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   
   // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
   RZTVector<std::size_t> requested_chunk_size(400);
-  rechunk_mpi(outdir, mergedir, global_scratchdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size);
+  std::size_t overlap = 2;
+  rechunk_mpi(outdir, mergedir, global_scratchdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
   
   meep::all_wait();
   
