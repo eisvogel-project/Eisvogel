@@ -2,7 +2,7 @@
 #include <cmath>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
-#include "Eisvogel/Antenna.hh"
+#include "Eisvogel/AntennaOld.hh"
 #include "Eisvogel/CoordUtils.hh"
 
 unsigned int fact(unsigned arg) {

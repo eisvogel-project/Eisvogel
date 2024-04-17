@@ -4,7 +4,7 @@
 #include <functional>
 #include <meep.hpp>
 #include "CoordUtils.hh"
-#include "Geometry.hh"
+#include "GeometryOld.hh"
 
 class Antenna : public meep::src_time {
 

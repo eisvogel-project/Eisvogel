@@ -3,4 +3,4 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 
 add_executable(dipole_ice dipole_ice.cxx)
-target_link_libraries(dipole_ice eisvogel_wfc)
+target_link_libraries(dipole_ice eisvogel_wfc_old)

@@ -25,15 +25,15 @@ if(BUILD_WFC)
     find_package(MPI REQUIRED)
     pkg_check_modules(MEEP REQUIRED meep)
 
-    add_library(eisvogel_wfc SHARED
+    add_library(eisvogel_wfc_old SHARED
                 CylindricalWeightingFieldCalculator.cxx
-                Geometry.cxx
-                Antenna.cxx)
-    target_link_directories(eisvogel_wfc PUBLIC ${MEEP_LIBRARY_DIRS})
-    target_link_libraries(eisvogel_wfc PUBLIC eisvogel ${MEEP_LIBRARIES} MPI::MPI_CXX)
-    target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS})
-    target_compile_options(eisvogel_wfc PUBLIC ${MEEP_CFLAGS_OTHER})
+                GeometryOld.cxx
+                AntennaOld.cxx)
+    target_link_directories(eisvogel_wfc_old PUBLIC ${MEEP_LIBRARY_DIRS})
+    target_link_libraries(eisvogel_wfc_old PUBLIC eisvogel ${MEEP_LIBRARIES} MPI::MPI_CXX)
+    target_include_directories(eisvogel_wfc_old PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS})
+    target_compile_options(eisvogel_wfc_old PUBLIC ${MEEP_CFLAGS_OTHER})
 
-    set_target_properties(eisvogel_wfc PROPERTIES
-                          LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel_wfc)
+    set_target_properties(eisvogel_wfc_old PROPERTIES
+                          LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/eisvogel_wfc_old)
 endif(BUILD_WFC)

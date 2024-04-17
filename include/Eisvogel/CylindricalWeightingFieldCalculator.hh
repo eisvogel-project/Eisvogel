@@ -5,8 +5,8 @@
 #include <string>
 #include <filesystem>
 #include <meep.hpp>
-#include "Antenna.hh"
-#include "Geometry.hh"
+#include "AntennaOld.hh"
+#include "GeometryOld.hh"
 
 class CylindricalWeightingFieldCalculator {
 

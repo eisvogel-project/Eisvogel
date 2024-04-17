@@ -1,4 +1,4 @@
-#include "Eisvogel/Geometry.hh"
+#include "Eisvogel/GeometryOld.hh"
 
 CylinderGeometry::CylinderGeometry(scalar_t r_max, scalar_t z_min, scalar_t z_max,
 				   std::function<scalar_t(scalar_t r, scalar_t z)> eps_func) :

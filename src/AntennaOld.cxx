@@ -1,4 +1,4 @@
-#include "Eisvogel/Antenna.hh"
+#include "Eisvogel/AntennaOld.hh"
 #include "Eisvogel/CoordUtils.hh"
 
 Antenna::Antenna(scalar_t start_time, scalar_t end_time, scalar_t z_pos,
