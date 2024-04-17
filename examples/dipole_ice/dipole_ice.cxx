@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cmath>
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
-#include "Eisvogel/AntennaOld.hh"
-#include "Eisvogel/CoordUtils.hh"
+// #include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
+#include "Eisvogel/Antenna.hh"
+#include "Eisvogel/Geometry.hh"
 
 unsigned int fact(unsigned arg) {
   unsigned int retval = 1;
@@ -62,8 +62,10 @@ int main(int argc, char* argv[]) {
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
   scalar_t t_end = 450;
   
-  CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
-  wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
+  // CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
+  // wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
+
+  std::cout << "done" << std::endl;
   
   return 0;
 }

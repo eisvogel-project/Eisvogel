@@ -39,7 +39,8 @@ if(BUILD_WFC)
 
 
     add_library(eisvogel_wfc SHARED
-                Geometry.cxx)
+                Geometry.cxx
+		Antenna.cxx)
     target_link_directories(eisvogel_wfc PUBLIC ${MEEP_LIBRARY_DIRS})
     target_link_libraries(eisvogel_wfc PUBLIC eisvogel ${MEEP_LIBRARIES} MPI::MPI_CXX)
     target_include_directories(eisvogel_wfc PUBLIC ${PROJECT_SOURCE_DIR}/include ${MEEP_INCLUDE_DIRS})
