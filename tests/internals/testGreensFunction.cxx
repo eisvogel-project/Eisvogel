@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
     
     std::filesystem::path workdir_tmp = "./darr_test_tmp";
     Vector<std::size_t, dims> requested_chunk_size(100);  
-    darr.RebuildChunks(requested_chunk_size, workdir_tmp, 2, SpatialSymmetry::Cylindrical<T, vec_dims>::boundary_evaluator);
+    darr.RebuildChunks(requested_chunk_size, workdir_tmp, 2, SpatialSymmetry::Cylindrical<T>::boundary_evaluator);
     
     auto val = darr[{250u, 250u, 250u}];
     for(auto cur : val) {
