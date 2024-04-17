@@ -354,23 +354,48 @@ struct XYZVector : Vector3D<T> {
   T& z() { return this -> operator[](2); };
 };
 
-// Can later turn these into their own types if the need arises
-using XYZTCoordVector = XYZTVector<scalar_t>;
-using XYZTFieldVector = XYZTVector<scalar_t>;
-using XYZTIndexVector = XYZTVector<std::size_t>;
+struct XYZTCoordVector : XYZTVector<scalar_t> {
+  using XYZTVector<scalar_t>::XYZTVector;
+};
+struct XYZTFieldVector : XYZTVector<scalar_t> {
+  using XYZTVector<scalar_t>::XYZTVector;
+};
+struct XYZTIndexVector : XYZTVector<std::size_t> {
+  using XYZTVector<std::size_t>::XYZTVector;
+};
 
-using XYZCoordVector = XYZVector<scalar_t>;
-using XYZFieldVector = XYZVector<scalar_t>;
+struct XYZCoordVector : XYZVector<scalar_t> {
+  using XYZVector<scalar_t>::XYZVector;
+};
+struct XYZFieldVector : XYZVector<scalar_t> {
+  using XYZVector<scalar_t>::XYZVector;
+};
 
-using RZCoordVector = RZVector<scalar_t>;
-using RZFieldVector = RZVector<scalar_t>;
-using RZIndexVector = RZVector<std::size_t>;
+struct RZCoordVector : RZVector<scalar_t> {
+  using RZVector<scalar_t>::RZVector;
+};
+struct RZFieldVector : RZVector<scalar_t> {
+  using RZVector<scalar_t>::RZVector;
+};
+struct RZIndexVector : RZVector<std::size_t> {
+  using RZVector<std::size_t>::RZVector;
+};
 
-using RZTCoordVector = RZTVector<scalar_t>;
-using RZTIndexVector = RZTVector<std::size_t>;
-using RZTSignedIndexVector = RZTVector<int>;
+struct RZTCoordVector : RZTVector<scalar_t> {
+  using RZTVector<scalar_t>::RZTVector;
+};
+struct RZTIndexVector : RZTVector<std::size_t> {
+  using RZTVector<std::size_t>::RZTVector;
+};
+struct RZTSignedIndexVector : RZTVector<int> {
+  using RZTVector<int>::RZTVector;
+};
 
-using TZRCoordVector = TZRVector<scalar_t>;
-using TZRIndexVector = TZRVector<std::size_t>;
+struct TZRCoordVector : TZRVector<scalar_t> {
+  using TZRVector<scalar_t>::TZRVector;
+};
+struct TZRIndexVector : TZRVector<std::size_t> {
+  using TZRVector<std::size_t>::TZRVector;
+};
 
 #include "Vector.hxx"

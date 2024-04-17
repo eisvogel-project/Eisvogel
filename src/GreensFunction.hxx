@@ -192,7 +192,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   XYZCoordVector seg_step = seg_vel * itgr_step;
 
   // the current represented by this segment
-  XYZCoordVector source_xyz = seg_vel * seg.charge;
+  XYZFieldVector source_xyz = seg_vel * seg.charge;
   
   // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
 

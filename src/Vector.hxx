@@ -33,7 +33,19 @@ namespace stor {
     static type deserialize(std::iostream& stream) {
       return Traits<Vector3D<T>>::deserialize(stream);
     }
-  };  
+  };
+
+  template <>
+  struct Traits<RZTCoordVector> {
+    using type = RZTCoordVector;
+
+    static void serialize(std::iostream& stream, const type& val) {
+      Traits<Vector3D<scalar_t>>::serialize(stream, val);
+    }
+    static type deserialize(std::iostream& stream) {
+      return Traits<Vector3D<scalar_t>>::deserialize(stream);
+    }
+  };
 }
 
 namespace VectorUtils {
