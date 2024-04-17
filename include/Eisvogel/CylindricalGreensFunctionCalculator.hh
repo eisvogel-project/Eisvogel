@@ -12,18 +12,25 @@ class CylindricalGreensFunctionCalculator {
 
 public:
 
-  CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
-				      double courant_factor = 0.5, double resolution = 12, double pml_width = 1.0);
+  CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end);
 
-  void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir);
+  void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
+		 double courant_factor = 0.5, double resolution = 12, double pml_width = 1.0);
+
+private:
+
+  void calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, double courant_factor, double resolution, double pml_width);
+  static void merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs);
+  static void rechunk(std::filesystem::path outdir, std::filesystem::path indir, int cur_mpi_id, int number_mpi_jobs);
   
 private:
 
+  using meep_chunk_ind_t = int;
+  
   scalar_t m_t_end;
+  CylinderGeometry& m_geom;
+  const Antenna& m_antenna;
+  
   std::shared_ptr<RZTCoordVector> m_start_coords;
   std::shared_ptr<RZTCoordVector> m_end_coords;
-  
-  std::shared_ptr<meep::grid_volume> m_gv;
-  std::shared_ptr<meep::structure> m_s;
-  std::shared_ptr<meep::fields> m_f;  
 };

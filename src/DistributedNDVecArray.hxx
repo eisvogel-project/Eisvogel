@@ -1176,6 +1176,12 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::Import(std::filesystem::p
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::Move(std::filesystem::path dest) {
+  m_library.MoveLibrary(dest);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir, std::size_t overlap,
 								     BoundaryCallableT&& boundary_evaluator) {

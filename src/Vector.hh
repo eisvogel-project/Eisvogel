@@ -289,6 +289,25 @@ struct RZVector : public Vector2D<T> {
 };
 
 template <typename T>
+struct ZRVector : public Vector2D<T> {
+  using Vector2D<T>::Vector2D;
+  ZRVector(Vector2D<T>&& other) : Vector2D<T>(std::forward<Vector2D<T>>(other)) { }
+  ZRVector(Vector2D<T>& other) : Vector2D<T>(std::forward<Vector2D<T>>(other)) { }
+
+  const T& z() const { return this -> operator[](0); };
+  const T& r() const { return this -> operator[](1); };
+
+  T& z() { return this -> operator[](0); };
+  T& r() { return this -> operator[](1); };
+
+  static const T& z(const Vector2D<T>& vec) { return vec[0]; }
+  static const T& r(const Vector2D<T>& vec) { return vec[1]; }
+
+  static T& z(Vector2D<T>& vec) { return vec[0]; }
+  static T& r(Vector2D<T>& vec) { return vec[1]; }
+};
+
+template <typename T>
 struct RZTVector : public Vector3D<T> {
   using Vector3D<T>::Vector3D;  // Inherit all constructors
   RZTVector(Vector3D<T>&& other) : Vector3D<T>(std::forward<Vector3D<T>>(other)) { }
@@ -379,6 +398,16 @@ struct RZFieldVector : RZVector<scalar_t> {
 };
 struct RZIndexVector : RZVector<std::size_t> {
   using RZVector<std::size_t>::RZVector;
+};
+
+struct ZRCoordVector : ZRVector<scalar_t> {
+  using ZRVector<scalar_t>::ZRVector;
+};
+struct ZRFieldVector : ZRVector<scalar_t> {
+  using ZRVector<scalar_t>::ZRVector;
+};
+struct ZRIndexVector : ZRVector<std::size_t> {
+  using ZRVector<std::size_t>::ZRVector;
 };
 
 struct RZTCoordVector : RZTVector<scalar_t> {

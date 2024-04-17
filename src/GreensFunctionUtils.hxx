@@ -8,7 +8,7 @@ namespace GreensFunctionUtils::Analytic {
 
   void EvaluateElectricDipoleGreensFunction(const RZTCoordVector& start_coords, const RZTCoordVector& stepsize, scalar_t ior,
 					    scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
-					    SpatialSymmetry::Cylindrical<scalar_t, 2>::chunk_t& buffer) {
+					    SpatialSymmetry::Cylindrical<scalar_t>::chunk_t& buffer) {
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;  // vacuum dielectric constant
@@ -77,7 +77,7 @@ namespace GreensFunctionUtils::Analytic {
       return E_r(t, r_xy, z) * cos_theta - E_theta(t, r_xy, z) * sin_theta;
     };
     
-    using view_t = typename SpatialSymmetry::Cylindrical<scalar_t, 2>::view_t;    
+    using view_t = typename SpatialSymmetry::Cylindrical<scalar_t>::view_t;    
     auto evaluator = [&](const RZTIndexVector& ind, view_t cur_element) {
 
       // Coordinates of current point
@@ -136,9 +136,8 @@ namespace GreensFunctionUtils {
     RZTIndexVector end_inds = number_pts + 1;
 
     // Prepare chunk buffer: need 3-dim array storing 2-dim vectors
-    constexpr std::size_t vec_dims = 2;     // we only need to store E_r and E_z
-    using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::chunk_t;
-    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::darr_t;
+    using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t>::chunk_t;
+    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
     
     RZTVector<std::size_t> chunk_size(max_pts_in_chunk);
     chunk_t chunk_buffer(chunk_size);
@@ -170,7 +169,7 @@ namespace GreensFunctionUtils {
     // Reshape the chunks to make sure the overlap required for the interpolation is respected
     std::size_t overlap = 2;
     std::filesystem::path workdir_tmp = "./darr_test_tmp";
-    darr.RebuildChunks(chunk_size, workdir_tmp, overlap, SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::boundary_evaluator);
+    darr.RebuildChunks(chunk_size, workdir_tmp, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
     
     // Create the actual Green's function from the sampled data
     CylindricalGreensFunction(start_coords_rzt, end_coords_rzt, stepsize, std::move(darr));

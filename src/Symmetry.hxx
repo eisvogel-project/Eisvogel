@@ -1,7 +1,7 @@
 namespace SpatialSymmetry {
 
-  template <typename T, std::size_t vec_dims>
-  void Cylindrical<T, vec_dims>::boundary_evaluator(darr_t& darr, const RZTSignedIndexVector& ind, view_t elem) {
+  template <typename T>
+  void Cylindrical<T>::boundary_evaluator(darr_t& darr, const RZTSignedIndexVector& ind, view_t elem) {
     
     RZTIndexVector darr_shape = darr.GetShape();   
     

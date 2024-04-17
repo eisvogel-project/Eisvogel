@@ -391,6 +391,9 @@ public:
   // Single-element random access
   view_t operator[](const ind_t& ind);  
 
+  // Moves this distributed array to a different location
+  void Move(std::filesystem::path dest);
+  
   // Imports another distributed array and add it to this one
   void Import(std::filesystem::path dir);
   

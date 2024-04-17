@@ -4,18 +4,12 @@
 #include "Symmetry.hh"
 #include <unordered_map>
 
-CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end,
-									 double courant_factor, double resolution, double pml_width) : m_t_end(0) {
+CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
+  m_t_end(0), m_geom(geom), m_antenna(antenna) {
   
   m_start_coords = std::make_shared<RZTCoordVector>((scalar_t)0.0, geom.GetZMin(), (scalar_t)0.0);
   m_end_coords = std::make_shared<RZTCoordVector>(geom.GetRMax(), geom.GetZMax(), t_end);
   
-  m_gv = std::make_shared<meep::grid_volume>(meep::volcyl(geom.GetRMax(), geom.GetZMax() - geom.GetZMin(), resolution));
-  m_s = std::make_shared<meep::structure>(*m_gv, geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
-  m_f = std::make_shared<meep::fields>(m_s.get());
-
-  antenna.AddToGeometry(*m_f, geom);
-
   std::cout << "Constructed geom with start = " << *m_start_coords << " and end = " << *m_end_coords << std::endl;
 }
 
@@ -71,17 +65,57 @@ private:
 // Local utilities
 namespace {
 
-  std::filesystem::path get_tmp_dir(std::filesystem::path parent_dir) {
-    char tmpdir_template[] = "eisvogel.XXXXXX";
-    return parent_dir / std::filesystem::path(mkdtemp(tmpdir_template));
+  std::filesystem::path create_tmp_dir_in(std::filesystem::path parent_dir) {
+    if(!std::filesystem::exists(parent_dir)) {
+      std::filesystem::create_directory(parent_dir);
+    }
+    std::string tmpdir_template = parent_dir / "eisvogel.XXXXXX";    
+    mkdtemp(tmpdir_template.data());
+    return tmpdir_template;
   }
 }
 
+// Data container to keep track of metadata information pertaining to a single spatial simulation chunk.
+template <typename SpatialSymmetryT>
+struct SimulationChunkMetadata {
+
+  using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
+
+  SimulationChunkMetadata(const shape_t& chunk_shape) : chunk_shape(chunk_shape) { }
+  
+  shape_t chunk_shape;  
+};
+
 // Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
 // back and forth between MEEP and Eisvogel.
+template <typename SpatialSymmetryT>
 struct ChunkloopData {
 
+  using meep_chunk_ind_t = int;
+  using sim_chunk_meta_t = SimulationChunkMetadata<SpatialSymmetryT>;
+  using darr_t = typename SpatialSymmetryT::darr_t;
+  using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;  
+  using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
+
+  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field,
+		const chunk_t::shape_t& init_field_buffer_shape, const fstats_t::shape_t& init_stat_buffer_shape) :
+    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field),
+    field_buffer(init_field_buffer_shape), field_stat_buffer(init_stat_buffer_shape) { }
+  
+  std::size_t ind_time;  // Time index
+  darr_t& fstor;  // Reference to field storage
+  fstats_t& fstats;  // Reference to field statistics tracker
+  
+  scalar_t dynamic_range;  // Dynamic range of field to keep
+  scalar_t abs_min_field;  // Abs. minimum field value to keep
+
+  chunk_t field_buffer;  // Buffer to assemble field values
+  fstats_t::region_t field_stat_buffer;  // Buffer for field statistic values
+  
+  std::unordered_map<meep_chunk_ind_t, sim_chunk_meta_t> sim_chunk_meta;  // Metadata for all simulation chunks
 };
+
+using CylindricalChunkloopData = ChunkloopData<SpatialSymmetry::Cylindrical<scalar_t>>;
 
 // Callbacks to interface with MEEP
 namespace meep {
@@ -93,8 +127,33 @@ namespace meep {
 				ivec shift, std::complex<double> shift_phase,
 				const symmetry& S, int sn, void* cld) {
 
-    
-    
+    CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);
+
+    // index vectors for start and end of chunk
+    ivec isS = S.transform(is, sn) + shift;
+    ivec ieS = S.transform(ie, sn) + shift;
+
+    // determine rank (= number of spatial dimensions) of this simulation chunk
+    std::size_t rank = number_of_directions(fc -> gv.dim);
+    constexpr std::size_t required_rank = 2;
+    assert(rank == required_rank);  // For a cylindrical geometry, we expect a 2d spatial simulation volume
+
+    // determine the shape of this simulation chunk
+    // shape = {shape_z, shape_r}
+    std::size_t shape[required_rank] = {0};
+    std::size_t index = 0;
+    LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
+      std::size_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
+      shape[index++] = cur_len;
+    }
+
+    // Build and record the chunk metadata
+    RZVector<std::size_t> chunk_shape{shape[1], shape[0]};
+    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape);    
+    chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
+
+    // Setup field statistics tracker for this chunk
+    chunkloop_data -> fstats.AddRegion(ichunk, chunk_shape);
   }
 
   // This is called for every simulation timestep and performs the saving of the Green's function.
@@ -102,22 +161,108 @@ namespace meep {
 				 vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
 				 ivec shift, std::complex<double> shift_phase,
 				 const symmetry& S, int sn, void* cld) {
+
+  
+    // Number of time slices before a new chunk is started
+    std::size_t requested_chunk_size_t = 400;
+    
     
     
   }  
 } // end namespace meep
 
-void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir) {
+void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
+							      double courant_factor, double resolution, double pml_width) {
+  
+  std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
+  std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
+  std::shared_ptr<meep::fields> meep_f = std::make_shared<meep::fields>(meep_s.get());
 
+  m_antenna.AddToGeometry(*meep_f, m_geom);
+  
+  // Some typedefs
+  constexpr std::size_t dims = SpatialSymmetry::Cylindrical<scalar_t>::dims;
+  // using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t>::chunk_t;
+  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+  
+  // Working directory in process-local scratch area
+  std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
+  
+  std::size_t cache_depth = 1;   // all chunks are created one time-slice at a time, no need for a large cache
+  TZRVector<std::size_t> init_cache_el_shape(1);
+  TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
+  darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
+
+  // Set up tracker to follow field statistics such as the maximum field strength
+  // This corresponds to a constant-time slice, which has one fewer dimensions
+  std::size_t fstats_subsampling = 2;  
+  FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_subsampling);
+
+  scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
+  scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
+
+  // Prepare data container to pass to all MEEP callbacks
+  TZRVector<std::size_t> init_field_buffer_shape(1);
+  ZRVector<std::size_t> init_field_stat_buffer_shape(1);
+  CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_stat_buffer_shape);
+
+  // Setup simulation run 
+  meep_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
+
+  // Main simulation loop
+  std::size_t stepcnt = 0;
+  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+
+    // Time-step the fields
+    while (meep_f -> time() < cur_t) {
+      meep_f -> step();
+    }
+
+    if(meep::am_master()) {
+      std::cout << "Simulation time: " << meep_f -> time() << std::endl;
+    }
+
+    // Store the Green's function at the present timestep
+    cld.ind_time = stepcnt++;
+    meep_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
+  }
+
+  // Move Green's function to the requested output location
+  darr.Move(outdir);  
+}
+
+void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs) {
+
+  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+
+  std::size_t cache_depth = 1;
+  TZRVector<std::size_t> init_cache_el_shape(1);
+  TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
+  darr_t darr(outdir, cache_depth, init_cache_el_shape, streamer_chunk_shape); // no big cache needed here, this is just for merging
+
+  for(const std::filesystem::path& indir : indirs) {
+    darr.Import(indir);
+    std::filesystem::remove_all(indir);
+  }
+}
+
+void CylindricalGreensFunctionCalculator::rechunk(std::filesystem::path outdir, std::filesystem::path indir, int cur_mpi_id, int number_mpi_jobs) {
+
+}
+
+void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
+						    double courant_factor, double resolution, double pml_width) {
+
+  int number_mpi_jobs = meep::count_processors();
   int job_mpi_rank = meep::my_rank();
 
-  // Working directory in process-local scratch area
-  std::filesystem::path local_workdir = get_tmp_dir(local_scratchdir);
-
-  // Working directory in global scratch area
-  std::filesystem::path global_workdir;
+  // Prepare an empty working directory in global scratch area
+  std::filesystem::path global_workdir = global_scratchdir / "eisvogel";
   if(meep::am_master()) {
-    global_workdir = get_tmp_dir(global_scratchdir);
+    if(std::filesystem::exists(global_workdir)) {
+      std::filesystem::remove_all(global_workdir);
+    }
+    std::filesystem::create_directory(global_workdir);
   }
 
   // Output directory
@@ -128,35 +273,38 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
     std::filesystem::create_directory(outdir);
   }
 
+  std::cout << "using global_workdir = " << global_workdir << std::endl;
+  
   meep::all_wait();
 
-  // Some typedefs
-  constexpr std::size_t vec_dims = 2;     // we only need to store E_r and E_z
-  constexpr std::size_t dims = SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::dims;
-  using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::chunk_t;
-  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t, vec_dims>::darr_t;
-
-  // Number of time slices before a new chunk is started
-  std::size_t requested_chunk_size_t = 400;
-
-  // ================================================================
-  // First stage: each MPI process calculates and stores its part
-  //              of the Green's function in `local_workdir`
-  // ================================================================
+  auto calc_job_dir = [](int job_mpi_rank) -> std::filesystem::path {
+    return std::format("calc_job_{}", job_mpi_rank);
+  };
   
-  std::size_t cache_depth = 1;   // all chunks are created one time-slice at a time, no need for a large cache
-  TZRVector<std::size_t> init_cache_el_shape(1);
-  TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
-  darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
+  // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
+  std::filesystem::path job_outdir = global_scratchdir / calc_job_dir(job_mpi_rank);
+  calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width);
 
-  // Set up tracker to follow field statistics such as the maximum field strength
-  std::size_t fstats_subsampling = 2;  
-  FieldStatisticsTracker<int, dims> bla(fstats_subsampling);
-
-  scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
-  scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
+  meep::all_wait();   // Wait for all processes to have finished providing their output
   
-  // std::cout << bla.GetMaxLocal(1, {1u, 1u}) << std::endl;
+  // Second stage: create a new distributed array and import all the chunks. This is now a complete Green's function!
+  std::filesystem::path mergedir = global_scratchdir / "merge";
+  if(meep::am_master()) {
+
+    // Assemble output directories from all jobs
+    std::vector<std::filesystem::path> to_merge;    
+    for(int job_id = 0; job_id < number_mpi_jobs; job_id++) {
+      std::filesystem::path cur_job_outdir = global_scratchdir / calc_job_dir(job_id);
+      to_merge.push_back(cur_job_outdir);
+    }
+
+    // Call the merger
+    merge_mpi_chunks(mergedir, to_merge);
+  }
+
+  // Third stage: rechunk the complete Green's function
+
+  // Fourth stage: create the final Green's function and import all the rechunked pieces
   
 }
 
