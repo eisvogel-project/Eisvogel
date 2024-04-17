@@ -269,7 +269,7 @@ int main(int argc, char* argv[]) {
     darr_t darr_read(workdir);
     std::cout << darr_read.GetShape() << std::endl;
     test_darr_correctness(darr_read, swapped_filler);
-    test_darr_correctness_subscription_op(darr, swapped_filler);
+    test_darr_correctness_subscription_op(darr_read, swapped_filler);
   }
   
   Vector<std::size_t, dims> requested_chunk_size(40);
@@ -304,7 +304,7 @@ int main(int argc, char* argv[]) {
   darr_t darr_final(workdir_final);
   std::cout << darr_final.GetShape() << std::endl;
   test_darr_correctness(darr_final, swapped_filler);
-  test_darr_correctness_subscription_op(darr, swapped_filler);
+  test_darr_correctness_subscription_op(darr_final, swapped_filler);
   
   std::cout << "done" << std::endl;
 }
