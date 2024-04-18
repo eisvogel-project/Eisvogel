@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <memory>
+#include <vector>
 
 class CylindricalGreensFunction;
 class LineCurrentSegment;

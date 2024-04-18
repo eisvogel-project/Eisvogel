@@ -3,15 +3,13 @@
 #include <algorithm>
 #include <stdlib.h>
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculatorOld.hh"
-#include "Eisvogel/Current0DOld.hh"
-#include "Eisvogel/SignalExport.hh"
+#include "Eisvogel/SignalCalculator.hh"
+#include "Eisvogel/Current.hh"
+
 #include "shower_creator.h"
 #include "shower_1D.h"
 #include "constants.h"
 #include "units.h"
-
-namespace CU = CoordUtils;
 
 int main(int argc, char* argv[]) {
 
@@ -23,39 +21,41 @@ int main(int argc, char* argv[]) {
     std::array<float, 3> shower_vertex = {-106  , .1, -165};    // position of the shower vertex. If you change this, make sure to also adjust the weighting field accordingly
     scalar_t sampling_rate = 5.;                     // sampling rate that is used when calculating the radio signal
 
-    std::string wf_path;
+    std::string gf_path;
     std::string output_path;
     if (argc < 2) {
-        wf_path = "weighting_field";
+        gf_path = "greens_function";
     } else {
-        wf_path = argv[1];
+        gf_path = argv[1];
     }
     if (argc < 3) {
         output_path = "shower_radio_emission.csv";
     } else {
         output_path = argv[2];
     }
-    SignalCalculatorOld signal_calc(wf_path);
+    SignalCalculator signal_calc(gf_path);
                     
     showers::ShowerCreator shower_creator(std::string(std::getenv("EISVOGELDIR")) + "/extern/shower_profile/shower_file");   
     showers::Shower1D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);
          
     shower.print_dimensions();
 
-    // test trajectory: a point charge moving parallel to the x-axis 
-    // with a constant impact parameter of 'b' along the z-axis
-
-    std::vector<scalar_t> signal_times, signal_values;
-    Current0D current = shower.get_current(0.2);
-    for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += 1. / sampling_rate) {
-        scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
-        signal_times.push_back(cur_t);
-        signal_values.push_back(cur_signal);
-    }
-    // convert to normal units
-    for (int i; i < signal_values.size(); i++) {
-        signal_values[i] = signal_values[i] * (1. / constants::epsilon_0 / constants::c / constants::c);
-    }
-    ExportSignal(signal_times, signal_values, output_path);
+    std::vector<scalar_t> signal_values;
+    scalar_t t_sig_start = 1050.0f;
+    scalar_t t_sig_end = 1300.0f;
+    scalar_t t_sig_samp = 1.0 / sampling_rate;
+    std::size_t num_samples = (t_sig_end - t_sig_start) / t_sig_samp;
+    
+    // Current0D current = shower.get_current(0.2);
+    // for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += 1. / sampling_rate) {
+    //     scalar_t cur_signal = signal_calc.ComputeSignal(current, cur_t);
+    //     signal_times.push_back(cur_t);
+    //     signal_values.push_back(cur_signal);
+    // }
+    // // convert to normal units
+    // for (int i; i < signal_values.size(); i++) {
+    //     signal_values[i] = signal_values[i] * (1. / constants::epsilon_0 / constants::c / constants::c);
+    // }
+    
     return 0;
 }
