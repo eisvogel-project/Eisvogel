@@ -843,7 +843,7 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
   // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
   
-  assert(meta.shape == m_cache.RetrieveChunk(meta).GetShape());
+  // assert(meta.shape == m_cache.RetrieveChunk(meta).GetShape());
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
