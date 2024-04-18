@@ -416,11 +416,12 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
   auto rechunker = [&](const RZTIndexVector& partition_start, const RZTIndexVector& partition_end) {
 
     std::filesystem::path cur_rechunking_dir = global_scratch_dir / rechunk_dir(num_rechunking);
-    ensure_empty_directory(cur_rechunking_dir);
     rechunking_dirs.push_back(cur_rechunking_dir);
 
     // Each job only performs those rechunkings assigned to it
     if(num_rechunking % number_mpi_jobs == cur_mpi_id) {
+
+      ensure_empty_directory(cur_rechunking_dir);
       
       std::cout << "job " << cur_mpi_id << " rechunking " << partition_start << " -> " << partition_end << " into " << cur_rechunking_dir << std::endl;
       darr.RebuildChunksPartial(partition_start, partition_end, requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
@@ -432,9 +433,10 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
   RZTIndexVector start(0);
   partition_size = requested_chunk_size;
   IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
-
+  
   // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
-  meep::all_wait();
+  meep::all_wait(); 
+  
   if(meep::am_master()) {
     merge_mpi_chunks(outdir, rechunking_dirs);
   }
