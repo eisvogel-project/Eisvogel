@@ -431,7 +431,6 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
     num_rechunking++;
   };
   RZTIndexVector start(0);
-  partition_size = requested_chunk_size;
   IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
   
   // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
@@ -506,13 +505,13 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   // Clean up our temporary files
   if(meep::am_master()) {
     std::filesystem::remove_all(global_workdir);
-  }
   
-  // Fourth stage: create the actual Green's function object
-  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
-  darr_t darr(outdir);
-  RZTVector<std::size_t> darr_shape = darr.GetShape();
-  RZTCoordVector step_size = (*m_end_coords - *m_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
-  CylindricalGreensFunction(*m_start_coords, *m_end_coords, step_size, std::move(darr));
+    // Fourth stage: create the actual Green's function object
+    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+    darr_t darr(outdir);
+    RZTVector<std::size_t> darr_shape = darr.GetShape();
+    RZTCoordVector step_size = (*m_end_coords - *m_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
+    CylindricalGreensFunction(*m_start_coords, *m_end_coords, step_size, std::move(darr));    
+  }
 }
 
