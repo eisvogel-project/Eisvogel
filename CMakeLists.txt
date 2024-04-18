@@ -1,5 +1,7 @@
 cmake_minimum_required( VERSION 3.20 FATAL_ERROR )
 
+set(CMAKE_CXX_FLAGS "-O3 -Wall -Wpedantic -Wextra -ftree-vectorize -ffast-math -ftree-vectorizer-verbose=2 -funroll-loops -march=native -save-temps -fverbose-asm -g")
+
 project(eisvogel)
 
 option(BUILD_PYTHON "Build with python support." OFF)

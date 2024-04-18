@@ -1,5 +1,4 @@
-#ifndef __UNITS
-#define __UNITS
+#pragma once
 
 namespace units {
     // base units
@@ -89,5 +88,3 @@ namespace units {
     // angles
     const double degree = 0.017453293;
 }
-
-#endif

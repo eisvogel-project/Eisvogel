@@ -1,9 +1,9 @@
-#ifndef SHOWER1D_CLASS
-#define SHOWER1D_CLASS
+#pragma once
+
 #include <array>
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
-#include "Eisvogel/Current0DOld.hh"
+#include "Eisvogel/Current.hh"
 
 namespace showers {
 	class Shower1D {
@@ -16,9 +16,8 @@ namespace showers {
 				std::vector<double> *z,
 				std::vector<double> *ce
 		);
-		Current0D get_current(
-				double delta_t
-		);
+	  void fill_tracks(double delta_t, std::vector<LineCurrentSegment>& out);
+	  
 		Shower1D(
 				std::array<float, 3> pos,
 				double en,
@@ -40,5 +39,3 @@ namespace showers {
 		environment::IceProfile ice_profile;
 	};
 }
-
-#endif

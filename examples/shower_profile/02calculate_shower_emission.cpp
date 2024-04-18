@@ -2,9 +2,11 @@
 #include <fstream>
 #include <algorithm>
 #include <stdlib.h>
+#include <chrono>
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/SignalCalculator.hh"
 #include "Eisvogel/Current.hh"
+#include "Eisvogel/SignalExport.hh"
 
 #include "shower_creator.h"
 #include "shower_1D.h"
@@ -33,18 +35,50 @@ int main(int argc, char* argv[]) {
     } else {
         output_path = argv[2];
     }
-    SignalCalculator signal_calc(gf_path);
+    SignalCalculator signal_calc(gf_path, 200);
                     
     showers::ShowerCreator shower_creator(std::string(std::getenv("EISVOGELDIR")) + "/extern/shower_profile/shower_file");   
     showers::Shower1D shower = shower_creator.create_shower(shower_vertex, shower_energy, shower_zenith, shower_azimuth, is_hadronic, i_shower);
          
     shower.print_dimensions();
 
-    std::vector<scalar_t> signal_values;
     scalar_t t_sig_start = 1050.0f;
     scalar_t t_sig_end = 1300.0f;
     scalar_t t_sig_samp = 1.0 / sampling_rate;
     std::size_t num_samples = (t_sig_end - t_sig_start) / t_sig_samp;
+    std::vector<scalar_t> signal_values(num_samples);
+
+    std::vector<scalar_t> signal_times;
+    for(std::size_t sample_ind = 0; sample_ind < num_samples; sample_ind++) {      
+      signal_times.push_back(t_sig_start + sample_ind * t_sig_samp);
+    }
+    assert(signal_times.size() == num_samples);
+
+    std::vector<LineCurrentSegment> tracks;
+    shower.fill_tracks(0.2, tracks);
+
+    for(std::size_t i = 0; i < 2; i++) {
+    
+    std::size_t num_tracks = 0;
+    for(auto& cur_track : tracks) {
+      std::cout << "have track with start_pos = " << cur_track.start_pos << ", end_pos = " << cur_track.end_pos
+		<< ", start_time = " << cur_track.start_time << ", end_time = " << cur_track.end_time << ", charge = " << cur_track.charge << std::endl;
+
+      auto start = std::chrono::high_resolution_clock::now();  
+      signal_calc.AccumulateSignal(cur_track, t_sig_start, t_sig_samp, num_samples, signal_values);
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+      num_tracks++;
+      
+      std::cout << "track took " << duration << std::endl;
+    }
+
+    std::cout << "calculated " << num_tracks << " tracks" << std::endl;
+    
+    }
+
+    ExportSignal(signal_times, signal_values, output_path);
     
     // Current0D current = shower.get_current(0.2);
     // for(scalar_t cur_t = 1050; cur_t < 1300; cur_t += 1. / sampling_rate) {
