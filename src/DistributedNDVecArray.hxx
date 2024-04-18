@@ -530,6 +530,8 @@ template <std::size_t dims>
 void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 
   invalidate_cached_index_metadata();
+
+  // BUG: need to re-enumerate the chunks
   
   std::vector<metadata_t> index_entries = load_index_entries(index_path);
   m_chunk_list.insert(m_chunk_list.end(),
