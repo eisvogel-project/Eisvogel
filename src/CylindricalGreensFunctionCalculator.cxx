@@ -74,6 +74,19 @@ namespace {
     mkdtemp(tmpdir_template.data());
     return tmpdir_template;
   }
+
+  // Ensures that `dir` is an empty directory, creating it if it does not yet exist,
+  // or removing its contents if it does already exist
+  void ensure_empty_directory(std::filesystem::path dir) {
+    if(!std::filesystem::exists(dir)) {
+      std::filesystem::create_directory(dir);
+    }
+    else {
+      for(const auto& entry : std::filesystem::directory_iterator(dir)) {
+        std::filesystem::remove_all(entry.path());
+      }
+    }
+  }
 }
 
 // Data container to keep track of metadata information pertaining to a single spatial simulation chunk.
@@ -334,9 +347,7 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
   
   using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
 
-  if(std::filesystem::exists(outdir)) {
-    std::filesystem::remove_all(outdir);
-  }
+  ensure_empty_directory(outdir);
   
   std::size_t cache_depth = 1;
   TZRVector<std::size_t> init_cache_el_shape(1);
@@ -405,6 +416,7 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
   auto rechunker = [&](const RZTIndexVector& partition_start, const RZTIndexVector& partition_end) {
 
     std::filesystem::path cur_rechunking_dir = global_scratch_dir / rechunk_dir(num_rechunking);
+    ensure_empty_directory(cur_rechunking_dir);
     rechunking_dirs.push_back(cur_rechunking_dir);
 
     // Each job only performs those rechunkings assigned to it
@@ -460,19 +472,19 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   };
   
   // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
-  std::filesystem::path job_outdir = global_scratchdir / calc_job_dir(job_mpi_rank);
+  std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
   calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width);
 
   meep::all_wait();   // Wait for all processes to have finished providing their output
   
   // Second stage: create a new distributed array and import all the chunks. This is now a complete Green's function!
-  std::filesystem::path mergedir = global_scratchdir / "merge";      
+  std::filesystem::path mergedir = global_workdir / "merge";      
   if(meep::am_master()) {
 
     // Assemble output directories from all jobs
     std::vector<std::filesystem::path> to_merge;    
     for(int job_id = 0; job_id < number_mpi_jobs; job_id++) {
-      std::filesystem::path cur_job_outdir = global_scratchdir / calc_job_dir(job_id);
+      std::filesystem::path cur_job_outdir = global_workdir / calc_job_dir(job_id);
       to_merge.push_back(cur_job_outdir);
     }
 
@@ -485,9 +497,14 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
   RZTVector<std::size_t> requested_chunk_size(200);
   std::size_t overlap = 2;
-  rechunk_mpi(outdir, mergedir, global_scratchdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
+  rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
   
   meep::all_wait();
+
+  // Clean up our temporary files
+  if(meep::am_master()) {
+    std::filesystem::remove_all(global_workdir);
+  }
   
   // Fourth stage: create the actual Green's function object
   using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
