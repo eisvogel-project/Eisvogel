@@ -842,7 +842,8 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
 
   // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
   // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
-  
+
+  // Warning: this assert has side-effects since it triggers synchronization of the cache and the disk
   // assert(meta.shape == m_cache.RetrieveChunk(meta).GetShape());
 }
 
