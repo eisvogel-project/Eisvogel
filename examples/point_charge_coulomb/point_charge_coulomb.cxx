@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 #include "Eisvogel/Common.hh"
 #include "Eisvogel/SignalCalculator.hh"
@@ -34,8 +35,18 @@ int main(int argc, char* argv[]) {
   
   std::cout << "Computing signal ..." << std::endl;
 
+  std::fill(signal_values.begin(), signal_values.end(), 0.0f);							    
   calc.AccumulateSignal(track, t_sig_start, t_sig_samp, num_samples, signal_values);
 
+  std::fill(signal_values.begin(), signal_values.end(), 0.0f);
+
+  auto start = std::chrono::high_resolution_clock::now();  
+  calc.AccumulateSignal(track, t_sig_start, t_sig_samp, num_samples, signal_values);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+
+  std::cout << "calculation finished in " << duration << std::endl;
+  
   for(scalar_t& cur: signal_values) {
     std::cout << cur << std::endl;
   }
