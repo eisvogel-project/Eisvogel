@@ -804,6 +804,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
+
+  std::cout << "BBBB appending, start_ind = " << start_ind << ", slice_shape = " << slice.GetShape() << std::endl;
   
   // This is the index of an element in the (existing) chunk the slice should be appended to
   ind_t ind_existing_chunk = start_ind;
@@ -811,9 +813,18 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   
   // Get the metadata describing that chunk
   metadata_t& meta = m_index.GetChunk(ind_existing_chunk);
+
+  std::cout << "BBBB before append: \n" << meta << std::endl;
   
   // Perform the appending operation
   m_cache.template AppendSlice<axis>(meta, slice);
+
+  std::cout << "BBBB after append: \n" << meta << std::endl;
+
+  std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
+  std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
+  
+  assert(meta.shape == m_cache.RetrieveChunk(meta).GetShape());
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -849,6 +860,12 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
     // These are the indices where the current `chunk` overlaps with the specified range
     ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, input_start);
     ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, input_end);
+
+    std::cout << chunk_meta << std::endl;
+    std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
+    std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
+    std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+    std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
     
     // copy the overlapping range from the `chunk` into the destination `array`
     array.fill_from(chunk,

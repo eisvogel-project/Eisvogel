@@ -167,6 +167,20 @@ namespace meep {
     std::cout << "in saving chunkloop" << std::endl;
     
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
+
+    {
+      // determine the shape of this simulation chunk
+      // shape = {shape_z, shape_r}
+      std::size_t shape[2] = {0};
+      std::size_t index = 0;
+      LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
+	std::size_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
+	shape[index++] = cur_len;
+      }
+      ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
+      
+      assert(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape == chunk_shape);
+    }
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 400;
@@ -242,7 +256,7 @@ namespace meep {
     }
     else {
       
-      std::cout << "appending slice at start_ind = " << chunk_start_ind << std::endl;
+      std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
       
       // ... or append it to an already-existing chunk along the outermost (time) direction
       chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind, chunkloop_data -> field_buffer);
@@ -267,7 +281,7 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
   // Working directory in process-local scratch area
   std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
   
-  std::size_t cache_depth = 1;   // all chunks are created one time-slice at a time, no need for a large cache
+  std::size_t cache_depth = 10;   // all chunks are created one time-slice at a time, no need for a large cache
   TZRVector<std::size_t> init_cache_el_shape(1);
   TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
   darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
@@ -335,6 +349,34 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
   }
 }
 
+// Tries to come up with a good `partition_size` so that `partition_size` is an integer multiple of `chunk_size` and it takes
+// approximately `number_partitions_requested` nonoverlapping partitions to cover a region with `shape`.
+template <std::size_t dims>
+Vector<std::size_t, dims> get_partition_size(const Vector<std::size_t, dims>& shape, const Vector<std::size_t, dims>& chunk_size,
+						 std::size_t number_partitions_requested) {
+
+  std::size_t longest_axis = std::distance(shape.begin(), std::max_element(std::execution::unseq, shape.begin(), shape.end()));
+
+  auto number_partitions_actual = [&](const Vector<std::size_t, dims>& pars_per_dim) -> std::size_t {
+    return std::reduce(std::execution::unseq, pars_per_dim.begin(), pars_per_dim.end(), 1, std::multiplies<int>());
+  };  
+    
+  // Number of (partial) chunks along each direction
+  Vector<std::size_t, dims> chunks_per_dim = VectorUtils::ceil_nonneg(shape.template as_type<scalar_t>() / chunk_size.template as_type<scalar_t>());
+  
+  // First guess for the number of partitions per dimension
+  Vector<std::size_t, dims> pars_per_dim((std::size_t)std::pow((scalar_t)number_partitions_requested, 1.0 / dims));
+
+  while(number_partitions_actual(pars_per_dim) < number_partitions_requested) {
+    pars_per_dim[longest_axis]++;
+  }  
+  
+  Vector<std::size_t, dims> par_size_in_chunks = VectorUtils::ceil_nonneg(chunks_per_dim.template as_type<scalar_t>() / pars_per_dim.template as_type<scalar_t>());
+  Vector<std::size_t, dims> partition_size = par_size_in_chunks * chunk_size;
+  
+  return partition_size;
+}
+
 void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
 						      int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap) {
 
@@ -350,12 +392,40 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
   std::cout << "this is rechunking job " << cur_mpi_id << " / " << number_mpi_jobs << " jobs" << std::endl;
   std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
 
-  // Determine nonoverlapping rectangular regions that are handled by each job; try to make them of similar size for optimal work sharing
+  // Determine nonoverlapping rectangular partitions that are handled by each job; try to make them of similar size for optimal work sharing
+  RZTVector<std::size_t> shape = darr.GetShape();
+  RZTVector<std::size_t> partition_size = get_partition_size(shape, requested_chunk_size, number_mpi_jobs);
 
-  RZTIndexVector global_start_ind(0);
-  RZTIndexVector global_end_ind = darr.GetShape();
+  auto rechunk_dir = [](int rechunk_num) -> std::filesystem::path {
+    return std::format("rechunk_job_{}", rechunk_num);
+  };
   
-  darr.RebuildChunksPartial(global_start_ind, global_end_ind, requested_chunk_size, outdir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
+  std::size_t num_rechunking = 0;
+  std::vector<std::filesystem::path> rechunking_dirs;
+  auto rechunker = [&](const RZTIndexVector& partition_start, const RZTIndexVector& partition_end) {
+
+    std::filesystem::path cur_rechunking_dir = global_scratch_dir / rechunk_dir(num_rechunking);
+    rechunking_dirs.push_back(cur_rechunking_dir);
+
+    // Each job only performs those rechunkings assigned to it
+    if(num_rechunking % number_mpi_jobs == cur_mpi_id) {
+      
+      std::cout << "job " << cur_mpi_id << " rechunking " << partition_start << " -> " << partition_end << " into " << cur_rechunking_dir << std::endl;
+      darr.RebuildChunksPartial(partition_start, partition_end, requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
+      std::cout << "job " << cur_mpi_id << " done" << std::endl;
+    }
+    
+    num_rechunking++;
+  };
+  RZTIndexVector start(0);
+  partition_size = requested_chunk_size;
+  IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
+
+  // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
+  meep::all_wait();
+  if(meep::am_master()) {
+    merge_mpi_chunks(outdir, rechunking_dirs);
+  }
 }
 
 void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
@@ -413,7 +483,7 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   meep::all_wait();
   
   // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
-  RZTVector<std::size_t> requested_chunk_size(400);
+  RZTVector<std::size_t> requested_chunk_size(200);
   std::size_t overlap = 2;
   rechunk_mpi(outdir, mergedir, global_scratchdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
   
