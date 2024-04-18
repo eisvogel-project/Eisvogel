@@ -299,6 +299,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_with_disk(cache_e
   }
 
   iofs.close();
+
+  cache_entry.op_to_perform = CacheStatus::Nothing();
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
