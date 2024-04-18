@@ -44,9 +44,13 @@ int main(int argc, char* argv[]) {
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
 
-  CylinderGeometry geom(20, -15, 15, eps);
+  CylinderGeometry geom(20.0, -15.0, 15.0, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  scalar_t t_end = 25;
+  scalar_t t_end = 25.0;
+
+  // CylinderGeometry geom(100.0, -100.0, 100.0, eps);
+  // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
+  // scalar_t t_end = 25.0;
   
   // CylinderGeometry geom(300, -300, 300, eps);
   // InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
