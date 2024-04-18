@@ -281,7 +281,7 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
   // Working directory in process-local scratch area
   std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
   
-  std::size_t cache_depth = 10;   // all chunks are created one time-slice at a time, no need for a large cache
+  std::size_t cache_depth = 1;   // all chunks are created one time-slice at a time, no need for a large cache
   TZRVector<std::size_t> init_cache_el_shape(1);
   TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
   darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
