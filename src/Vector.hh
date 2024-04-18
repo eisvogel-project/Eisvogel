@@ -344,7 +344,8 @@ struct TZRVector : public Vector3D<T> {
   T& z() { return this -> operator[](1); };
   T& r() { return this -> operator[](2); };
 
-  ZRVectorView<T> zr_view() const { return ZRVectorView<T>( this -> begin()); };
+  ZRVectorView<T> zr_view() { return ZRVectorView<T>( this -> begin()); };
+  ZRVector<T> zr() const { return ZRVector<T>{z(), r()}; };
 };
 
 template <typename T>

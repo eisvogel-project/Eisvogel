@@ -148,7 +148,7 @@ using CylindricalChunkloopData = ChunkloopData<SpatialSymmetry::Cylindrical<scal
 
 // Limit dynamic range
 void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& field_buffer, const CylindricalChunkloopData::fstats_t::region_t& field_absval_buffer,
-			       const CylindricalChunkloopData::fstats_t& fstats) {
+			       const CylindricalChunkloopData::fstats_t& fstats, scalar_t abs_min_field, scalar_t dynamic_range) {
 
   using ind_t = CylindricalChunkloopData::chunk_t::ind_t;
   using view_t = CylindricalChunkloopData::chunk_t::view_t;
@@ -157,9 +157,26 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
 
   std::size_t num_truncations = 0;
 
-  auto truncator = [&](const TZRIndexVector& cur_ind, view_t cur_elem) {    
-    //scalar_t max_field = fstats.GetMaxLocal(i_chunk, cur_ind.zr_view());
-    
+  auto truncator = [&](const TZRIndexVector& cur_ind, view_t cur_elem) {
+
+    ZRIndexVector cur_slice_ind = cur_ind.zr();
+    scalar_t max_abs_field = fstats.GetMaxLocal(i_chunk, cur_slice_ind);  // maximum field norm encountered so far at this locaiton
+
+    if(max_abs_field > abs_min_field) {
+      scalar_t cur_abs_field = field_absval_buffer[cur_slice_ind][0];  // current field norm at this location
+
+      // truncate, we are above the required dynamic range
+      if(cur_abs_field < max_abs_field / dynamic_range) {       
+	field_buffer[cur_ind] = 0;
+	num_truncations++;
+      }      
+    }
+    else {
+
+      // The field has not yet gone above the `abs_min_field` threshold; truncate
+      field_buffer[cur_ind] = 0;
+      num_truncations++;      
+    }
   };  
   field_buffer.index_loop_over_elements(truncator);
 
@@ -277,7 +294,8 @@ namespace meep {
     chunkloop_data -> fstats.UpdateStatisticsForRegion(ichunk, chunkloop_data -> field_absval_buffer);
 
     // Truncate small field values to keep a certain maximum dynamic range
-    limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats);
+    limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats,
+			      chunkloop_data -> abs_min_field, chunkloop_data -> dynamic_range);
 
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
