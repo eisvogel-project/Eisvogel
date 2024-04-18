@@ -38,21 +38,35 @@ public:
 
   void UpdateStatisticsForRegion(const RegionKeyT& region_key, const region_t& region_data) {
 
+    // Update running field maximum
+    assert(m_max_data.contains(region_key));
+    region_t& region_max_data = m_max_data.at(region_key);
+
+    auto max_updater = [&](const ind_t& ind){
+      ind_t subsampled_ind = to_subsampled_ind(ind);
+      scalar_t cur_val = region_data[ind][0];
+
+      // have a new local field maximum; update
+      if(cur_val > region_max_data[subsampled_ind][0]) {       
+	region_max_data[subsampled_ind][0] = cur_val;
+      }
+    };    
+    IteratorUtils::index_loop_over_array_elements(region_data, max_updater);
   }
 
-  scalar_t GetMaxLocal(const RegionKeyT& region_key, const ind_t& ind) {
+  scalar_t GetMaxLocal(const RegionKeyT& region_key, const ind_t& ind) const {
     assert(m_max_data.contains(region_key));
     ind_t subsampled_ind = to_subsampled_ind(ind);
-    return m_max_data.at(region_key)[subsampled_ind];
+    return m_max_data.at(region_key)[subsampled_ind][0];
   }
 
 private:
 
-  shape_t to_subsampled_shape(const shape_t& shape) {
+  shape_t to_subsampled_shape(const shape_t& shape) const {
     return (shape + m_subsampling - 1) / m_subsampling;
   }
 
-  ind_t to_subsampled_ind(const ind_t& ind) {
+  ind_t to_subsampled_ind(const ind_t& ind) const {
     return ind / m_subsampling;
   }
   
@@ -61,6 +75,47 @@ private:
   std::size_t m_subsampling;
   std::unordered_map<RegionKeyT, region_t> m_max_data;
 
+};
+
+// Data container to keep track of metadata information pertaining to a single spatial simulation chunk.
+template <typename SpatialSymmetryT>
+struct SimulationChunkMetadata {
+
+  using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
+
+  SimulationChunkMetadata(const shape_t& chunk_shape) : chunk_shape(chunk_shape) { }
+  
+  shape_t chunk_shape;  
+};
+
+// Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
+// back and forth between MEEP and Eisvogel.
+template <typename SpatialSymmetryT>
+struct ChunkloopData {
+
+  using meep_chunk_ind_t = int;
+  using sim_chunk_meta_t = SimulationChunkMetadata<SpatialSymmetryT>;
+  using darr_t = typename SpatialSymmetryT::darr_t;
+  using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;
+  using view_t = typename chunk_t::view_t;  
+  using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
+
+  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field,
+		const chunk_t::shape_t& init_field_buffer_shape, const fstats_t::shape_t& init_stat_buffer_shape) :
+    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field),
+    field_buffer(init_field_buffer_shape), field_absval_buffer(init_stat_buffer_shape) { }
+  
+  std::size_t ind_time;  // Time index
+  darr_t& fstor;  // Reference to field storage
+  fstats_t& fstats;  // Reference to field statistics tracker
+  
+  scalar_t dynamic_range;  // Dynamic range of field to keep
+  scalar_t abs_min_field;  // Abs. minimum field value to keep
+
+  chunk_t field_buffer;  // Buffer to assemble field values
+  fstats_t::region_t field_absval_buffer;  // Buffer for field magnitude (vector norm)
+  
+  std::unordered_map<meep_chunk_ind_t, sim_chunk_meta_t> sim_chunk_meta;  // Metadata for all simulation chunks
 };
 
 // Local utilities
@@ -89,48 +144,27 @@ namespace {
   }
 }
 
-// Data container to keep track of metadata information pertaining to a single spatial simulation chunk.
-template <typename SpatialSymmetryT>
-struct SimulationChunkMetadata {
-
-  using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
-
-  SimulationChunkMetadata(const shape_t& chunk_shape) : chunk_shape(chunk_shape) { }
-  
-  shape_t chunk_shape;  
-};
-
-// Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
-// back and forth between MEEP and Eisvogel.
-template <typename SpatialSymmetryT>
-struct ChunkloopData {
-
-  using meep_chunk_ind_t = int;
-  using sim_chunk_meta_t = SimulationChunkMetadata<SpatialSymmetryT>;
-  using darr_t = typename SpatialSymmetryT::darr_t;
-  using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;
-  using view_t = typename chunk_t::view_t;  
-  using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
-
-  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field,
-		const chunk_t::shape_t& init_field_buffer_shape, const fstats_t::shape_t& init_stat_buffer_shape) :
-    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field),
-    field_buffer(init_field_buffer_shape), field_stat_buffer(init_stat_buffer_shape) { }
-  
-  std::size_t ind_time;  // Time index
-  darr_t& fstor;  // Reference to field storage
-  fstats_t& fstats;  // Reference to field statistics tracker
-  
-  scalar_t dynamic_range;  // Dynamic range of field to keep
-  scalar_t abs_min_field;  // Abs. minimum field value to keep
-
-  chunk_t field_buffer;  // Buffer to assemble field values
-  fstats_t::region_t field_stat_buffer;  // Buffer for field statistic values
-  
-  std::unordered_map<meep_chunk_ind_t, sim_chunk_meta_t> sim_chunk_meta;  // Metadata for all simulation chunks
-};
-
 using CylindricalChunkloopData = ChunkloopData<SpatialSymmetry::Cylindrical<scalar_t>>;
+
+// Limit dynamic range
+void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& field_buffer, const CylindricalChunkloopData::fstats_t::region_t& field_absval_buffer,
+			       const CylindricalChunkloopData::fstats_t& fstats) {
+
+  using ind_t = CylindricalChunkloopData::chunk_t::ind_t;
+  using view_t = CylindricalChunkloopData::chunk_t::view_t;
+  
+  std::cout << "limiting field dynamic range" << std::endl;
+
+  std::size_t num_truncations = 0;
+
+  auto truncator = [&](const TZRIndexVector& cur_ind, view_t cur_elem) {    
+    //scalar_t max_field = fstats.GetMaxLocal(i_chunk, cur_ind.zr_view());
+    
+  };  
+  field_buffer.index_loop_over_elements(truncator);
+
+  std::cout << "performed " << num_truncations << " truncations" << std::endl;  
+}
 
 // Callbacks to interface with MEEP
 namespace meep {
@@ -180,20 +214,6 @@ namespace meep {
     std::cout << "in saving chunkloop" << std::endl;
     
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
-
-    {
-      // determine the shape of this simulation chunk
-      // shape = {shape_z, shape_r}
-      std::size_t shape[2] = {0};
-      std::size_t index = 0;
-      LOOP_OVER_DIRECTIONS(fc -> gv.dim, d) {
-	std::size_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
-	shape[index++] = cur_len;
-      }
-      ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
-      
-      assert(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape == chunk_shape);
-    }
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 400;
@@ -202,7 +222,7 @@ namespace meep {
     ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);
     TZRVector<std::size_t> field_slice_shape(1, spatial_chunk_shape);
 
-    chunkloop_data -> field_stat_buffer.resize(spatial_chunk_shape);
+    chunkloop_data -> field_absval_buffer.resize(spatial_chunk_shape);
     chunkloop_data -> field_buffer.resize(field_slice_shape);
 
     assert(is.z() >= 0);
@@ -248,17 +268,16 @@ namespace meep {
 
       // ... and store them
       CylindricalChunkloopData::view_t field_elem = chunkloop_data -> field_buffer[cur_ind - chunk_start_ind];
-      field_elem[0] = E_r_val;
-      field_elem[1] = E_z_val;
-      chunkloop_data -> field_stat_buffer[cur_spatial_ind - spatial_chunk_start_ind] = E_abs_val;      
+      field_elem[0] = (scalar_t)E_r_val;
+      field_elem[1] = (scalar_t)E_z_val;
+      chunkloop_data -> field_absval_buffer[cur_spatial_ind - spatial_chunk_start_ind] = (scalar_t)E_abs_val;      
     }
 
     // Update statistics tracker
-    chunkloop_data -> fstats.UpdateStatisticsForRegion(ichunk, chunkloop_data -> field_stat_buffer);
+    chunkloop_data -> fstats.UpdateStatisticsForRegion(ichunk, chunkloop_data -> field_absval_buffer);
 
-    // -------------
-    // TODO: put truncation of small field values here
-    // -------------
+    // Truncate small field values to keep a certain maximum dynamic range
+    limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats);
 
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
@@ -309,8 +328,8 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
 
   // Prepare data container to pass to all MEEP callbacks
   TZRVector<std::size_t> init_field_buffer_shape(1);
-  ZRVector<std::size_t> init_field_stat_buffer_shape(1);
-  CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_stat_buffer_shape);
+  ZRVector<std::size_t> init_field_absval_buffer_shape(1);
+  CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_absval_buffer_shape);
 
   // Setup simulation run 
   meep_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());

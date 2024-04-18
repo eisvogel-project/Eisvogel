@@ -71,6 +71,18 @@ struct RZVectorView : public Vector2DView<T> {
 };
 
 template <typename T>
+struct ZRVectorView : public Vector2DView<T> {
+  using Vector2DView<T>::Vector2DView;
+  ZRVectorView(const Vector2DView<T>& other) : Vector2DView<T>(other) { }
+
+  static const T& z(const ZRVectorView& vec) { return vec[0]; }
+  static const T& r(const ZRVectorView& vec) { return vec[1]; }
+
+  static T& z(ZRVectorView& vec) { return vec[0]; }
+  static T& r(ZRVectorView& vec) { return vec[1]; }
+};
+
+template <typename T>
 struct RZTVectorView : public Vector3DView<T> {
   using Vector3DView<T>::Vector3DView;
   RZTVectorView(const Vector3DView<T>& other) : Vector3DView<T>(other) { }
