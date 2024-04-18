@@ -1,4 +1,6 @@
+#include "Eisvogel/Current.hh"
 #include "Interpolation.hh"
+#include "GreensFunction.hh"
 
 SignalCalculator::SignalCalculator(const std::filesystem::path& geometry_path, std::size_t cache_depth) : m_geometry_path(geometry_path) {
   

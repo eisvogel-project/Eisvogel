@@ -2,8 +2,9 @@
 
 #include <filesystem>
 #include <memory>
-#include "Current.hh"
-#include "GreensFunction.hh"
+
+class CylindricalGreensFunction;
+class LineCurrentSegment;
 
 class SignalCalculator {
 
