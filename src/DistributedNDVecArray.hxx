@@ -533,9 +533,14 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 
   invalidate_cached_index_metadata();
 
-  // BUG: need to re-enumerate the chunks
-  
+  // Load the new index entries
   std::vector<metadata_t> index_entries = load_index_entries(index_path);
+
+  // Re-enumerate the newly imported entries
+  for(metadata_t& cur_meta : index_entries) {
+    cur_meta.chunk_id = get_next_chunk_id();    
+  }
+  
   m_chunk_list.insert(m_chunk_list.end(),
 		      std::make_move_iterator(index_entries.begin()),
 		      std::make_move_iterator(index_entries.end())
