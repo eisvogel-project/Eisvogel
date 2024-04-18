@@ -22,7 +22,6 @@ int main(int argc, char* argv[]) {
   scalar_t beta = 0.9;
   auto charge = [&](scalar_t t){
     return -exp(beta * t / z0);
-    // return 1.0;
   };
 
   scalar_t t_sig_start = -10;
