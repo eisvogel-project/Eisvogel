@@ -87,6 +87,8 @@ const ChunkCache<ArrayT, T, dims, vec_dims>::chunk_t& ChunkCache<ArrayT, T, dims
     if((!std::holds_alternative<CacheStatus::Nothing>(cached_chunk.op_to_perform)) &&
        (!std::holds_alternative<CacheStatus::Serialize>(cached_chunk.op_to_perform))) {
       [[unlikely]];
+
+      // std::cout << "synchronize with disk" << std::endl;
       
       // The element contained in the cache is not up-to-date; need to synchronize first
       sync_cache_element_with_disk(cached_chunk);
@@ -116,6 +118,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   
   id_t index = chunk_meta.chunk_id;
   if(!m_cache.contains(index)) {
+
+    // std::cout << "insert into cache as new element with status 'append'" << std::endl;
     
     // Cache does not have the chunk to which the new slice should be appended; simply insert the slice as a new element into the cache using the `append` status
     // so that it will be appended to disk whenever it goes out of scope
@@ -136,6 +140,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     insert_into_cache(chunk_meta, slice, CacheStatus::Append(axis));
   }
   else if(std::holds_alternative<CacheStatus::Serialize>(status)) {
+
+    // std::cout << "concatenated in memory to serialize" << std::endl;
     
     // The cache already contains a chunk that is to be serialized from scratch; just concatenate in memory and write to disk whenever
     // this chunk is evicted from the cache
@@ -143,6 +149,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     cached_chunk.chunk_data.template Append<axis>(slice);      
   }
   else if(std::holds_alternative<CacheStatus::Append>(status)) {
+
+    // std::cout << "concatenated in memory to append" << std::endl;
     
     // The cache already contains a chunk scheduled for concatenation with the on-disk chunk
     if(std::get<CacheStatus::Append>(status).axis != axis) {
@@ -322,6 +330,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
   }
   else if(std::holds_alternative<CacheStatus::Append>(status)) {
 
+    // std::cout << "descope element, append to file on disk" << std::endl;
+    
     assert(std::filesystem::exists(chunk_path));
     
     // Need to append this to the on-disk chunk
@@ -491,7 +501,7 @@ std::vector<std::reference_wrapper<const ChunkMetadata<dims>>> ChunkIndex<dims>:
 
 template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
-
+  
   // TODO: requires modifications after switch to R-tree
   std::fstream ofs;
   ofs.open(m_index_path, std::ios::out | std::ios::binary);
@@ -814,7 +824,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <std::size_t axis>
 void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
 
-  std::cout << "BBBB appending, start_ind = " << start_ind << ", slice_shape = " << slice.GetShape() << std::endl;
+  // std::cout << "BBBB appending, start_ind = " << start_ind << ", slice_shape = " << slice.GetShape() << std::endl;
   
   // This is the index of an element in the (existing) chunk the slice should be appended to
   ind_t ind_existing_chunk = start_ind;
@@ -823,15 +833,15 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   // Get the metadata describing that chunk
   metadata_t& meta = m_index.GetChunk(ind_existing_chunk);
 
-  std::cout << "BBBB before append: \n" << meta << std::endl;
+  // std::cout << "BBBB before append: \n" << meta << std::endl;
   
   // Perform the appending operation
   m_cache.template AppendSlice<axis>(meta, slice);
 
-  std::cout << "BBBB after append: \n" << meta << std::endl;
+  // std::cout << "BBBB after append: \n" << meta << std::endl;
 
-  std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
-  std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
+  // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
+  // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;
   
   assert(meta.shape == m_cache.RetrieveChunk(meta).GetShape());
 }
@@ -870,11 +880,11 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
     ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, input_start);
     ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, input_end);
 
-    std::cout << chunk_meta << std::endl;
-    std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
-    std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
-    std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
-    std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
+    // std::cout << chunk_meta << std::endl;
+    // std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
+    // std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
+    // std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+    // std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
     
     // copy the overlapping range from the `chunk` into the destination `array`
     array.fill_from(chunk,
@@ -1213,8 +1223,6 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
 								     BoundaryCallableT&& boundary_evaluator) {
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
-
-  std::cout << "global_shape in rebuilding chunks = " << global_shape << std::endl;
   
   RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator);
 

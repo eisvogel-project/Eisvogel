@@ -51,14 +51,14 @@ template <std::size_t dims, std::size_t vec_dims, class CallableT>
 void register_chunks(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind,
 		     const Vector<std::size_t, dims>& chunk_shape, CallableT&& filler) {
 
-  auto chunk_registerer = [&](const Vector<std::size_t, dims>& chunk_start, const Vector<std::size_t, dims>& chunk_end) {
+  auto chunk_registerer = [&](const Vector<std::size_t, dims>& chunk_start, const Vector<std::size_t, dims>&) {
 
     // prepare filled array
     NDVecArray<T, dims, vec_dims> array_buffer(chunk_shape);    
     fill_array(array_buffer, chunk_start, filler);
 
     // register as chunk
-    std::cout << "Registering chunk: " << chunk_start << " -> " << chunk_end << std::endl;
+    std::cout << "Registering chunk: " << chunk_start << " -> " << chunk_start + chunk_shape << std::endl;
     darr.RegisterChunk(array_buffer, chunk_start);
   };
   
@@ -70,6 +70,8 @@ void append_slices(DistributedNDVecArray<NDVecArray, T, dims, vec_dims>& darr, c
 
   Vector<std::size_t, dims> shape = darr.GetShape();
 
+  std::cout << "have shape = " << shape << std::endl;
+  
   // start index for slice concatenation
   Vector<std::size_t, dims> start_ind(0);
   start_ind[axis] = shape[axis];
@@ -212,7 +214,7 @@ int main(int argc, char* argv[]) {
   Vector<std::size_t, dims> streamer_chunk_shape(stor::INFTY);
   streamer_chunk_shape[0] = 1;
   
-  darr_t darr(workdir, 2, init_cache_el_shape, streamer_chunk_shape);
+  darr_t darr(workdir, 1, init_cache_el_shape, streamer_chunk_shape);
   
   Vector<std::size_t, dims> chunk_size(30);
   Vector<std::size_t, dims> start_ind(0);
