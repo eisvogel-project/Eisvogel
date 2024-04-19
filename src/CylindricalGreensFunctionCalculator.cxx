@@ -291,6 +291,8 @@ namespace meep {
     limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats,
 			      chunkloop_data -> abs_min_field, chunkloop_data -> dynamic_range);
 
+    // TODO: register the field_buffer as several smaller chunk slices here
+    
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
       // std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
