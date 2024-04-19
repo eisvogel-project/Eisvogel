@@ -18,10 +18,10 @@ int main(int argc, char* argv[]) {
   CylindricalGreensFunction::chunk_t array(init_shape);
 
   //RZTCoordVector start_coords{200.0f, 0.0f, 200.0f};
-  RZTCoordVector start_coords{0.0f, -280.0f, 0.0f};
-  RZTCoordVector end_coords{280.0f, 280.0f, 50.0f};
+  RZTCoordVector start_coords{0.0f, -400.0f, 0.0f};
+  RZTCoordVector end_coords{400.0f, 200.0f, 500.0f};
   // RZTVector<std::size_t> num_samples{3u, 3u, 3u};
-  RZTVector<std::size_t> num_samples{300u, 200u, 300u};
+  RZTVector<std::size_t> num_samples{500u, 500u, 300u};
   
   gf.fill_array<Interpolation::Kernel::Keys>(start_coords, end_coords, num_samples, array);
 
