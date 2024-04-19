@@ -51,8 +51,6 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
   m_offset = 0;
 
   UpdateShapeAttributes(m_shape);
-
-  std::cout << "HBHBHB: resizing onto new_shape = " << new_shape << ", m_shape = " << m_shape << ", m_strides = " << m_strides << ", m_number_elements = " << m_number_elements << ", volume = " << GetVolume() << " elements" << std::endl;
   
   m_data -> resize(GetVolume());
 }
