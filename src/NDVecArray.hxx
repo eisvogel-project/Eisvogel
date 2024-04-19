@@ -51,6 +51,8 @@ void NDVecArray<T, dims, vec_dims>::resize(const shape_t& new_shape) {
   m_offset = 0;
 
   UpdateShapeAttributes(m_shape);
+
+  std::cout << "HBHBHB: resizing onto new_shape = " << new_shape << ", m_shape = " << m_shape << ", m_strides = " << m_strides << ", m_number_elements = " << m_number_elements << ", volume = " << GetVolume() << " elements" << std::endl;
   
   m_data -> resize(GetVolume());
 }
@@ -75,6 +77,8 @@ void NDVecArray<T, dims, vec_dims>::clear() {
 // copy-assignment operator
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
+
+  std::cout << "in NDVecArray copy assignment operator" << std::endl;
   
   resize(other.m_shape);
 

@@ -269,6 +269,7 @@ private:
   std::filesystem::path m_workdir;
   Vector<std::size_t, dims> m_streamer_chunk_size;
   Cache<std::size_t, cache_entry_t> m_cache;
+  std::size_t m_cache_size;
   stor::NDVecArrayStreamer<ArrayT, T, dims, vec_dims> m_streamer;
 
   static constexpr std::string_view m_suffix = ".chunk";

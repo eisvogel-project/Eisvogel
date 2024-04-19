@@ -31,9 +31,9 @@ public:
     shape_t subsampled_shape = to_subsampled_shape(region_shape);
     m_max_data.emplace(std::make_pair(region_key, region_t(subsampled_shape, init_value)));
 
-    std::cout << "for chunk with key = " << region_key << std::endl;
-    std::cout << "constructed max tracker with shape = " << subsampled_shape << std::endl;
-    std::cout << "for original chunk with shape = " << region_shape << std::endl;
+    std::cout << "job " << meep::my_rank() <<": for chunk with key = " << region_key << " now has " << m_max_data.size() << " chunks registered" << std::endl;
+    // std::cout << "constructed max tracker with shape = " << subsampled_shape << std::endl;
+    // std::cout << "for original chunk with shape = " << region_shape << std::endl;
   }
 
   void UpdateStatisticsForRegion(const RegionKeyT& region_key, const region_t& region_data) {
@@ -331,7 +331,7 @@ void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::p
   // Working directory in process-local scratch area
   std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
   
-  std::size_t cache_depth = 1;   // all chunks are created one time-slice at a time, no need for a large cache
+  std::size_t cache_depth = 0;   // all chunks are created one time-slice at a time, direcly request them to be streamed to disk
   TZRVector<std::size_t> init_cache_el_shape(1);
   TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
   darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);

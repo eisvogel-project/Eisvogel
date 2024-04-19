@@ -30,7 +30,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 ChunkCache<ArrayT, T, dims, vec_dims>::ChunkCache(std::filesystem::path workdir, std::size_t cache_size, const chunk_shape_t& init_cache_el_shape,
 						  const Vector<std::size_t, dims>& streamer_chunk_size, std::size_t initial_buffer_size) :
-  m_workdir(std::filesystem::absolute(workdir)), m_streamer_chunk_size(streamer_chunk_size), m_cache(cache_size, init_cache_el_shape),
+  m_workdir(std::filesystem::absolute(workdir)), m_streamer_chunk_size(streamer_chunk_size),
+  m_cache(std::max((std::size_t)1, cache_size), init_cache_el_shape), m_cache_size(cache_size), // have a cache of at least one element, but keep track of the case where we're asked to operate with no cache at all
   m_streamer(initial_buffer_size) { }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -45,6 +46,11 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::RegisterNewChunk(const chunk_meta_t&
 
   // Register a new chunk in the cache
   insert_into_cache(chunk_meta, chunk_data, CacheStatus::Serialize());
+
+  // Immediately synchronize to disk if we're asked to operate without cache
+  if(m_cache_size == 0) {
+    FlushCache();
+  }
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -119,11 +125,17 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   id_t index = chunk_meta.chunk_id;
   if(!m_cache.contains(index)) {
 
-    // std::cout << "insert into cache as new element with status 'append'" << std::endl;
+    // std::cout << "AAA: insert into cache as new element with status 'append'" << std::endl;
     
     // Cache does not have the chunk to which the new slice should be appended; simply insert the slice as a new element into the cache using the `append` status
     // so that it will be appended to disk whenever it goes out of scope
     insert_into_cache(chunk_meta, slice, CacheStatus::Append(axis));
+
+    // Immediately synchronize to disk if we're asked to operate without cache
+    if(m_cache_size == 0) {      
+      FlushCache();
+    }
+    
     return;
   }
 
@@ -141,7 +153,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   }
   else if(std::holds_alternative<CacheStatus::Serialize>(status)) {
 
-    // std::cout << "concatenated in memory to serialize" << std::endl;
+    // std::cout << "AAA: concatenated in memory to serialize" << std::endl;
     
     // The cache already contains a chunk that is to be serialized from scratch; just concatenate in memory and write to disk whenever
     // this chunk is evicted from the cache
@@ -150,7 +162,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
   }
   else if(std::holds_alternative<CacheStatus::Append>(status)) {
 
-    // std::cout << "concatenated in memory to append" << std::endl;
+    // std::cout << "AAA: concatenated in memory to append" << std::endl;
     
     // The cache already contains a chunk scheduled for concatenation with the on-disk chunk
     if(std::get<CacheStatus::Append>(status).axis != axis) {
@@ -163,6 +175,11 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::AppendSlice(chunk_meta_t& chunk_meta
     // Now have the fully up-to date chunk in the cache, can append
     cached_chunk.chunk_meta = chunk_meta;
     cached_chunk.chunk_data.template Append<axis>(slice);
+  }
+
+  // Immediately synchronize to disk if we're asked to operate without cache
+  if(m_cache_size == 0) {      
+    FlushCache();
   }
 }
 
@@ -277,6 +294,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::insert_into_cache(const chunk_meta_t
     descope_cache_element(oldest_entry);
   }
 
+  std::cout << "inserting chunk with shape = " << chunk_data.GetShape() << " into cache" << std::endl;
+  
   // Now have free slot in the cache, insert new element
   m_cache.insert_no_overwrite(index, std::forward_as_tuple(chunk_meta, chunk_data, stat));
 }
