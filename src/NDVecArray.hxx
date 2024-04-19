@@ -76,7 +76,7 @@ void NDVecArray<T, dims, vec_dims>::clear() {
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const NDVecArray<T, dims, vec_dims>& other) {
 
-  std::cout << "in NDVecArray copy assignment operator" << std::endl;
+  // std::cout << "in NDVecArray copy assignment operator" << std::endl;
   
   resize(other.m_shape);
 
@@ -165,10 +165,10 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, 1, vec_dims>& 
   ind_t output_end = output_start;
   output_end[axis] += other_shape - 1;  // the upper range is exclusive, as always
 
-  std::cout << "output_start = " << output_start << std::endl;
-  std::cout << "output_end = " << output_end << std::endl;
-  std::cout << "own shape = " << GetShape() << std::endl;
-  std::cout << "other shape = " << other.GetShape() << std::endl;
+  // std::cout << "output_start = " << output_start << std::endl;
+  // std::cout << "output_end = " << output_end << std::endl;
+  // std::cout << "own shape = " << GetShape() << std::endl;
+  // std::cout << "other shape = " << other.GetShape() << std::endl;
   
   assert(has_index(output_start));
   assert(has_index(output_end));

@@ -151,9 +151,7 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
 			       const CylindricalChunkloopData::fstats_t& fstats, scalar_t abs_min_field, scalar_t dynamic_range) {
 
   using ind_t = CylindricalChunkloopData::chunk_t::ind_t;
-  using view_t = CylindricalChunkloopData::chunk_t::view_t;
-  
-  std::cout << "limiting field dynamic range" << std::endl;
+  using view_t = CylindricalChunkloopData::chunk_t::view_t; 
 
   std::size_t num_truncations = 0;
 
@@ -179,8 +177,6 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
     }
   };  
   field_buffer.index_loop_over_elements(truncator);
-
-  std::cout << "performed " << num_truncations << " truncations" << std::endl;  
 }
 
 // Callbacks to interface with MEEP
@@ -227,8 +223,6 @@ namespace meep {
 				 vec s0, vec s1, vec e0, vec e1, double dV0, double dV1,
 				 ivec shift, std::complex<double> shift_phase,
 				 const symmetry& S, int sn, void* cld) {
-
-    std::cout << "in saving chunkloop" << std::endl;
     
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
     
@@ -299,14 +293,14 @@ namespace meep {
 
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
-      std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
+      // std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
       
       // Register this slice as the beginning of a new chunk ...
       chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_buffer, chunk_start_ind);
     }
     else {
       
-      std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
+      // std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
       
       // ... or append it to an already-existing chunk along the outermost (time) direction
       chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind, chunkloop_data -> field_buffer);
@@ -430,7 +424,7 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
 
   using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
 
-  std::size_t cache_depth = 2;
+  std::size_t cache_depth = 5;
   RZTVector<std::size_t> init_cache_el_shape(1);
   RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
   darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);

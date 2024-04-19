@@ -294,7 +294,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::insert_into_cache(const chunk_meta_t
     descope_cache_element(oldest_entry);
   }
 
-  std::cout << "inserting chunk with shape = " << chunk_data.GetShape() << " into cache" << std::endl;
+  // std::cout << "inserting chunk with shape = " << chunk_data.GetShape() << " into cache" << std::endl;
   
   // Now have free slot in the cache, insert new element
   m_cache.insert_no_overwrite(index, std::forward_as_tuple(chunk_meta, chunk_data, stat));
@@ -1132,7 +1132,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
   // prepare the output library containing the rebuilt chunks
   ind_t streamer_chunk_size(stor::INFTY);
   streamer_chunk_size[0] = 1;
-  std::size_t cache_depth = 1; // no need for a large cache here, will just add one chunk at a time
+  std::size_t cache_depth = 0; // no need for a large cache here, will just add one chunk at a time
   ChunkLibrary<ArrayT, T, dims, vec_dims> rebuilt_library(outdir, cache_depth, requested_chunk_shape, streamer_chunk_size);
 
   // buffer where the new chunks will be filled
