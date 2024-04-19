@@ -567,7 +567,7 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
 
   // Re-enumerate the newly imported entries
   for(metadata_t& cur_meta : index_entries) {
-    cur_meta.chunk_id = get_next_chunk_id();    
+    cur_meta.chunk_id = get_next_chunk_id();
   }
   
   m_chunk_list.insert(m_chunk_list.end(),
@@ -738,7 +738,7 @@ void ChunkIndex<dims>::calculate_and_cache_index_metadata() {
   // check if the total inferred shape is consistent with the total number of elements contained in all chunks:
   // if so, then all chunks taken together define a contiguous region
   auto number_elements = [](const Vector<std::size_t, dims>& shape) -> std::size_t {
-    return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
+    return std::accumulate(shape.cbegin(), shape.cend(), (std::size_t)1u, std::multiplies<std::size_t>());
   };
 
   std::size_t elements_from_shape = number_elements(m_end_ind - m_start_ind);
