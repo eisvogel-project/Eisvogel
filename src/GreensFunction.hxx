@@ -208,10 +208,10 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
   std::vector<scalar_t, no_init_alloc<scalar_t>> quadrature_weights(max_itgr_block_size);
 
-  std::cout << "HHHHH" << std::endl;
-  std::cout << "calculating with num_samples = " << num_samples << std::endl;
-  std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
-  std::cout << "HHHHH" << std::endl;
+  // std::cout << "HHHHH" << std::endl;
+  // std::cout << "calculating with num_samples = " << num_samples << std::endl;
+  // std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
+  // std::cout << "HHHHH" << std::endl;
   
   // Iterate over (integration, output sample) blocks
   for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += max_itgr_block_size) {
