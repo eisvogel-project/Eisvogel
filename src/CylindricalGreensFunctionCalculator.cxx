@@ -533,7 +533,7 @@ void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir
   meep::all_wait();
   
   // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
-  RZTVector<std::size_t> requested_chunk_size(200);
+  RZTVector<std::size_t> requested_chunk_size(400);
   std::size_t overlap = 2;
   rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
   
