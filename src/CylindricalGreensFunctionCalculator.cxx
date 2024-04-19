@@ -233,7 +233,7 @@ namespace meep {
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
     
     // Number of time slices before a new chunk is started
-    std::size_t requested_chunk_size_t = 400;
+    std::size_t requested_chunk_size_t = 200;
 
     // Make sure the buffers are of the correct size for this simulation chunk
     ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);
@@ -386,7 +386,7 @@ void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path
 
   ensure_empty_directory(outdir);
   
-  std::size_t cache_depth = 1;
+  std::size_t cache_depth = 0;
   TZRVector<std::size_t> init_cache_el_shape(1);
   TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
   darr_t darr(outdir, cache_depth, init_cache_el_shape, streamer_chunk_shape); // no big cache needed here, this is just for merging
@@ -430,7 +430,7 @@ void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outd
 
   using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
 
-  std::size_t cache_depth = 5;
+  std::size_t cache_depth = 2;
   RZTVector<std::size_t> init_cache_el_shape(1);
   RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
   darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
