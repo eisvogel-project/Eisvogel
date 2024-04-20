@@ -2,7 +2,7 @@
 #include <cassert>
 #include <ios>
 
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 #include "NDVecArraySerialization.hh"
 
 namespace stor {

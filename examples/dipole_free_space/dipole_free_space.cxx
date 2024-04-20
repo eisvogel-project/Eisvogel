@@ -1,7 +1,5 @@
 #include "Eisvogel/Common.hh"
-#include "Eisvogel/GreensFunctionUtils.hh"
-
-namespace GFU = GreensFunctionUtils;
+#include "Eisvogel/AnalyticGreensFunctionCalculator.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -27,5 +25,5 @@ int main(int argc, char* argv[]) {
   scalar_t os_factor = 20;
   scalar_t r_min = 0.1;
 
-  GFU::CreateElectricDipoleGreensFunction(gf_path, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }

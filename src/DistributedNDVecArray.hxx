@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <utility>
 #include "DistributedNDVecArray.hh"
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 
 // --------------
 

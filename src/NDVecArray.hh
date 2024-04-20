@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 #include "Vector.hh"
 #include "VectorView.hh"
 #include "MemoryUtils.hh"

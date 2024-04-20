@@ -1,11 +1,11 @@
 #include <cassert>
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 #include "DistributedNDVecArray.hh"
 #include "GreensFunction.hh"
 #include "MathUtils.hh"
 #include "Symmetry.hh"
 
-namespace GreensFunctionUtils::Analytic {
+namespace {
 
   void EvaluateElectricDipoleGreensFunction(const RZTCoordVector& start_coords, const RZTCoordVector& stepsize, scalar_t ior,
 					    scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
@@ -98,11 +98,11 @@ namespace GreensFunctionUtils::Analytic {
   }
 }
 
-namespace GreensFunctionUtils {
+namespace GreensFunctionCalculator::Analytic {
   
-  void CreateElectricDipoleGreensFunction(std::filesystem::path gf_path, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
-					  scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
-					  scalar_t os_factor, std::size_t max_pts_in_chunk) {
+  void ElectricDipole(std::filesystem::path gf_path, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
+		      scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
+		      scalar_t os_factor, std::size_t max_pts_in_chunk) {
     
     // make sure to start from scratch
     std::filesystem::remove_all(gf_path);
@@ -160,7 +160,7 @@ namespace GreensFunctionUtils {
       chunk_buffer.resize(cur_chunk_size);
 
       // Fill the buffer ...
-      Analytic::EvaluateElectricDipoleGreensFunction(chunk_start_coords, stepsize, ior, filter_t_peak, filter_order, r_min, chunk_buffer);
+      EvaluateElectricDipoleGreensFunction(chunk_start_coords, stepsize, ior, filter_t_peak, filter_order, r_min, chunk_buffer);
 
       // ... and register it
       darr.RegisterChunk(chunk_buffer, chunk_start_ind);
