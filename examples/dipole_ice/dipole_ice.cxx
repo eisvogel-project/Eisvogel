@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 
   std::string gf_path = argv[1];
   
-  auto eps = [](scalar_t r, scalar_t z) {
+  auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {

@@ -9,7 +9,7 @@ Antenna::Antenna(scalar_t start_time, scalar_t end_time, scalar_t z_pos,
   is_integrated = false;
 };
 
-std::complex<double> Antenna::current(double time, double dt) const {
+std::complex<double> Antenna::current(double time, [[maybe_unused]] double dt) const {
   
   float rtime = float(time);
   if(rtime >= m_start_time && rtime <= m_end_time) {
@@ -19,7 +19,7 @@ std::complex<double> Antenna::current(double time, double dt) const {
   }  
 };
 
- std::complex<double> Antenna::dipole(double time) const {
+ std::complex<double> Antenna::dipole([[maybe_unused]] double time) const {
    // Because we set `is_integrated = false`, no need to provide anything here.
    // Return NaN instead of 0.0 (or any other value) to make it obvious if this makes its way into any downstream calculations
    return std::numeric_limits<double>::quiet_NaN();
