@@ -2,7 +2,8 @@
 #define CHARGEEXCESSPROFILE_CLASS
 #include <vector>
 #include "Eisvogel/Common.hh"
-#include "DenseNDArray.hh"
+#include "NDVecArray.hh"
+#include "Vector.hh"
 
 namespace showers {
 class ChargeExcessProfile {
@@ -16,9 +17,9 @@ class ChargeExcessProfile {
 
 class ChargeExcessProfile2D {
 	public:
-	ChargeExcessProfile2D(std::array<std::size_t, 2> size, scalar_t initial_val = 0):charge_excess(size, initial_val){
+  ChargeExcessProfile2D(std::array<std::size_t, 2> size, scalar_t initial_val = 0) : charge_excess(Vector<std::size_t,2>(size), initial_val){
 	}
-	DenseNDArray<double, 2> charge_excess;
+  NDVecArray<double, 2, 1> charge_excess;
 	std::vector<double> grammage;
 	std::vector<double> radius;
 	int hadronic;
@@ -41,11 +42,11 @@ class ChargeExcessProfile2D {
 			}
 		}
 		double delta_grammage = grammage[grammage_index + 1] - grammage[grammage_index];
-		double delta_ce_1 = charge_excess(grammage_index + 1, radius_index) - charge_excess(grammage_index, radius_index);
-		double grammage_interpolation_1 = charge_excess(grammage_index, radius_index) + delta_ce_1 / delta_grammage * (gram - grammage[grammage_index]);
+		double delta_ce_1 = charge_excess[{grammage_index + 1, radius_index}][0] - charge_excess[{grammage_index, radius_index}][0];
+		double grammage_interpolation_1 = charge_excess[{grammage_index, radius_index}][0] + delta_ce_1 / delta_grammage * (gram - grammage[grammage_index]);
 
-		double delta_ce_2 = charge_excess(grammage_index + 1, radius_index + 1) - charge_excess(grammage_index, radius_index + 1);
-		double grammage_interpolation_2 = charge_excess(grammage_index, radius_index + 1) + delta_ce_2 / delta_grammage * (gram - grammage[grammage_index]);
+		double delta_ce_2 = charge_excess[{grammage_index + 1, radius_index + 1}][0] - charge_excess[{grammage_index, radius_index + 1}][0];
+		double grammage_interpolation_2 = charge_excess[{grammage_index, radius_index + 1}][0] + delta_ce_2 / delta_grammage * (gram - grammage[grammage_index]);
 
 		double delta_r = radius[radius_index + 1] - radius[radius_index];
 		return grammage_interpolation_1 + (grammage_interpolation_2 - grammage_interpolation_1) / delta_r * (rad - radius[radius_index]);
