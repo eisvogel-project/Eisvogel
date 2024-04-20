@@ -1,30 +1,28 @@
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/WeightingFieldUtils.hh"
+#include "Common.hh"
+#include "AnalyticGreensFunctionCalculator.hh"
 
-namespace WFU = WeightingFieldUtils;
-namespace CU = CoordUtils;
 /*
-Script to generate a weighting field that covers the time and space
+Script to generate a Green's function that covers the time and space
 required to perform the shower simulation.
 */
 
-
 int main(int argc, char* argv[]) {
 
-  std::string wf_path;
+  std::string gf_path;
   if (argc < 2) {
-    wf_path = "weighting_field";
+    gf_path = "greens_function";
   } else {
-    wf_path = argv[1];
+    gf_path = argv[1];
   }
 
-  // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(-500.0, -10.0, -551.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(1350.0, 700.0, -549.0);
-
+  // Domain of Green's function
+  RZCoordVector start_coords{0.0f, -551.0f};
+  RZCoordVector end_coords{700.0f, -549.0f};
+  scalar_t t_end = 1350.0;
+  
   // Filter parameters
-  scalar_t tp = 1.0;
-  unsigned int N = 6;
+  scalar_t filter_t_peak = 1.0;
+  unsigned int filter_order = 6;
 
   // Sampling parameters
   scalar_t os_factor = 5;
@@ -32,7 +30,7 @@ int main(int argc, char* argv[]) {
   
   scalar_t index_of_refraction = 1.78;
 
-  std::cout << "Building weighting field ..." << std::endl;
+  std::cout << "Building Green's function ..." << std::endl;
 
-  WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor, index_of_refraction);
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, index_of_refraction, filter_t_peak, filter_order, r_min, os_factor);
 }

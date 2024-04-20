@@ -1,8 +1,5 @@
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/WeightingFieldUtils.hh"
-
-namespace WFU = WeightingFieldUtils;
-namespace CU = CoordUtils;
+#include "Common.hh"
+#include "AnalyticGreensFunctionCalculator.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -10,19 +7,23 @@ int main(int argc, char* argv[]) {
     throw;
   }
 
-  std::string wf_path = argv[1];
+  std::string gf_path = argv[1];
 
   // Domain of weighting field
-  CoordVector start_coords = CU::MakeCoordVectorTRZ(0.0, 0.0, -150.0);
-  CoordVector end_coords = CU::MakeCoordVectorTRZ(150.0, 70.0, 150.0);
+  RZCoordVector start_coords{0.0f, -100.0f};
+  RZCoordVector end_coords{300.0f, 100.0f};
+  scalar_t t_end = 300;
+
+  // Index of refraction
+  scalar_t ior = 1.0;
   
   // Filter parameters
-  scalar_t tp = 2.0;
-  unsigned int N = 4;
+  scalar_t filter_t_peak = 5.0;   // lowpass filter peaking time
+  unsigned int filter_order = 4;  // lowpass filter order
 
   // Sampling parameters
-  scalar_t os_factor = 30;
+  scalar_t os_factor = 20;
   scalar_t r_min = 0.1;
 
-  WFU::CreateElectricDipoleWeightingField(wf_path, start_coords, end_coords, tp, N, r_min, os_factor);
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }

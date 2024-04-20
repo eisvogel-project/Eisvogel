@@ -1,11 +1,13 @@
-if(BUILD_WFC)
-    add_subdirectory(dipole_free_space)
-    add_subdirectory(dipole_ice)
-endif(BUILD_WFC)
-
-add_subdirectory(coulomb)
+add_subdirectory(dipole_free_space)
 add_subdirectory(point_charge_coulomb)
-add_subdirectory(point_charge_cherenkov)
 add_subdirectory(point_charge_askaryan)
-add_subdirectory(shower_profile)
-add_subdirectory(impacting_shower)
+add_subdirectory(plot_greens_function)
+
+if(BUILD_MEEP)
+    add_subdirectory(dipole_ice)
+endif(BUILD_MEEP)
+
+if(BUILD_EXTERN)
+    add_subdirectory(shower_profile)
+endif(BUILD_EXTERN)
+

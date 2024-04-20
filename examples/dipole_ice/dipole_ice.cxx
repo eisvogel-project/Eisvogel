@@ -1,19 +1,9 @@
 #include <iostream>
 #include <cmath>
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/CylindricalWeightingFieldCalculator.hh"
-#include "Eisvogel/Antenna.hh"
-#include "Eisvogel/CoordUtils.hh"
-
-unsigned int fact(unsigned arg) {
-  unsigned int retval = 1;
-
-  for(unsigned int cur = 1; cur <= arg; cur++) {
-    retval *= cur;
-  }
-  
-  return retval;
-}
+#include "Common.hh"
+#include "MEEPCylindricalGreensFunctionCalculator.hh"
+#include "Antenna.hh"
+#include "Geometry.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -23,9 +13,9 @@ int main(int argc, char* argv[]) {
     throw std::runtime_error("Error: need to pass path to output directory!");
   }
 
-  std::string wf_path = argv[1];
+  std::string gf_path = argv[1];
   
-  auto eps = [](scalar_t r, scalar_t z) {
+  auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {
@@ -54,16 +44,22 @@ int main(int argc, char* argv[]) {
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
 
-  // CylinderGeometry geom(20, -15, 15, eps);
+  // CylinderGeometry geom(20.0, -15.0, 15.0, eps);
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  // scalar_t t_end = 250;
+  // scalar_t t_end = 25.0;
+
+  // CylinderGeometry geom(100.0, -100.0, 100.0, eps);
+  // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
+  // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(300, -300, 300, eps);
+  CylinderGeometry geom(400, -400, 200, eps);
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
-  scalar_t t_end = 450;
+  scalar_t t_end = 500;
   
-  CylindricalWeightingFieldCalculator wfc(geom, dipole, t_end);
-  wfc.Calculate(wf_path, "/scratch/midway3/windischhofer/eisvogel/");
+  GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
+  gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/", "/scratch/midway3/windischhofer/");
+    
+  std::cout << "done" << std::endl;
   
   return 0;
 }

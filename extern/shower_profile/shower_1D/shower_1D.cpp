@@ -3,12 +3,10 @@
 #include <fstream>
 #include <array>
 #include <math.h>
-#include "Eisvogel/CoordUtils.hh"
-#include "Eisvogel/Current0D.hh"
 #include "constants.h"
 #include "units.h"
 #include <vector>
-
+#include "Current.hh"
 
 showers::Shower1D::Shower1D(
 	std::array<float, 3> pos,
@@ -92,9 +90,7 @@ void showers::Shower1D::get_shower(
 	}
 }
 
-Current0D showers::Shower1D::get_current(
-		double delta_t
-){
+void showers::Shower1D::fill_tracks(double delta_t, std::vector<LineCurrentSegment>& out){
 	std::vector<double> t;
 	std::vector<double> x;
 	std::vector<double> y;
@@ -109,23 +105,15 @@ Current0D showers::Shower1D::get_current(
 			&z,
 			&ce
 	);
-        std::vector<CoordVector> positions;
-        std::vector<scalar_t> charge_excess;
-        for (int i = 0; i < t.size(); i++) {
-            positions.push_back(
-                    CoordUtils::MakeCoordVectorTXYZ(
-                    t[i],
-                    x[i] / constants::c,
-                    y[i] / constants::c,
-                    z[i] / constants::c
-                    )
-                );
-            if (i < t.size() -1) {
-                charge_excess.push_back(ce[i]);
-            }
-        }
-        Current0D current(std::move(positions), std::move(charge_excess));
-        return current;
+
+        for (int i = 0; i < t.size() - 1; i++) {
+
+	  scalar_t c = constants::c;
+	  LineCurrentSegment cur_track(XYZCoordVector{(scalar_t)x[i] / c, (scalar_t)y[i] / c, (scalar_t)z[i] / c},  // track start position
+				       XYZCoordVector{(scalar_t)x[i+1] / c, (scalar_t)y[i+1] / c, (scalar_t)z[i+1] / c},   // track end position
+				       (scalar_t)t[i], (scalar_t)t[i+1], (scalar_t)ce[i]);	  
+	  out.push_back(cur_track);
+        }	
 }
 
 void showers::Shower1D::print_dimensions() {

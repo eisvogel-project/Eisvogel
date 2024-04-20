@@ -1,4 +1,5 @@
 #include "units.h"
+
 namespace constants {
     const double speed_of_light = 299792458 * units::meter / units::second;
     const double c = speed_of_light;

@@ -2,10 +2,9 @@
 #include <fstream>
 #include <vector>
 
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
-#include "Eisvogel/Current0D.hh"
-#include "Eisvogel/SignalExport.hh"
+#include "Common.hh"
+#include "SignalCalculator.hh"
+#include "Current.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -13,8 +12,8 @@ int main(int argc, char* argv[]) {
     throw;
   }
 
-  std::string wf_path = argv[1];
-  SignalCalculator calc(wf_path);
+  std::string gf_path = argv[1];
+  SignalCalculator calc(gf_path);
 
   // test trajectory: a point charge moving parallel to the x-axis 
   // with a constant impact parameter of 'b' along the z-axis
@@ -26,27 +25,26 @@ int main(int argc, char* argv[]) {
     return -exp(beta * t / z0);
   };
 
-  std::cout << "Building trajectory ..." << std::endl;
+  scalar_t t_sig_start = -10;
+  scalar_t t_sig_samp = 1.0;
+  std::size_t num_samples = 30;
+  std::vector<scalar_t> signal_values(num_samples);
 
-  std::vector<CoordVector> points;
-  std::vector<scalar_t> charges;
+  std::cout << "Integrating signal ..." << std::endl;
+  
+  scalar_t delta_t = 1.0f;
+  for(scalar_t cur_t = tstart; cur_t < tend; cur_t += delta_t) {
 
-  for(scalar_t cur_t = tstart; cur_t < tend; cur_t += 1) {
-    points.push_back(CoordUtils::MakeCoordVectorTXYZ(cur_t, beta * cur_t, 0, b));
-    charges.push_back(charge(cur_t));
+    LineCurrentSegment cur_track(XYZCoordVector{beta * cur_t, 0.0f, b},               // track start position
+				 XYZCoordVector{beta * (cur_t + delta_t), 0.0f, b},   // track end position
+				 cur_t, cur_t + delta_t, charge(cur_t));
+ 
+    calc.AccumulateSignal(cur_track, t_sig_start, t_sig_samp, num_samples, signal_values);       
   }
-  points.push_back(CoordUtils::MakeCoordVectorTXYZ(tend, beta * tend, 0, b));
-  Current0D track(std::move(points), std::move(charges));
-
-  std::cout << "Computing signal ..." << std::endl;
-  std::vector<scalar_t> signal_times, signal_values;
-  for(scalar_t cur_t = -10; cur_t < 20; cur_t += 1) {
-    scalar_t cur_signal = calc.ComputeSignal(track, cur_t);
-    signal_times.push_back(cur_t);
-    signal_values.push_back(cur_signal);
+  
+  for(scalar_t& cur: signal_values) {
+    std::cout << cur << std::endl;
   }
-
-  ExportSignal(signal_times, signal_values, "./test_signal.csv");
-
+  
   return 0;
 }

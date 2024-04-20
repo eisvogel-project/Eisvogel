@@ -24,16 +24,10 @@ make -j5
 source setup.sh
 ```
 
-To build with `python` support, do
+To also build the components for the calculation of the Green's function do
 
 ```
-cmake -DBUILD_PYTHON=ON ..
-```
-
-and to also build the components for the calculation of the Green's function do
-
-```
-cmake -DBUILD_WFC=ON ..
+cmake -DBUILD_MEEP=ON ..
 ```
 
 If you want to build the C++ unit tests, add
