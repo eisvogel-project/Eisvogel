@@ -1,8 +1,7 @@
-#ifndef __MATH_UTILS_HH
-#define __MATH_UTILS_HH
+#pragma once
 
 #include <cstddef>
-#include "Common.hh"
+#include "Eisvogel/Common.hh"
 
 namespace MathUtils {
 
@@ -18,4 +17,4 @@ namespace MathUtils {
 
 };
 
-#endif
+#include "MathUtils.hxx"

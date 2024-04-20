@@ -1,6 +1,3 @@
-#ifndef __COMMON_HH
-#define __COMMON_HH
+#pragma once
 
 using scalar_t = float;
-
-#endif

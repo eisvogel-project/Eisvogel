@@ -2,6 +2,7 @@
 #include "Eisvogel/IteratorUtils.hh"
 #include "DistributedNDVecArray.hh"
 #include "GreensFunction.hh"
+#include "MathUtils.hh"
 #include "Symmetry.hh"
 
 namespace GreensFunctionUtils::Analytic {

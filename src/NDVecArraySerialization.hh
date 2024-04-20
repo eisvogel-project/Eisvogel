@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Eisvogel/MathUtils.hh"
+#include "MathUtils.hh"
 
 namespace dense {
 

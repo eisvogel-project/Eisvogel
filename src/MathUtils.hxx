@@ -1,6 +1,4 @@
-#include "Eisvogel/MathUtils.hh"
 #include <cmath>
-
 #include <iostream>
 
 namespace MathUtils {
