@@ -4,7 +4,7 @@
 #include <span>
 #include <iterator>
 #include <algorithm>
-#include "Eisvogel/Common.hh"
+#include "Common.hh"
 
 // forward declaration
 template<typename T>

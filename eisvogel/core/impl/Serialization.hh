@@ -1,12 +1,11 @@
-#ifndef __SERIALIZATION_HH
-#define __SERIALIZATION_HH
+#pragma once
 
 #include <iostream>
 #include <cstdint>
 #include <algorithm>
 #include <arpa/inet.h>
 #include <cstring>
-#include "Eisvogel/Common.hh"
+#include "Common.hh"
 
 #include <iostream>
 
@@ -54,5 +53,3 @@ namespace stor {
 
 #include "Serialization.hxx"
 #include "DefaultSerializationTraits.hxx"
-
-#endif

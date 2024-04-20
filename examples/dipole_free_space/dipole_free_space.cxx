@@ -1,5 +1,5 @@
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/AnalyticGreensFunctionCalculator.hh"
+#include "Common.hh"
+#include "AnalyticGreensFunctionCalculator.hh"
 
 int main(int argc, char* argv[]) {
 

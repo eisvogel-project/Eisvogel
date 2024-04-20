@@ -3,10 +3,10 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <chrono>
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
-#include "Eisvogel/Current.hh"
-#include "Eisvogel/SignalExport.hh"
+#include "Common.hh"
+#include "SignalCalculator.hh"
+#include "Current.hh"
+#include "SignalExport.hh"
 
 #include "shower_creator.h"
 #include "shower_1D.h"

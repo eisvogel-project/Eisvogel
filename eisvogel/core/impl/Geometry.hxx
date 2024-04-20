@@ -1,4 +1,3 @@
-#include "Eisvogel/Geometry.hh"
 #include "Vector.hh"
 
 CylinderGeometry::CylinderGeometry(scalar_t r_max, scalar_t z_min, scalar_t z_max,

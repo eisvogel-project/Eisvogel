@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstddef>
-#include "Eisvogel/Common.hh"
+#include "Common.hh"
 
 namespace MathUtils {
 

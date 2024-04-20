@@ -1,4 +1,4 @@
-#include "Eisvogel/SignalExport.hh"
+#include "SignalExport.hh"
 #include <fstream>
 #include <iomanip>
 

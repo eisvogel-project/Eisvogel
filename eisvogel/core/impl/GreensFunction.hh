@@ -6,8 +6,8 @@
 #include "DistributedNDVecArray.hh"
 #include "Quadrature.hh"
 #include "NDVecArray.hh"
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/Current.hh"
+#include "Common.hh"
+#include "Current.hh"
 
 struct CylindricalGreensFunctionMetadata {
 

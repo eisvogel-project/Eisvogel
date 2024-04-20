@@ -1,6 +1,5 @@
-#include "Eisvogel/SignalCalculator.hh"
-#include "Eisvogel/Current.hh"
-#include "Eisvogel/Common.hh"
+#include "Current.hh"
+#include "Common.hh"
 #include "Interpolation.hh"
 #include "GreensFunction.hh"
 

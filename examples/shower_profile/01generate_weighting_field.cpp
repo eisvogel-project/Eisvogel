@@ -1,5 +1,5 @@
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/AnalyticGreensFunctionCalculator.hh"
+#include "Common.hh"
+#include "AnalyticGreensFunctionCalculator.hh"
 
 /*
 Script to generate a Green's function that covers the time and space

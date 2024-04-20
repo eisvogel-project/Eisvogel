@@ -3,7 +3,8 @@
 #include <array>
 #include "ice_profile.h"
 #include "charge_excess_profile.cpp"
-#include "Eisvogel/Current.hh"
+
+struct LineCurrentSegment;
 
 namespace showers {
 	class Shower1D {

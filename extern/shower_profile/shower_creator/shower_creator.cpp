@@ -1,4 +1,3 @@
-#include "Eisvogel/Common.hh"
 #include "shower_creator.h"
 #include "shower_1D.h"
 // #include "shower_2D.h"

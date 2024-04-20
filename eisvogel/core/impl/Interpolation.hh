@@ -2,7 +2,7 @@
 
 #include "NDVecArray.hh"
 #include "Vector.hh"
-#include "Eisvogel/Common.hh"
+#include "Common.hh"
 
 namespace Interpolation::Kernel {
 
