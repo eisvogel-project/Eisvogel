@@ -1,18 +1,8 @@
-#include "Eisvogel/CylindricalGreensFunctionCalculator.hh"
 #include "Vector.hh"
 #include "NDVecArray.hh"
 #include "Symmetry.hh"
 #include "GreensFunction.hh"
 #include <unordered_map>
-
-CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
-  m_t_end(t_end), m_geom(geom), m_antenna(antenna) {
-  
-  m_start_coords = std::make_shared<RZTCoordVector>((scalar_t)0.0, geom.GetZMin(), (scalar_t)0.0);
-  m_end_coords = std::make_shared<RZTCoordVector>(geom.GetRMax(), geom.GetZMax(), t_end);
-  
-  std::cout << "Constructed geom with start = " << *m_start_coords << " and end = " << *m_end_coords << std::endl;
-}
 
 template <typename RegionKeyT, std::size_t dims>
 class FieldStatisticsTracker {
@@ -333,242 +323,253 @@ namespace meep {
   }  
 } // end namespace meep
 
-void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
-							      double courant_factor, double resolution, double pml_width) {
-  
-  std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
-  std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
-  std::shared_ptr<meep::fields> meep_f = std::make_shared<meep::fields>(meep_s.get());
+namespace GreensFunctionCalculator::MEEP {
 
-  m_antenna.AddToGeometry(*meep_f, m_geom);
-  
-  // Some typedefs
-  constexpr std::size_t dims = SpatialSymmetry::Cylindrical<scalar_t>::dims;
-  // using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t>::chunk_t;
-  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
-  
-  // Working directory in process-local scratch area
-  std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
-  
-  std::size_t cache_depth = 0;   // all chunks are created one time-slice at a time, direcly request them to be streamed to disk
-  TZRVector<std::size_t> init_cache_el_shape(1);
-  TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
-  darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
-
-  // Set up tracker to follow field statistics such as the maximum field strength
-  // This corresponds to a constant-time slice, which has one fewer dimensions
-  std::size_t fstats_subsampling = 2;  
-  FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_subsampling);
-
-  scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
-  scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
-
-  // Prepare data container to pass to all MEEP callbacks
-  TZRVector<std::size_t> init_field_buffer_shape(1);
-  TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
-  ZRVector<std::size_t> init_field_absval_buffer_shape(1);
-  CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
-
-  // Setup simulation run 
-  meep_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
-
-  // Main simulation loop
-  std::size_t stepcnt = 0;
-  for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
-
-    // Time-step the fields
-    while (meep_f -> time() < cur_t) {
-      meep_f -> step();
-    }
-
-    if(meep::am_master()) {
-      std::cout << "Simulation time: " << meep_f -> time() << std::endl;
-    }
-
-    // Store the Green's function at the present timestep
-    cld.ind_time = stepcnt++;
-    meep_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
-  }
-
-  // Swap axes 0 and 2 to go from TZR to RZT
-  darr.SwapAxes<0, 2>();
-  
-  // Move Green's function to the requested output location
-  darr.Move(outdir);  
-}
-
-void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs) {
-
-  // This must only be run by one process
-  assert(meep::am_master());
-  
-  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
-
-  ensure_empty_directory(outdir);
-  
-  std::size_t cache_depth = 0;
-  TZRVector<std::size_t> init_cache_el_shape(1);
-  TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
-  darr_t darr(outdir, cache_depth, init_cache_el_shape, streamer_chunk_shape); // no big cache needed here, this is just for merging
-
-  for(const std::filesystem::path& indir : indirs) {
-    darr.Import(indir);
-    std::filesystem::remove_all(indir);
-  }
-}
-
-// Tries to come up with a good `partition_size` so that `partition_size` is an integer multiple of `chunk_size` and it takes
-// approximately `number_partitions_requested` nonoverlapping partitions to cover a region with `shape`.
-template <std::size_t dims>
-Vector<std::size_t, dims> get_partition_size(const Vector<std::size_t, dims>& shape, const Vector<std::size_t, dims>& chunk_size,
-						 std::size_t number_partitions_requested) {
-
-  std::size_t longest_axis = std::distance(shape.begin(), std::max_element(std::execution::unseq, shape.begin(), shape.end()));
-
-  auto number_partitions_actual = [&](const Vector<std::size_t, dims>& pars_per_dim) -> std::size_t {
-    return std::reduce(std::execution::unseq, pars_per_dim.begin(), pars_per_dim.end(), 1, std::multiplies<int>());
-  };  
+  void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
+								double courant_factor, double resolution, double pml_width) {
     
-  // Number of (partial) chunks along each direction
-  Vector<std::size_t, dims> chunks_per_dim = VectorUtils::ceil_nonneg(shape.template as_type<scalar_t>() / chunk_size.template as_type<scalar_t>());
-  
-  // First guess for the number of partitions per dimension
-  Vector<std::size_t, dims> pars_per_dim((std::size_t)std::pow((scalar_t)number_partitions_requested, 1.0 / dims));
-
-  while(number_partitions_actual(pars_per_dim) < number_partitions_requested) {
-    pars_per_dim[longest_axis]++;
-  }  
-  
-  Vector<std::size_t, dims> par_size_in_chunks = VectorUtils::ceil_nonneg(chunks_per_dim.template as_type<scalar_t>() / pars_per_dim.template as_type<scalar_t>());
-  Vector<std::size_t, dims> partition_size = par_size_in_chunks * chunk_size;
-  
-  return partition_size;
-}
-
-void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
-						      int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap) {
-
-  using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
-
-  std::size_t cache_depth = 5;
-  RZTVector<std::size_t> init_cache_el_shape(1);
-  RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
-  darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
-
-  std::cout << "loading array from " << indir << std::endl;
-  std::cout << "now rechunking; have input array with shape " << darr.GetShape() << std::endl;
-  std::cout << "this is rechunking job " << cur_mpi_id << " / " << number_mpi_jobs << " jobs" << std::endl;
-  std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
-
-  // Determine nonoverlapping rectangular partitions that are handled by each job; try to make them of similar size for optimal work sharing
-  RZTVector<std::size_t> shape = darr.GetShape();
-  RZTVector<std::size_t> partition_size = get_partition_size(shape, requested_chunk_size, number_mpi_jobs);
-
-  auto rechunk_dir = [](int rechunk_num) -> std::filesystem::path {
-    return std::format("rechunk_job_{}", rechunk_num);
-  };
-  
-  std::size_t num_rechunking = 0;
-  std::vector<std::filesystem::path> rechunking_dirs;
-  auto rechunker = [&](const RZTIndexVector& partition_start, const RZTIndexVector& partition_end) {
-
-    std::filesystem::path cur_rechunking_dir = global_scratch_dir / rechunk_dir(num_rechunking);
-    rechunking_dirs.push_back(cur_rechunking_dir);
-
-    // Each job only performs those rechunkings assigned to it
-    if(num_rechunking % number_mpi_jobs == cur_mpi_id) {
-
-      ensure_empty_directory(cur_rechunking_dir);
-      
-      std::cout << "job " << cur_mpi_id << " rechunking " << partition_start << " -> " << partition_end << " into " << cur_rechunking_dir << std::endl;
-      darr.RebuildChunksPartial(partition_start, partition_end, requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
-      std::cout << "job " << cur_mpi_id << " done" << std::endl;
-    }
+    std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
+    std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
+    std::shared_ptr<meep::fields> meep_f = std::make_shared<meep::fields>(meep_s.get());
     
-    num_rechunking++;
-  };
-  RZTIndexVector start(0);
-  IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
-  
-  // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
-  meep::all_wait(); 
-  
-  if(meep::am_master()) {
-    merge_mpi_chunks(outdir, rechunking_dirs);
-  }
-}
-
-void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-						    double courant_factor, double resolution, double pml_width) {
-
-  int number_mpi_jobs = meep::count_processors();
-  int job_mpi_rank = meep::my_rank();
-
-  // Prepare an empty working directory in global scratch area
-  std::filesystem::path global_workdir = global_scratchdir / "eisvogel";
-  if(meep::am_master()) {
-    if(std::filesystem::exists(global_workdir)) {
-      std::filesystem::remove_all(global_workdir);
-    }
-    std::filesystem::create_directory(global_workdir);
-  }
-
-  // Output directory
-  if(meep::am_master()) {
-    if(std::filesystem::exists(outdir)) {
-      throw std::runtime_error("Error: cowardly refusing to overwrite an already-existing Green's function!");
-    }
-    std::filesystem::create_directory(outdir);
-  }
-
-  std::cout << "using global_workdir = " << global_workdir << std::endl;
-  
-  meep::all_wait();
-
-  auto calc_job_dir = [](int job_mpi_rank) -> std::filesystem::path {
-    return std::format("calc_job_{}", job_mpi_rank);
-  };
-  
-  // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
-  std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
-  calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width);
-
-  meep::all_wait();   // Wait for all processes to have finished providing their output
-  
-  // Second stage: create a new distributed array and import all the chunks. This is now a complete Green's function!
-  std::filesystem::path mergedir = global_workdir / "merge";      
-  if(meep::am_master()) {
-
-    // Assemble output directories from all jobs
-    std::vector<std::filesystem::path> to_merge;    
-    for(int job_id = 0; job_id < number_mpi_jobs; job_id++) {
-      std::filesystem::path cur_job_outdir = global_workdir / calc_job_dir(job_id);
-      to_merge.push_back(cur_job_outdir);
-    }
-
-    // Call the merger
-    merge_mpi_chunks(mergedir, to_merge);
-  }
-
-  meep::all_wait();
-  
-  // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
-  RZTVector<std::size_t> requested_chunk_size(400);
-  std::size_t overlap = 2;
-  rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
-  
-  meep::all_wait();
-
-  // Clean up our temporary files
-  if(meep::am_master()) {
-    std::filesystem::remove_all(global_workdir);
-  
-    // Fourth stage: create the actual Green's function object
+    m_antenna.AddToGeometry(*meep_f, m_geom);
+    
+    // Some typedefs
+    constexpr std::size_t dims = SpatialSymmetry::Cylindrical<scalar_t>::dims;
+    // using chunk_t = typename SpatialSymmetry::Cylindrical<scalar_t>::chunk_t;
     using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
-    darr_t darr(outdir);
-    RZTVector<std::size_t> darr_shape = darr.GetShape();
-    RZTCoordVector step_size = (*m_end_coords - *m_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
-    CylindricalGreensFunction(*m_start_coords, *m_end_coords, step_size, std::move(darr));    
+    
+    // Working directory in process-local scratch area
+    std::filesystem::path local_workdir = create_tmp_dir_in(local_scratchdir);  
+    
+    std::size_t cache_depth = 0;   // all chunks are created one time-slice at a time, direcly request them to be streamed to disk
+    TZRVector<std::size_t> init_cache_el_shape(1);
+    TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
+    darr_t darr(local_workdir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
+    
+    // Set up tracker to follow field statistics such as the maximum field strength
+    // This corresponds to a constant-time slice, which has one fewer dimensions
+    std::size_t fstats_subsampling = 2;  
+    FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_subsampling);
+    
+    scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
+    scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
+    
+    // Prepare data container to pass to all MEEP callbacks
+    TZRVector<std::size_t> init_field_buffer_shape(1);
+    TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
+    ZRVector<std::size_t> init_field_absval_buffer_shape(1);
+    CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
+    
+    // Setup simulation run 
+    meep_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
+    
+    // Main simulation loop
+    std::size_t stepcnt = 0;
+    for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+      
+      // Time-step the fields
+      while (meep_f -> time() < cur_t) {
+	meep_f -> step();
+      }
+      
+      if(meep::am_master()) {
+	std::cout << "Simulation time: " << meep_f -> time() << std::endl;
+      }
+      
+      // Store the Green's function at the present timestep
+      cld.ind_time = stepcnt++;
+      meep_f -> loop_in_chunks(meep::eisvogel_saving_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
+    }
+    
+    // Swap axes 0 and 2 to go from TZR to RZT
+    darr.SwapAxes<0, 2>();
+    
+    // Move Green's function to the requested output location
+    darr.Move(outdir);  
+  }
+  
+  CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
+    m_t_end(t_end), m_geom(geom), m_antenna(antenna) {
+    
+    m_start_coords = std::make_shared<RZTCoordVector>((scalar_t)0.0, geom.GetZMin(), (scalar_t)0.0);
+    m_end_coords = std::make_shared<RZTCoordVector>(geom.GetRMax(), geom.GetZMax(), t_end);
+    
+    std::cout << "Constructed geom with start = " << *m_start_coords << " and end = " << *m_end_coords << std::endl;
+  }
+  
+  void CylindricalGreensFunctionCalculator::merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs) {
+    
+    // This must only be run by one process
+    assert(meep::am_master());
+    
+    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+    
+    ensure_empty_directory(outdir);
+    
+    std::size_t cache_depth = 0;
+    TZRVector<std::size_t> init_cache_el_shape(1);
+    TZRVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one time slice at a time
+    darr_t darr(outdir, cache_depth, init_cache_el_shape, streamer_chunk_shape); // no big cache needed here, this is just for merging
+    
+    for(const std::filesystem::path& indir : indirs) {
+      darr.Import(indir);
+      std::filesystem::remove_all(indir);
+    }
+  }
+  
+  // Tries to come up with a good `partition_size` so that `partition_size` is an integer multiple of `chunk_size` and it takes
+  // approximately `number_partitions_requested` nonoverlapping partitions to cover a region with `shape`.
+  template <std::size_t dims>
+  Vector<std::size_t, dims> get_partition_size(const Vector<std::size_t, dims>& shape, const Vector<std::size_t, dims>& chunk_size,
+					       std::size_t number_partitions_requested) {
+    
+    std::size_t longest_axis = std::distance(shape.begin(), std::max_element(std::execution::unseq, shape.begin(), shape.end()));
+    
+    auto number_partitions_actual = [&](const Vector<std::size_t, dims>& pars_per_dim) -> std::size_t {
+      return std::reduce(std::execution::unseq, pars_per_dim.begin(), pars_per_dim.end(), 1, std::multiplies<int>());
+    };  
+    
+    // Number of (partial) chunks along each direction
+    Vector<std::size_t, dims> chunks_per_dim = VectorUtils::ceil_nonneg(shape.template as_type<scalar_t>() / chunk_size.template as_type<scalar_t>());
+    
+    // First guess for the number of partitions per dimension
+    Vector<std::size_t, dims> pars_per_dim((std::size_t)std::pow((scalar_t)number_partitions_requested, 1.0 / dims));
+    
+    while(number_partitions_actual(pars_per_dim) < number_partitions_requested) {
+    pars_per_dim[longest_axis]++;
+    }  
+    
+    Vector<std::size_t, dims> par_size_in_chunks = VectorUtils::ceil_nonneg(chunks_per_dim.template as_type<scalar_t>() / pars_per_dim.template as_type<scalar_t>());
+    Vector<std::size_t, dims> partition_size = par_size_in_chunks * chunk_size;
+    
+    return partition_size;
+  }
+  
+  void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
+							int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap) {
+    
+    using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+    
+    std::size_t cache_depth = 5;
+    RZTVector<std::size_t> init_cache_el_shape(1);
+    RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
+    darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
+    
+    std::cout << "loading array from " << indir << std::endl;
+    std::cout << "now rechunking; have input array with shape " << darr.GetShape() << std::endl;
+    std::cout << "this is rechunking job " << cur_mpi_id << " / " << number_mpi_jobs << " jobs" << std::endl;
+    std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
+    
+    // Determine nonoverlapping rectangular partitions that are handled by each job; try to make them of similar size for optimal work sharing
+    RZTVector<std::size_t> shape = darr.GetShape();
+    RZTVector<std::size_t> partition_size = get_partition_size(shape, requested_chunk_size, number_mpi_jobs);
+    
+    auto rechunk_dir = [](int rechunk_num) -> std::filesystem::path {
+      return std::format("rechunk_job_{}", rechunk_num);
+    };
+    
+    std::size_t num_rechunking = 0;
+    std::vector<std::filesystem::path> rechunking_dirs;
+    auto rechunker = [&](const RZTIndexVector& partition_start, const RZTIndexVector& partition_end) {
+      
+      std::filesystem::path cur_rechunking_dir = global_scratch_dir / rechunk_dir(num_rechunking);
+      rechunking_dirs.push_back(cur_rechunking_dir);
+      
+      // Each job only performs those rechunkings assigned to it
+      if(num_rechunking % number_mpi_jobs == cur_mpi_id) {
+	
+	ensure_empty_directory(cur_rechunking_dir);
+	
+	std::cout << "job " << cur_mpi_id << " rechunking " << partition_start << " -> " << partition_end << " into " << cur_rechunking_dir << std::endl;
+	darr.RebuildChunksPartial(partition_start, partition_end, requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
+	std::cout << "job " << cur_mpi_id << " done" << std::endl;
+      }
+      
+      num_rechunking++;
+    };
+    RZTIndexVector start(0);
+    IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
+    
+    // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
+    meep::all_wait(); 
+    
+    if(meep::am_master()) {
+      merge_mpi_chunks(outdir, rechunking_dirs);
+    }
+  }
+  
+  void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
+						      double courant_factor, double resolution, double pml_width) {
+    
+    int number_mpi_jobs = meep::count_processors();
+    int job_mpi_rank = meep::my_rank();
+    
+    // Prepare an empty working directory in global scratch area
+    std::filesystem::path global_workdir = global_scratchdir / "eisvogel";
+    if(meep::am_master()) {
+      if(std::filesystem::exists(global_workdir)) {
+	std::filesystem::remove_all(global_workdir);
+      }
+      std::filesystem::create_directory(global_workdir);
+    }
+    
+    // Output directory
+    if(meep::am_master()) {
+      if(std::filesystem::exists(outdir)) {
+	throw std::runtime_error("Error: cowardly refusing to overwrite an already-existing Green's function!");
+      }
+      std::filesystem::create_directory(outdir);
+    }
+    
+    std::cout << "using global_workdir = " << global_workdir << std::endl;
+    
+    meep::all_wait();
+    
+    auto calc_job_dir = [](int job_mpi_rank) -> std::filesystem::path {
+      return std::format("calc_job_{}", job_mpi_rank);
+    };
+    
+    // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
+    std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
+    calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width);
+    
+    meep::all_wait();   // Wait for all processes to have finished providing their output
+    
+    // Second stage: create a new distributed array and import all the chunks. This is now a complete Green's function!
+    std::filesystem::path mergedir = global_workdir / "merge";      
+    if(meep::am_master()) {
+      
+      // Assemble output directories from all jobs
+      std::vector<std::filesystem::path> to_merge;    
+      for(int job_id = 0; job_id < number_mpi_jobs; job_id++) {
+	std::filesystem::path cur_job_outdir = global_workdir / calc_job_dir(job_id);
+	to_merge.push_back(cur_job_outdir);
+      }
+      
+      // Call the merger
+      merge_mpi_chunks(mergedir, to_merge);
+    }
+    
+    meep::all_wait();
+    
+    // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
+    RZTVector<std::size_t> requested_chunk_size(400);
+    std::size_t overlap = 2;
+    rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
+    
+    meep::all_wait();
+    
+    // Clean up our temporary files
+    if(meep::am_master()) {
+      std::filesystem::remove_all(global_workdir);
+      
+      // Fourth stage: create the actual Green's function object
+      using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
+      darr_t darr(outdir);
+      RZTVector<std::size_t> darr_shape = darr.GetShape();
+      RZTCoordVector step_size = (*m_end_coords - *m_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
+      CylindricalGreensFunction(*m_start_coords, *m_end_coords, step_size, std::move(darr));    
+    }
   }
 }
-
