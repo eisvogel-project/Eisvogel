@@ -10,12 +10,10 @@
 #include <span>
 
 #include "Vector.hh"
-#include "Eisvogel/MathUtils.hh"
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 #include "NDVecArray.hh"
 #include "NDVecArrayStreamer.hh"
 #include "DistributedNDVecArray.hh"
-#include "Eisvogel/IteratorUtils.hh"
 
 #include <stdlib.h>
 
@@ -69,7 +67,7 @@ int main(int argc, char* argv[]) {
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 
-  // std::cout << "wrote 512MB in " << duration << std::endl;
+  std::cout << "wrote 512MB in " << duration << std::endl;
   
   // {
   //   std::fstream iofs;

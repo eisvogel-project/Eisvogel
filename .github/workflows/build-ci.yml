@@ -6,11 +6,14 @@ jobs:
   build_and_test:
     name: "Run build and tests"
     runs-on: ubuntu-latest
+    env:
+      CC: gcc-13
+      CXX: g++-13
     steps:
     
     - name: Install dependencies
       run: |
-        sudo apt-get -y update
+        sudo apt-get -y update	
         sudo apt-get install -y pkg-config cmake
         sudo apt-get install -y libtbb-dev
         sudo apt-get install -y libhdf5-mpi-dev libharminv-dev libfftw3-dev libgsl-dev libgslcblas0
@@ -24,7 +27,7 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake -DBUILD_PYTHON=ON -DBUILD_WFC=ON -DBUILD_TESTS=ON ../ &&
+        cmake -DBUILD_MEEP=ON -DBUILD_TESTS=ON ../ &&
         VERBOSE=1 make &&
         popd
 

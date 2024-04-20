@@ -1,6 +1,6 @@
 #include <fstream>
 #include <iostream>
-#include "Eisvogel/Common.hh"
+#include "Common.hh"
 #include "NDVecArray.hh"
 #include "Interpolation.hh"
 #include "GreensFunction.hh"

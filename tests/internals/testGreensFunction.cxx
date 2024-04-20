@@ -1,8 +1,8 @@
 #include <chrono>
 #include "GreensFunction.hh"
 #include "Symmetry.hh"
-#include "Eisvogel/IteratorUtils.hh"
-#include "Eisvogel/Current.hh"
+#include "IteratorUtils.hh"
+#include "Current.hh"
 #include "Interpolation.hh"
 
 using T = float;

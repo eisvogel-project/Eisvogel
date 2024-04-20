@@ -6,7 +6,7 @@
 
 #include "NDVecArray.hh"
 #include "DistributedNDVecArray.hh"
-#include "Eisvogel/IteratorUtils.hh"
+#include "IteratorUtils.hh"
 
 using T = float;
 

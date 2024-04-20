@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cmath>
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/CylindricalGreensFunctionCalculator.hh"
-#include "Eisvogel/Antenna.hh"
-#include "Eisvogel/Geometry.hh"
+#include "Common.hh"
+#include "MEEPCylindricalGreensFunctionCalculator.hh"
+#include "Antenna.hh"
+#include "Geometry.hh"
 
 int main(int argc, char* argv[]) {
 
@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 
   std::string gf_path = argv[1];
   
-  auto eps = [](scalar_t r, scalar_t z) {
+  auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
   scalar_t t_end = 500;
   
-  CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
+  GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
   gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/", "/scratch/midway3/windischhofer/");
     
   std::cout << "done" << std::endl;

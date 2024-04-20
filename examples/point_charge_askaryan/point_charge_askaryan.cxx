@@ -2,8 +2,9 @@
 #include <fstream>
 #include <vector>
 
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/SignalCalculator.hh"
+#include "Common.hh"
+#include "SignalCalculator.hh"
+#include "Current.hh"
 
 int main(int argc, char* argv[]) {
 

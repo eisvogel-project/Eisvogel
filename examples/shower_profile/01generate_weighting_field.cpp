@@ -1,12 +1,10 @@
-#include "Eisvogel/Common.hh"
-#include "Eisvogel/GreensFunctionUtils.hh"
+#include "Common.hh"
+#include "AnalyticGreensFunctionCalculator.hh"
 
 /*
 Script to generate a Green's function that covers the time and space
 required to perform the shower simulation.
 */
-
-namespace GFU = GreensFunctionUtils;
 
 int main(int argc, char* argv[]) {
 
@@ -34,5 +32,5 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Building Green's function ..." << std::endl;
 
-  GFU::CreateElectricDipoleGreensFunction(gf_path, start_coords, end_coords, t_end, index_of_refraction, filter_t_peak, filter_order, r_min, os_factor);
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, index_of_refraction, filter_t_peak, filter_order, r_min, os_factor);
 }

@@ -6,7 +6,7 @@
 #include "constants.h"
 #include "units.h"
 #include <vector>
-
+#include "Current.hh"
 
 showers::Shower1D::Shower1D(
 	std::array<float, 3> pos,
