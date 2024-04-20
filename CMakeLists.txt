@@ -13,10 +13,6 @@ add_subdirectory(src)
 add_subdirectory(examples)
 add_subdirectory(extern)
 
-if(BUILD_PYTHON)
-    # add_subdirectory(cpython)
-endif(BUILD_PYTHON)
-
 if(BUILD_TESTS)
     add_subdirectory(tests)
 endif(BUILD_TESTS)

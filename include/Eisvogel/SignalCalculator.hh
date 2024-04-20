@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <memory>
 #include <vector>
+#include "Common.hh"
 
 class CylindricalGreensFunction;
 class LineCurrentSegment;
@@ -20,5 +21,3 @@ private:
   std::shared_ptr<CylindricalGreensFunction> m_gf;
   
 };
-
-#include "SignalCalculator.hxx"
