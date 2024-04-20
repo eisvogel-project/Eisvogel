@@ -37,10 +37,4 @@ public:
   
 };
 
-// class CartesianGeometry {
-
-// };
-
-// class CartesianAnisotropicGeometry {
-
-// };
+#include "Geometry.hxx"

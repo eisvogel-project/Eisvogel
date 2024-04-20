@@ -38,3 +38,5 @@ private:
   std::shared_ptr<RZTCoordVector> m_start_coords;
   std::shared_ptr<RZTCoordVector> m_end_coords;
 };
+
+#include "CylindricalGreensFunctionCalculator.hxx"

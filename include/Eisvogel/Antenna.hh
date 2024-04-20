@@ -40,3 +40,5 @@ public:
     return new InfEDipoleAntenna(*this);
   }
 };
+
+#include "Antenna.hxx"

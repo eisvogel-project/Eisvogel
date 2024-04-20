@@ -21,3 +21,5 @@ private:
   std::shared_ptr<CylindricalGreensFunction> m_gf;
   
 };
+
+#include "SignalCalculator.hxx"
