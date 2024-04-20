@@ -11,7 +11,13 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get -y update
-        sudo apt-get install -y gcc-12
+	
+        echo "deb http://cz.archive.ubuntu.com/ubuntu mantic main" |
+        sudo tee /etc/apt/sources.list.d/temporary-repository.list	
+        sudo apt-get install -y gcc-13
+        sudo rm /etc/apt/sources.list.d/temporary-repository.list
+        sudo apt-get -y update
+	
         sudo apt-get install -y pkg-config cmake
         sudo apt-get install -y libtbb-dev
         sudo apt-get install -y libhdf5-mpi-dev libharminv-dev libfftw3-dev libgsl-dev libgslcblas0
