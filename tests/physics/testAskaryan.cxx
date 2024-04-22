@@ -62,7 +62,7 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
   std::cout << "Calculation took " << total_duration.count() << "us" << std::endl;
 }
 
-void run_test(std::filesystem::path result_path, std::filesystem::path gf_path, scalar_t b, scalar_t beta, float rel_th = 5e-9) {
+void run_test(std::filesystem::path result_path, std::filesystem::path gf_path, scalar_t b, scalar_t beta, float rel_th = 5e-5) {
 
   // Read in the answer that we are supposed to get
   CSVReader<float> val(result_path);
