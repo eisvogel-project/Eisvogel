@@ -11,5 +11,5 @@ SignalCalculator::SignalCalculator(const std::filesystem::path& geometry_path, s
 
 void SignalCalculator::AccumulateSignal(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples, std::vector<scalar_t>& signal) {
   
-  m_gf -> apply_accumulate<Interpolation::Kernel::Linear>(seg, t_sig_start, t_sig_samp, num_samples, signal);
+  m_gf -> apply_accumulate<Interpolation::Kernel::Keys>(seg, t_sig_start, t_sig_samp, num_samples, signal);
 }

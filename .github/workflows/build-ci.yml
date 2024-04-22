@@ -27,7 +27,7 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake -DBUILD_MEEP=ON -DBUILD_TESTS=ON ../ &&
+        cmake -DBUILD_EXAMPLES=ON -DBUILD_MEEP=ON -DBUILD_TESTS=ON ../ &&
         VERBOSE=1 make &&
         popd
 

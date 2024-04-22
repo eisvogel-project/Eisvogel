@@ -291,7 +291,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	
 	auto block_result = signal.begin() + block_sample_ind_start;	
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
-					  quadrature_weights[i_pt] * itgr_step);
+					  quadrature_weights[i_pt] * itgr_step * (-1.0));  // negative sign from how Green's function is defined
 
 	//std::cout << " . . . . . . . . " << std::endl;
       }
