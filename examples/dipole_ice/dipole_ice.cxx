@@ -93,7 +93,7 @@ int main(int argc, char* argv[]) {
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(400, -300, 200, eps_meas);
+  CylinderGeometry geom(400, -300, 200, eps_smooth);
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
   scalar_t t_end = 500;
   
