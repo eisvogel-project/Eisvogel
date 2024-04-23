@@ -53,6 +53,10 @@ int main(int argc, char* argv[]) {
       return 1.0;      
     }
 
+    if(z_m <= -100.0) {
+      return eps_smooth(r, z);
+    }
+    
     // Now, look up the index of refraction data
     scalar_t depth_m = std::fabs(z_m);
 
@@ -62,14 +66,12 @@ int main(int argc, char* argv[]) {
 	break;
       }
     }
-
-    assert(std::fabs(depth_m_data[i] - depth_m) < 0.1);
-    assert(std::fabs(depth_m_data[i + 1] - depth_m) < 0.1);
+    
+    assert(std::fabs(depth_m_data[i] - depth_m) <= 0.11);
+    assert(std::fabs(depth_m_data[i + 1] - depth_m) <= 0.11);
     
     scalar_t ior = ior_data[i] + (ior_data[i+1] - ior_data[i]) / (depth_m_data[i+1] - depth_m_data[i]) * (depth_m - depth_m_data[i]);
     double eps = std::pow(ior, 2.0);
-
-    std::cout << "z = " << z << " ior = " << ior << std::endl;
     
     return eps;
   };
