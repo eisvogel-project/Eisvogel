@@ -7,12 +7,16 @@ set(CMAKE_CXX_FLAGS "-O3 -Wall -Wpedantic -Wextra -ftree-vectorize -ffast-math -
 
 project(eisvogel)
 
+option(BUILD_EXAMPLES "Build examples." OFF)
 option(BUILD_TESTS "Build tests." OFF)
 option(BUILD_MEEP "Also build weighting field creator." OFF)
 option(BUILD_EXTERN "Build external tools." OFF)
 
 add_subdirectory(eisvogel)
-add_subdirectory(examples)
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif(BUILD_EXAMPLES)
 
 if(BUILD_EXTERN)
     add_subdirectory(extern)
