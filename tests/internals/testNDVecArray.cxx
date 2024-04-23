@@ -5,7 +5,7 @@
 #include "NDVecArrayStreamer.hh"
 #include "IteratorUtils.hh"
 
-int main(int argc, char* argv[]) {
+int main(void) {
 
   Vector<float, 3> vec1(0);
 
@@ -16,11 +16,7 @@ int main(int argc, char* argv[]) {
   std::cout << vec1[0] << ", " << vec1[1] << ", " << vec1[2] << std::endl;
   
   // ----
-  
-  auto print_element = [](VectorView<float, 2> elem) {
-    std::cout << elem[0] << ", " << elem[1] << std::endl;
-  };  
-  
+    
   NDVecArray<float, 3, 2> arr1({2u, 2u, 2u}, 1.0f);
 
   arr1[{0u, 0u, 0u}] = {0.0f, 0.0f};

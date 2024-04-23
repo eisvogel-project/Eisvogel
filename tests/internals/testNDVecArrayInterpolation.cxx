@@ -81,7 +81,7 @@ void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const
   std::cout << "Performed " << elem_ind << " interpolations in " << duration << " (" << 1e6 * elem_ind / duration.count() << " interpolations/sec); all OK" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(void) {
   
   // fill array with linear data
   Vector<std::size_t, dims> shape(400u);
