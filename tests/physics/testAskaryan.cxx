@@ -100,6 +100,13 @@ int main(void) {
     std::filesystem::path result_path = validation_dir / "b_10_beta_0.9_tpeak_5.0_order_4.csv";
     run_test(result_path, tmpdir, b, beta);
   }
+
+  {
+    scalar_t b = 10;
+    scalar_t beta = 0.99;
+    std::filesystem::path result_path = validation_dir / "b_10_beta_0.99_tpeak_5.0_order_4.csv";
+    run_test(result_path, tmpdir, b, beta);
+  }
   
   // Clean up
   std::filesystem::remove_all(tmpdir);
