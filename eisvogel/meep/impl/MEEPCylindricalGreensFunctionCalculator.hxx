@@ -118,7 +118,7 @@ namespace {
       std::filesystem::create_directory(parent_dir);
     }
     std::string tmpdir_template = parent_dir / "eisvogel.XXXXXX";    
-    (void)mkdtemp(tmpdir_template.data());
+    char* ret = mkdtemp(tmpdir_template.data());  (void)ret;
     return tmpdir_template;
   }
 
