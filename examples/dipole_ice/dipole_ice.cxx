@@ -5,17 +5,21 @@
 #include "Antenna.hh"
 #include "Geometry.hh"
 
+#include "CSVReader.hh"
+
 int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  if(argc < 2) {
-    throw std::runtime_error("Error: need to pass path to output directory!");
+  if(argc < 3) {
+    throw std::runtime_error("Error: need to pass path to output directory and IOR file!");
   }
 
   std::string gf_path = argv[1];
-  
-  auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
+  std::string ior_path = argv[2];
+
+  // Smooth ice model
+  auto eps_smooth = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
     scalar_t z_m = z / 3.0;    
     if(z_m > 0.0) {
@@ -35,6 +39,41 @@ int main(int argc, char* argv[]) {
     return eps;
   };
 
+  // Complicated ice model
+  CSVReader<float> ior_file(ior_path);
+  std::vector<float> depth_m_data;
+  std::vector<float> ior_data;
+  ior_file.read_column(0, depth_m_data);
+  ior_file.read_column(1, ior_data);
+  
+  auto eps_meas = [&](scalar_t r, scalar_t z) {
+
+    scalar_t z_m = z / 3.0;
+    if(z_m > 0.0) {
+      return 1.0;      
+    }
+
+    // Now, look up the index of refraction data
+    scalar_t depth_m = std::fabs(z_m);
+
+    std::size_t i = 0;
+    for(i = 0; i < depth_m_data.size() - 1; i++) {
+      if(std::fabs(depth_m_data[i] - depth_m) < 0.1) {
+	break;
+      }
+    }
+
+    assert(std::fabs(depth_m_data[i] - depth_m) < 0.1);
+    assert(std::fabs(depth_m_data[i + 1] - depth_m) < 0.1);
+    
+    scalar_t ior = ior_data[i] + (ior_data[i+1] - ior_data[i]) / (depth_m_data[i+1] - depth_m_data[i]) * (depth_m - depth_m_data[i]);
+    double eps = std::pow(ior, 2.0);
+
+    std::cout << "z = " << z << " ior = " << ior << std::endl;
+    
+    return eps;
+  };
+  
   auto impulse_response = [](scalar_t t) {
     unsigned int N = 4; // order of filter
     double tp = 2.0; // peaking time of filter
@@ -52,7 +91,7 @@ int main(int argc, char* argv[]) {
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(400, -400, 200, eps);
+  CylinderGeometry geom(400, -300, 200, eps_meas);
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
   scalar_t t_end = 500;
   
