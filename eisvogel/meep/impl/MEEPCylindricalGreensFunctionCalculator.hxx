@@ -185,7 +185,8 @@ void downsample_field(const CylindricalChunkloopData::chunk_t& field_buffer, Cyl
   using ind_t = typename CylindricalChunkloopData::chunk_t::ind_t;
 
   auto downsampler = [&](const ind_t& ind_to_keep, const ind_t&) {
-    // 
+    ind_t downsampled_ind = to_downsampled_ind(ind_to_keep, downsampling);
+    field_buffer_downsampled[downsampled_ind] = field_buffer[ind_to_keep];
   };  
   ind_t start(0);
   ind_t downsampling_chunk_shape(downsampling); // shape of region for which only one sample (the first one) needs to be kept
