@@ -29,10 +29,10 @@ public:
   
 public:
 
-  FieldStatisticsTracker(std::size_t subsampling) : m_subsampling(subsampling) {  }
+  FieldStatisticsTracker(std::size_t downsampling) : m_downsampling(downsampling) {  }
 
   void AddRegion(const RegionKeyT& region_key, const shape_t& region_shape, scalar_t init_value = 0.0) {
-    shape_t subsampled_shape = to_downsampled_shape(region_shape, m_subsampling);
+    shape_t subsampled_shape = to_downsampled_shape(region_shape, m_downsampling);
     m_max_data.emplace(std::make_pair(region_key, region_t(subsampled_shape, init_value)));
 
     std::cout << "job " << meep::my_rank() <<": for chunk with key = " << region_key << " now has " << m_max_data.size() << " chunks registered" << std::endl;
@@ -47,7 +47,7 @@ public:
     region_t& region_max_data = m_max_data.at(region_key);
 
     auto max_updater = [&](const ind_t& ind){
-      ind_t subsampled_ind = to_downsampled_ind(ind, m_subsampling);
+      ind_t subsampled_ind = to_downsampled_ind(ind, m_downsampling);
       scalar_t cur_val = region_data[ind][0];
 
       // have a new local field maximum; update
@@ -60,13 +60,13 @@ public:
 
   scalar_t GetMaxLocal(const RegionKeyT& region_key, const ind_t& ind) const {
     assert(m_max_data.contains(region_key));
-    ind_t subsampled_ind = to_downsampled_ind(ind, m_subsampling);
+    ind_t subsampled_ind = to_downsampled_ind(ind, m_downsampling);
     return m_max_data.at(region_key)[subsampled_ind][0];
   }
   
 private:
 
-  std::size_t m_subsampling;
+  std::size_t m_downsampling;
   std::unordered_map<RegionKeyT, region_t> m_max_data;
 
 };
@@ -178,9 +178,18 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
   field_buffer.index_loop_over_elements(truncator);
 }
 
-void downsample_field(const CylindricalChunkloopData::chunk_t& field_buffer, CylindricalChunkloopData::chunk_t& field_buffer_processed, const std::size_t downsampling) {
+// Applies downsampling to `field_buffer` along all axes
+void downsample_field(const CylindricalChunkloopData::chunk_t& field_buffer, CylindricalChunkloopData::chunk_t& field_buffer_downsampled, const std::size_t downsampling) {
+  field_buffer_downsampled.resize(to_downsampled_shape(field_buffer.GetShape(), downsampling));
 
-  
+  using ind_t = typename CylindricalChunkloopData::chunk_t::ind_t;
+
+  auto downsampler = [&](const ind_t& ind_to_keep, const ind_t&) {
+    // 
+  };  
+  ind_t start(0);
+  ind_t downsampling_chunk_shape(downsampling); // shape of region for which only one sample (the first one) needs to be kept
+  IteratorUtils::index_loop_over_chunks(start, field_buffer.GetShape(), downsampling_chunk_shape, downsampler);
 }
 
 // Callbacks to interface with MEEP
@@ -368,8 +377,11 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Set up tracker to follow field statistics such as the maximum field strength
     // This corresponds to a constant-time slice, which has one fewer dimensions
-    std::size_t fstats_subsampling = 2;  
-    FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_subsampling);
+    // (`fstats_downsampling` is unrelated to `downsampling_on_disk`; the former
+    // affects only the field statistics tracker, the latter affects only the chunk
+    // that is stored)
+    std::size_t fstats_downsampling = 2;  
+    FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_downsampling);
     
     scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
     scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
