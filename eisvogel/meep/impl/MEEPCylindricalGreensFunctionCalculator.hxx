@@ -4,6 +4,20 @@
 #include "GreensFunction.hh"
 #include <unordered_map>
 
+// Utilities for downsampling
+namespace {
+
+  template <typename ShapeT>
+  ShapeT to_downsampled_shape(const ShapeT& shape, std::size_t downsampling) {
+    return (shape + downsampling - 1) / downsampling;
+  }
+
+  template <typename IndT>
+  IndT to_downsampled_ind(const IndT& ind, std::size_t downsampling) {
+    return ind / downsampling;
+  }  
+}
+
 template <typename RegionKeyT, std::size_t dims>
 class FieldStatisticsTracker {
 
@@ -18,7 +32,7 @@ public:
   FieldStatisticsTracker(std::size_t subsampling) : m_subsampling(subsampling) {  }
 
   void AddRegion(const RegionKeyT& region_key, const shape_t& region_shape, scalar_t init_value = 0.0) {
-    shape_t subsampled_shape = to_subsampled_shape(region_shape);
+    shape_t subsampled_shape = to_downsampled_shape(region_shape, m_subsampling);
     m_max_data.emplace(std::make_pair(region_key, region_t(subsampled_shape, init_value)));
 
     std::cout << "job " << meep::my_rank() <<": for chunk with key = " << region_key << " now has " << m_max_data.size() << " chunks registered" << std::endl;
@@ -33,7 +47,7 @@ public:
     region_t& region_max_data = m_max_data.at(region_key);
 
     auto max_updater = [&](const ind_t& ind){
-      ind_t subsampled_ind = to_subsampled_ind(ind);
+      ind_t subsampled_ind = to_downsampled_ind(ind, m_subsampling);
       scalar_t cur_val = region_data[ind][0];
 
       // have a new local field maximum; update
@@ -46,18 +60,8 @@ public:
 
   scalar_t GetMaxLocal(const RegionKeyT& region_key, const ind_t& ind) const {
     assert(m_max_data.contains(region_key));
-    ind_t subsampled_ind = to_subsampled_ind(ind);
+    ind_t subsampled_ind = to_downsampled_ind(ind, m_subsampling);
     return m_max_data.at(region_key)[subsampled_ind][0];
-  }
-
-private:
-
-  shape_t to_subsampled_shape(const shape_t& shape) const {
-    return (shape + m_subsampling - 1) / m_subsampling;
-  }
-
-  ind_t to_subsampled_ind(const ind_t& ind) const {
-    return ind / m_subsampling;
   }
   
 private:
@@ -73,9 +77,10 @@ struct SimulationChunkMetadata {
 
   using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
 
-  SimulationChunkMetadata(const shape_t& chunk_shape) : chunk_shape(chunk_shape) { }
+  SimulationChunkMetadata(const shape_t& chunk_shape, const shape_t& downsampled_chunk_shape) : chunk_shape(chunk_shape), downsampled_chunk_shape(downsampled_chunk_shape) { }
   
-  shape_t chunk_shape;  
+  shape_t chunk_shape;  // Shape of this simulation chunk as it is used by MEEP
+  shape_t downsampled_chunk_shape;  // Shape of this simulation chunk after downsampling is applied
 };
 
 // Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
@@ -90,11 +95,12 @@ struct ChunkloopData {
   using view_t = typename chunk_t::view_t;  
   using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
 
-  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field,
-		const chunk_t::shape_t& init_field_buffer_shape, const fstats_t::shape_t& init_stat_buffer_shape,
-		const chunk_t::shape_t& init_field_chunk_buffer_shape) :
-    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field),
-    field_buffer(init_field_buffer_shape), field_absval_buffer(init_stat_buffer_shape), field_chunk_buffer(init_field_chunk_buffer_shape) { }
+  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field, std::size_t downsampling_on_disk,
+		const chunk_t::shape_t& init_field_buffer_shape, const chunk_t::shape_t& init_field_buffer_processed_shape,
+		const fstats_t::shape_t& init_stat_buffer_shape, const chunk_t::shape_t& init_field_chunk_buffer_shape) :
+    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field), downsampling_on_disk(downsampling_on_disk),
+    field_buffer(init_field_buffer_shape), field_buffer_processed(init_field_buffer_processed_shape),
+    field_absval_buffer(init_stat_buffer_shape), field_chunk_buffer(init_field_chunk_buffer_shape) { }
   
   std::size_t ind_time;  // Time index
   darr_t& fstor;  // Reference to field storage
@@ -102,8 +108,10 @@ struct ChunkloopData {
   
   scalar_t dynamic_range;  // Dynamic range of field to keep
   scalar_t abs_min_field;  // Abs. minimum field value to keep
+  std::size_t downsampling_on_disk;
 
   chunk_t field_buffer;  // Buffer to assemble field values from a single simulation chunk
+  chunk_t field_buffer_processed;  // Buffer for field values with spatial downsampling applied
   fstats_t::region_t field_absval_buffer;  // Buffer for field magnitude (vector norm)
   chunk_t field_chunk_buffer;  // Buffer for storage chunks
   
@@ -170,6 +178,11 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
   field_buffer.index_loop_over_elements(truncator);
 }
 
+void downsample_field(const CylindricalChunkloopData::chunk_t& field_buffer, CylindricalChunkloopData::chunk_t& field_buffer_processed, const std::size_t downsampling) {
+
+  
+}
+
 // Callbacks to interface with MEEP
 namespace meep {
 
@@ -202,7 +215,8 @@ namespace meep {
 
     // Build and record the chunk metadata
     ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
-    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape);    
+    ZRVector<std::size_t> downsampled_chunk_shape(to_downsampled_shape(chunk_shape, chunkloop_data -> downsampling_on_disk));
+    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, downsampled_chunk_shape);    
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
 
     // Setup field statistics tracker for this chunk
@@ -234,7 +248,7 @@ namespace meep {
     ZRIndexVector spatial_chunk_start_ind{
       (std::size_t)((is.z() - 1) / 2),
       (std::size_t)((is.r() - 1) / 2)
-    };    
+    };
     TZRIndexVector chunk_start_ind(chunkloop_data -> ind_time, spatial_chunk_start_ind);
       
     // some preliminary setup
@@ -244,7 +258,7 @@ namespace meep {
     component components[] = {Ez, Er};
     chunkloop_field_components data(fc, cgrid, shift_phase, S, sn, 2, components);
 
-    // loop over all grid points in chunk
+    // loop over all grid points in chunk and fill the field buffer
     LOOP_OVER_IVECS(fc->gv, is, ie, idx) {
 
       // get grid indices and coordinates of parent point
@@ -282,22 +296,30 @@ namespace meep {
     limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats,
 			      chunkloop_data -> abs_min_field, chunkloop_data -> dynamic_range);
 
+    // If requested, downsample the field buffer before it is registered in the output storage ...
+    downsample_field(chunkloop_data -> field_buffer, chunkloop_data -> field_buffer_processed, chunkloop_data -> downsampling_on_disk);
+
+    // ... and also compute the start index of the processed chunk (the index along the time axis remains untouched, any processing happens only in the spatial directions)
+    ZRIndexVector spatial_processed_chunk_start_ind(to_downsampled_ind(spatial_chunk_start_ind, chunkloop_data -> downsampling_on_disk));
+    TZRIndexVector processed_chunk_start_ind(chunkloop_data -> ind_time, spatial_processed_chunk_start_ind);
+    
     using shape_t = CylindricalChunkloopData::chunk_t::shape_t;
     shape_t requested_storage_chunk_size(400);
-    
+
+    // Register the processed buffer
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
 
       // Register this slice as the beginning of a new chunk ...
       TZRIndexVector start(0);
       auto simulation_chunk_storer = [&](const TZRIndexVector& storage_chunk_start, const TZRIndexVector& storage_chunk_end) {
 	chunkloop_data -> field_chunk_buffer.resize(storage_chunk_end - storage_chunk_start);
-	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer,
+	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer_processed,
 						       storage_chunk_start,
 						       storage_chunk_end,
 						       start);
-	chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_chunk_buffer, chunk_start_ind + storage_chunk_start);
+	chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_chunk_buffer, processed_chunk_start_ind + storage_chunk_start);
       };
-      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer.GetShape(), requested_storage_chunk_size, simulation_chunk_storer);
+      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_storage_chunk_size, simulation_chunk_storer);
       
       // std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;      
     }
@@ -307,17 +329,15 @@ namespace meep {
       TZRIndexVector start(0);
       auto simulation_chunk_appender = [&](const TZRIndexVector& storage_chunk_start, const TZRIndexVector& storage_chunk_end) {
 	chunkloop_data -> field_chunk_buffer.resize(storage_chunk_end - storage_chunk_start);
-	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer,
+	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer_processed,
 						       storage_chunk_start,
 						       storage_chunk_end,
 						       start);
-	chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind + storage_chunk_start, chunkloop_data -> field_chunk_buffer);
+	chunkloop_data -> fstor.AppendSlice<0>(processed_chunk_start_ind + storage_chunk_start, chunkloop_data -> field_chunk_buffer);
       };
-      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer.GetShape(), requested_storage_chunk_size, simulation_chunk_appender);
+      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_storage_chunk_size, simulation_chunk_appender);
       
-      // std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;
-      
-      // chunkloop_data -> fstor.AppendSlice<0>(chunk_start_ind, chunkloop_data -> field_buffer);
+      // std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;     
     }
   }  
 } // end namespace meep
@@ -325,7 +345,7 @@ namespace meep {
 namespace GreensFunctionCalculator::MEEP {
 
   void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
-								double courant_factor, double resolution, double pml_width) {
+								double courant_factor, double resolution, double pml_width, std::size_t downsampling_on_disk) {
     
     std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
     std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
@@ -356,9 +376,12 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> init_field_buffer_shape(1);
+    TZRVector<std::size_t> init_field_buffer_downsampled_shape(1);
     TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
     ZRVector<std::size_t> init_field_absval_buffer_shape(1);
-    CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, init_field_buffer_shape, init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
+    CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, downsampling_on_disk,
+				 init_field_buffer_shape, init_field_buffer_downsampled_shape,
+				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
     
     // Setup simulation run 
     meep_f -> loop_in_chunks(meep::eisvogel_setup_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
@@ -499,7 +522,7 @@ namespace GreensFunctionCalculator::MEEP {
   }
   
   void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-						      double courant_factor, double resolution, double pml_width) {
+						      double courant_factor, double resolution, double pml_width, std::size_t downsampling_on_disk) {
     
     int number_mpi_jobs = meep::count_processors();
     int job_mpi_rank = meep::my_rank();
@@ -531,7 +554,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
     std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
-    calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width);
+    calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width, downsampling_on_disk);
     
     meep::all_wait();   // Wait for all processes to have finished providing their output
     
