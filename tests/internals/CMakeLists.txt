@@ -12,3 +12,6 @@ target_link_libraries(testNDVecArrayInterpolation eisvogel)
 
 add_executable(testGreensFunction testGreensFunction.cxx)
 target_link_libraries(testGreensFunction eisvogel)
+
+add_executable(testDownsampling testDownsampling.cxx)
+target_link_libraries(testDownsampling eisvogel)
