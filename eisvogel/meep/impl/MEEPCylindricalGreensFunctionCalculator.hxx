@@ -1,22 +1,9 @@
 #include "Vector.hh"
 #include "NDVecArray.hh"
+#include "NDVecArrayOperations.hh"
 #include "Symmetry.hh"
 #include "GreensFunction.hh"
 #include <unordered_map>
-
-// Utilities for downsampling
-namespace {
-
-  template <typename ShapeT>
-  ShapeT to_downsampled_shape(const ShapeT& shape, std::size_t downsampling) {
-    return (shape + downsampling - 1) / downsampling;
-  }
-
-  template <typename IndT>
-  IndT to_downsampled_ind(const IndT& ind, std::size_t downsampling) {
-    return ind / downsampling;
-  }  
-}
 
 template <typename RegionKeyT, std::size_t dims>
 class FieldStatisticsTracker {
@@ -32,8 +19,8 @@ public:
   FieldStatisticsTracker(std::size_t downsampling) : m_downsampling(downsampling) {  }
 
   void AddRegion(const RegionKeyT& region_key, const shape_t& region_shape, scalar_t init_value = 0.0) {
-    shape_t subsampled_shape = to_downsampled_shape(region_shape, m_downsampling);
-    m_max_data.emplace(std::make_pair(region_key, region_t(subsampled_shape, init_value)));
+    shape_t downsampled_shape = to_downsampled_shape(region_shape);
+    m_max_data.emplace(std::make_pair(region_key, region_t(downsampled_shape, init_value)));
 
     std::cout << "job " << meep::my_rank() <<": for chunk with key = " << region_key << " now has " << m_max_data.size() << " chunks registered" << std::endl;
     // std::cout << "constructed max tracker with shape = " << subsampled_shape << std::endl;
@@ -47,7 +34,7 @@ public:
     region_t& region_max_data = m_max_data.at(region_key);
 
     auto max_updater = [&](const ind_t& ind){
-      ind_t subsampled_ind = to_downsampled_ind(ind, m_downsampling);
+      ind_t subsampled_ind = to_downsampled_ind(ind);
       scalar_t cur_val = region_data[ind][0];
 
       // have a new local field maximum; update
@@ -60,8 +47,18 @@ public:
 
   scalar_t GetMaxLocal(const RegionKeyT& region_key, const ind_t& ind) const {
     assert(m_max_data.contains(region_key));
-    ind_t subsampled_ind = to_downsampled_ind(ind, m_downsampling);
+    ind_t subsampled_ind = to_downsampled_ind(ind);
     return m_max_data.at(region_key)[subsampled_ind][0];
+  }
+
+private:
+  
+  shape_t to_downsampled_shape(const shape_t& shape) const {
+    return (shape + m_downsampling - 1) / m_downsampling;
+  }
+
+  ind_t to_downsampled_ind(const ind_t& ind) const {
+    return ind / m_downsampling;
   }
   
 private:
@@ -76,11 +73,13 @@ template <typename SpatialSymmetryT>
 struct SimulationChunkMetadata {
 
   using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
+  using ind_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
 
-  SimulationChunkMetadata(const shape_t& chunk_shape, const shape_t& downsampled_chunk_shape) : chunk_shape(chunk_shape), downsampled_chunk_shape(downsampled_chunk_shape) { }
+  SimulationChunkMetadata(const shape_t& chunk_shape, const ind_t& chunk_start_ind) :
+    chunk_shape(chunk_shape), chunk_start_ind(chunk_start_ind) { }
   
   shape_t chunk_shape;  // Shape of this simulation chunk as it is used by MEEP
-  shape_t downsampled_chunk_shape;  // Shape of this simulation chunk after downsampling is applied
+  ind_t chunk_start_ind;  // Start index of this simulation chunk 
 };
 
 // Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
@@ -95,10 +94,10 @@ struct ChunkloopData {
   using view_t = typename chunk_t::view_t;  
   using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
 
-  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field, std::size_t downsampling_on_disk,
+  ChunkloopData(std::size_t ind_time, darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, scalar_t abs_min_field, const chunk_t::ind_t& downsampling_factor,
 		const chunk_t::shape_t& init_field_buffer_shape, const chunk_t::shape_t& init_field_buffer_processed_shape,
 		const fstats_t::shape_t& init_stat_buffer_shape, const chunk_t::shape_t& init_field_chunk_buffer_shape) :
-    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field), downsampling_on_disk(downsampling_on_disk),
+    ind_time(ind_time), fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field), downsampling_factor(downsampling_factor),
     field_buffer(init_field_buffer_shape), field_buffer_processed(init_field_buffer_processed_shape),
     field_absval_buffer(init_stat_buffer_shape), field_chunk_buffer(init_field_chunk_buffer_shape) { }
   
@@ -108,7 +107,7 @@ struct ChunkloopData {
   
   scalar_t dynamic_range;  // Dynamic range of field to keep
   scalar_t abs_min_field;  // Abs. minimum field value to keep
-  std::size_t downsampling_on_disk;
+  chunk_t::ind_t downsampling_factor;
 
   chunk_t field_buffer;  // Buffer to assemble field values from a single simulation chunk
   chunk_t field_buffer_processed;  // Buffer for field values with spatial downsampling applied
@@ -178,21 +177,6 @@ void limit_field_dynamic_range(int i_chunk, CylindricalChunkloopData::chunk_t& f
   field_buffer.index_loop_over_elements(truncator);
 }
 
-// Applies downsampling to `field_buffer` along all axes
-void downsample_field(const CylindricalChunkloopData::chunk_t& field_buffer, CylindricalChunkloopData::chunk_t& field_buffer_downsampled, const std::size_t downsampling) {
-  field_buffer_downsampled.resize(to_downsampled_shape(field_buffer.GetShape(), downsampling));
-
-  using ind_t = typename CylindricalChunkloopData::chunk_t::ind_t;
-
-  auto downsampler = [&](const ind_t& ind_to_keep, const ind_t&) {
-    ind_t downsampled_ind = to_downsampled_ind(ind_to_keep, downsampling);
-    field_buffer_downsampled[downsampled_ind] = field_buffer[ind_to_keep];
-  };  
-  ind_t start(0);
-  ind_t downsampling_chunk_shape(downsampling); // shape of region for which only one sample (the first one) needs to be kept
-  IteratorUtils::index_loop_over_chunks(start, field_buffer.GetShape(), downsampling_chunk_shape, downsampler);
-}
-
 // Callbacks to interface with MEEP
 namespace meep {
 
@@ -200,15 +184,19 @@ namespace meep {
   // and sets up various things for later.
   void eisvogel_setup_chunkloop(fields_chunk* fc, int ichunk, component, ivec is, ivec ie,
 				vec, vec, vec, vec, double, double,
-				ivec shift, std::complex<double>,
-				const symmetry& S, int sn, void* cld) {
+				ivec, std::complex<double>,
+				const symmetry&, int, void* cld) {
     
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);
 
-    // index vectors for start and end of chunk
-    ivec isS = S.transform(is, sn) + shift;
-    ivec ieS = S.transform(ie, sn) + shift;
+    assert(is.z() >= 0);
+    assert(is.r() >= 0);
 
+    ZRIndexVector chunk_start_ind{
+      (std::size_t)((is.z() - 1) / 2),
+      (std::size_t)((is.r() - 1) / 2)
+    };    
+    
     // determine rank (= number of spatial dimensions) of this simulation chunk
     std::size_t rank = number_of_directions(fc -> gv.dim);
     constexpr std::size_t required_rank = 2;
@@ -225,8 +213,7 @@ namespace meep {
 
     // Build and record the chunk metadata
     ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
-    ZRVector<std::size_t> downsampled_chunk_shape(to_downsampled_shape(chunk_shape, chunkloop_data -> downsampling_on_disk));
-    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, downsampled_chunk_shape);    
+    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, chunk_start_ind);
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
 
     // Setup field statistics tracker for this chunk
@@ -245,7 +232,7 @@ namespace meep {
     std::size_t requested_chunk_size_t = 200;
 
     // Make sure the buffers are of the correct size for this simulation chunk
-    ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);
+    ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);    
     TZRVector<std::size_t> field_slice_shape(1, spatial_chunk_shape);
 
     chunkloop_data -> field_absval_buffer.resize(spatial_chunk_shape);
@@ -259,6 +246,8 @@ namespace meep {
       (std::size_t)((is.z() - 1) / 2),
       (std::size_t)((is.r() - 1) / 2)
     };
+    // otherwise this chunk has changed since we probed the geometry at the beginning
+    assert(spatial_chunk_start_ind == chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_start_ind);
     TZRIndexVector chunk_start_ind(chunkloop_data -> ind_time, spatial_chunk_start_ind);
       
     // some preliminary setup
@@ -306,19 +295,24 @@ namespace meep {
     limit_field_dynamic_range(ichunk, chunkloop_data -> field_buffer, chunkloop_data -> field_absval_buffer, chunkloop_data -> fstats,
 			      chunkloop_data -> abs_min_field, chunkloop_data -> dynamic_range);
 
-    // If requested, downsample the field buffer before it is registered in the output storage ...
-    downsample_field(chunkloop_data -> field_buffer, chunkloop_data -> field_buffer_processed, chunkloop_data -> downsampling_on_disk);
+    // Downsample the field buffer before it is registered in the output storage
+    TZRIndexVector processed_chunk_start_ind(0);
+    Downsampling::downsample(chunkloop_data -> field_buffer, chunk_start_ind, chunkloop_data -> downsampling_factor,
+			     chunkloop_data -> field_buffer_processed, processed_chunk_start_ind);
+    assert((chunkloop_data -> field_buffer_processed).GetShape() == Downsampling::get_downsampled_shape(chunk_start_ind, field_slice_shape,
+													chunkloop_data -> downsampling_factor));
 
-    // ... and also compute the start index of the processed chunk (the index along the time axis remains untouched, any processing happens only in the spatial directions)
-    ZRIndexVector spatial_processed_chunk_start_ind(to_downsampled_ind(spatial_chunk_start_ind, chunkloop_data -> downsampling_on_disk));
-    TZRIndexVector processed_chunk_start_ind(chunkloop_data -> ind_time, spatial_processed_chunk_start_ind);
+    // The downsampling has resulted in an empty chunk, nothing further to do
+    if((chunkloop_data -> field_buffer_processed).GetNumberElements() == 0) {
+      return;
+    }
     
     using shape_t = CylindricalChunkloopData::chunk_t::shape_t;
     shape_t requested_storage_chunk_size(400);
 
     // Register the processed buffer
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
-
+      
       // Register this slice as the beginning of a new chunk ...
       TZRIndexVector start(0);
       auto simulation_chunk_storer = [&](const TZRIndexVector& storage_chunk_start, const TZRIndexVector& storage_chunk_end) {
@@ -388,12 +382,12 @@ namespace GreensFunctionCalculator::MEEP {
     scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
     
     // Prepare data container to pass to all MEEP callbacks
+    TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
     TZRVector<std::size_t> init_field_buffer_shape(1);
-    TZRVector<std::size_t> init_field_buffer_downsampled_shape(1);
     TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
     ZRVector<std::size_t> init_field_absval_buffer_shape(1);
     CylindricalChunkloopData cld(0, darr, fstats, dynamic_range, abs_min_field, downsampling_on_disk,
-				 init_field_buffer_shape, init_field_buffer_downsampled_shape,
+				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
     
     // Setup simulation run 
