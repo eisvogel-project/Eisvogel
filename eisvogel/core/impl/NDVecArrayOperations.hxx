@@ -40,9 +40,6 @@ namespace Downsampling {
     downsampled_start_ind = get_first_downsampled_ind_in_range(start_ind, downsampling);
     ind_t downsampled_end_ind = get_last_downsampled_ind_in_range(end_ind, downsampling);
     
-    std::cout << "downsampled_start_ind = " << downsampled_start_ind << std::endl;
-    std::cout << "downsampled_end_ind = " << downsampled_end_ind << std::endl;
-    
     // Prepare output buffer with the correct shape (keeping in mind that the range might be empty along some directions)
     shape_t downsampled_shape = get_shape(downsampled_start_ind, downsampled_end_ind);
     downsampled.resize(downsampled_shape);
