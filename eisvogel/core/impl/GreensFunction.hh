@@ -73,6 +73,9 @@ public:
 
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
+
+  RZTCoordVector start_coords();
+  RZTCoordVector end_coords();
   
 public: // TODO: make this private, called by unit test at the moment
   

@@ -79,6 +79,14 @@ CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start
   save_metadata();   // Dump metadata to disk right away
 }
 
+RZTCoordVector CylindricalGreensFunction::start_coords() {
+  return m_meta.start_pos_rzt;
+}
+
+RZTCoordVector CylindricalGreensFunction::end_coords() {
+  return m_meta.end_pos_rzt;
+}
+
 template <class KernelT>
 void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTVector<std::size_t>& num_samples, chunk_t& array) {
 
