@@ -307,8 +307,8 @@ namespace meep {
       return;
     }
 
-    std::cout << "chunk shape before downsampling = " << chunkloop_data -> field_buffer.GetShape() << ", after downsampling = " <<
-      chunkloop_data -> field_buffer_processed.GetShape() << std::endl;
+    // std::cout << "chunk shape before downsampling = " << chunkloop_data -> field_buffer.GetShape() << ", after downsampling = " <<
+    //   chunkloop_data -> field_buffer_processed.GetShape() << std::endl;
     
     using shape_t = CylindricalChunkloopData::chunk_t::shape_t;
     shape_t requested_storage_chunk_size(400);
