@@ -83,7 +83,7 @@ scalar_t integrate_simple(scalar_t t_sig, const LineCurrentSegment& seg, Callabl
     XYZFieldVector green_val = get_F_cart(green(t_sig - t_p, cur_pos), cur_pos);
 
     for(std::size_t i = 0; i < 3; i++) {
-      sigval += green_val[i] * source_xyz[i];
+      sigval += -green_val[i] * source_xyz[i];
     }
   }
   sigval *= stepsize;
