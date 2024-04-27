@@ -264,7 +264,7 @@ private:
   }
   
   static std::size_t ComputeNumberElements(const shape_t& shape) {
-    return std::accumulate(shape.cbegin(), shape.cend(), 1, std::multiplies<std::size_t>());
+    return std::accumulate(shape.cbegin(), shape.cend(), (std::size_t)1u, std::multiplies<std::size_t>());
   }
 
   static std::size_t ComputeVolume(const shape_t& shape) {

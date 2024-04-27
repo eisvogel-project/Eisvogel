@@ -94,4 +94,18 @@ namespace IteratorUtils {
     Vector<std::size_t, dims> end = arr.GetShape();
     index_loop_over_chunks(begin, end, chunk_size, worker);
   }
+
+  // -----------------------------------------------
+  
+  // Other utilities
+  template <std::size_t dims>
+  bool empty_range(const Vector<std::size_t, dims>& begin, const Vector<std::size_t, dims>& end) {
+    
+    for(std::size_t i = 0; i < dims; i++) {
+      if(begin >= end) {
+	return true;
+      }
+    }
+    return false;
+  }
 }
