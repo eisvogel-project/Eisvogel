@@ -20,11 +20,13 @@ namespace GreensFunctionCalculator::MEEP {
     CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end);
     
     void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-		   double courant_factor = 0.5, double resolution = 24, double pml_width = 1.0);
+		   double courant_factor = 0.5, double resolution = 24, double pml_width = 1.0, std::size_t downsampling_on_disk = 2);
     
   private:
-    
-    void calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, double courant_factor, double resolution, double pml_width);
+
+    // Main steps of the Green's function calculation
+    void calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, double courant_factor, double resolution, double pml_width,
+			     std::size_t downsampling_on_disk);
     static void merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs);
     static void rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratchdir, int cur_mpi_id, int number_mpi_jobs,
 			    const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap);
