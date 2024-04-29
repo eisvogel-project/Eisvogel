@@ -1,45 +1,36 @@
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-def plot_field(ax, data, range_x, range_y, xlabel = "r [m]", ylabel = "z [m]", epilog = None, fs = 13):
-    vals_x = np.linspace(range_x[0], range_x[1], data.shape[0])
-    vals_y = np.linspace(range_y[0], range_y[1], data.shape[1])
-    vals_mesh_x, vals_mesh_y = np.meshgrid(vals_x, vals_y)
-    
-    linthresh = 1e-4
-    vmin = 0.0
-    vmax = 2e-3
-    
-    fieldplot = ax.pcolormesh(vals_mesh_x, vals_mesh_y, np.transpose(data), 
-                              cmap = "coolwarm", shading = "gouraud",
-                              norm = colors.SymLogNorm(linthresh = linthresh, linscale = 1, base = 10, vmin = vmin, vmax = vmax))
-    
-    ax.set_aspect("equal")
-    ax.set_xlabel(xlabel, fontsize = fs)
-    ax.set_ylabel(ylabel, fontsize = fs)
+import plotting_utils
 
-    if epilog:
-        epilog(ax)
-    
-    ax.tick_params(axis = "y", direction = "in", left = True, right = True, labelsize = fs)
-    ax.tick_params(axis = "x", direction = "in", bottom = True, top = True, labelsize = fs)
-
-    return fieldplot
-
-def greens_function_absmax(exported_green_path, outpath):
+def greens_function_absmax(exported_green_path, outpath, range_x, range_y, fs = 15):
     data = np.load(exported_green_path) # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
 
     E_abs_data = np.linalg.norm(data, axis = 3)
     E_abs_max_data = np.max(E_abs_data, axis = -1)
 
+    fig = plt.figure(figsize = (7, 5), layout = "constrained")
+    ax = fig.add_subplot(111)
     
+    fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = range_x, range_y = range_y, fs = fs)
+
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.05)
+    cbar = fig.colorbar(fieldplot, cax = cax)
+    cbar.set_label("$K_\mathrm{max}$ [a.u.]", fontsize = fs)
+    cbar.ax.tick_params(labelsize = fs)
+    
+    fig.savefig(outpath)
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--green_exported", action = "store", dest = "exported_green_path")
     parser.add_argument("--out", action = "store", dest = "outpath")
+    parser.add_argument("--range_x", action = "store", nargs = "+", type = float, default = [0, 500.0 / 3.0])
+    parser.add_argument("--range_y", action = "store", nargs = "+", type = float, default = [-300.0 / 3.0, 200.0 / 3.0])
     args = vars(parser.parse_args())
 
     greens_function_absmax(**args)
