@@ -11,7 +11,9 @@ def greens_function_absmax(exported_green_path, outpath, range_x, range_y, fs = 
     E_abs_data = np.linalg.norm(data, axis = 3)
     E_abs_max_data = np.max(E_abs_data, axis = -1)
 
-    fig = plt.figure(figsize = (7, 5), layout = "constrained")
+    figsize_y = 5
+    figsize_x = (range_x[1] - range_x[0]) / (range_y[1] - range_y[0]) * figsize_y * 1.35
+    fig = plt.figure(figsize = (figsize_x, figsize_y), layout = "constrained")
     ax = fig.add_subplot(111)
     
     fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = range_x, range_y = range_y, fs = fs)
