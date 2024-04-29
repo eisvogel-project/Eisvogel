@@ -26,16 +26,19 @@ int main(int argc, char* argv[]) {
       return 1.0;
     }
 
+    scalar_t depth = std::fabs(z_m);        
+
+    scalar_t z0 = 72.9723;
+    scalar_t zs = 0.0;
+    std::vector<scalar_t> avec = {812.413, 1132.63, -4802.22, 4309.51, 1156.21, -2339.14};
+    scalar_t x = std::exp((-depth-zs) / z0);
+
     scalar_t density = 0.0;
-
-    if(z_m > -14.9) {
-      density = 0.917 - 0.594 * std::exp(z_m / 30.8);
+    for(std::size_t i = 0; i < avec.size(); i++) {
+      density += avec[i] * std::pow(x, i);
     }
-    else {
-      density = 0.917 - 0.367 * std::exp((z_m + 14.9) / 40.5);
-    }
-
-    double eps = std::pow(1 + 0.845 * density, 2.0);
+    
+    double eps = std::pow(1 + 0.0008506 * density, 2.0);
     return eps;
   };
 
@@ -93,9 +96,10 @@ int main(int argc, char* argv[]) {
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(400, -300, 200, eps_smooth);
+  CylinderGeometry geom(1000, -300, 200, eps_smooth);
   InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
-  scalar_t t_end = 500;
+  scalar_t t_end = 1500;
+  // scalar_t t_end = 50;
   
   GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
   gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/", "/scratch/midway3/windischhofer/");
