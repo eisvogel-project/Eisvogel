@@ -5,6 +5,7 @@ lim_x: [0, 300.0]
 lim_y: [-100.0, 66.66]
 annotation_cols: 2
 annotation_rows: 2
+field_scale_fact: 1.0e5
 annotations:
  - pos: [30, 20]
    range_t: [0.0, 30.0]
