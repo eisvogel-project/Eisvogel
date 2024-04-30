@@ -18,8 +18,11 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
     figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.35
     fig = plt.figure(figsize = (figsize_x, figsize_y), layout = "constrained")
     ax = fig.add_subplot(111)    
+
+    def show_ice_surface(ax):
+        ax.axhline(0.0, color = "gray", ls = "dashed")
     
-    fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs)
+    fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs, epilog = show_ice_surface)
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
