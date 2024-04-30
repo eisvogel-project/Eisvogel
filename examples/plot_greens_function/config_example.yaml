@@ -1,0 +1,14 @@
+range_x: [0, 166.66]
+range_y: [-100.0, 66.66]
+range_t: [0.0, 1500.0]
+annotation_cols: 2
+annotation_rows: 2
+annotations:
+ - pos: [30, 20]
+   range_t: [0.0, 30.0]
+ - pos: [30, -20]
+   range_t: [0.0, 30.0]
+ - pos: [30, -50]
+   range_t: [0.0, 30.0]
+ - pos: [30, -90]
+   range_t: [0.0, 30.0]
