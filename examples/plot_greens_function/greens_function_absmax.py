@@ -17,7 +17,7 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
     figsize_y = 5
     figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.35
     fig = plt.figure(figsize = (figsize_x, figsize_y), layout = "constrained")
-    ax = fig.add_subplot(111)
+    ax = fig.add_subplot(111)    
     
     fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs)
 
@@ -26,6 +26,9 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
     cbar = fig.colorbar(fieldplot, cax = cax)
     cbar.set_label("$K_\mathrm{max}$ [a.u.]", fontsize = fs)
     cbar.ax.tick_params(labelsize = fs)
+
+    ax.set_xlim(*config["lim_x"])
+    ax.set_ylim(*config["lim_y"])
     
     fig.savefig(outpath)
 

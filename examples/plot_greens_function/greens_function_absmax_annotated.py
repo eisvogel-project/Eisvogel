@@ -69,7 +69,10 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
         ax_annotation.tick_params(axis = "y", direction = "in", left = True, right = True, labelsize = fs)
         ax_annotation.tick_params(axis = "x", direction = "in", bottom = True, top = True, labelsize = fs)    
         ax_annotation.legend(frameon = False)
-    
+
+    ax.set_xlim(*config["lim_x"])
+    ax.set_ylim(*config["lim_y"])
+        
     fig.savefig(outpath)
 
 if __name__ == "__main__":
