@@ -5,7 +5,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import plotting_utils
 
-def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
+def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, normalized = True):
 
     with open(config_path) as configfile:
         config = yaml.safe_load(configfile)
@@ -14,8 +14,12 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
     E_abs_data = np.linalg.norm(data, axis = 3)
     E_abs_max_data = np.max(E_abs_data, axis = -1)
 
+    if normalized:
+        normval = np.max(E_abs_max_data)
+        E_abs_max_data /= normval
+
     figsize_y = 5
-    figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.35
+    figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.2
     fig = plt.figure(figsize = (figsize_x, figsize_y), layout = "constrained")
     ax = fig.add_subplot(111)    
 
@@ -27,13 +31,13 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15):
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     cbar = fig.colorbar(fieldplot, cax = cax)
-    cbar.set_label("$K_\mathrm{max}$ [a.u.]", fontsize = fs)
+    cbar.set_label("$\mathbf{K}_\mathrm{max}$ [a.u.]", fontsize = fs)
     cbar.ax.tick_params(labelsize = fs)
 
     ax.set_xlim(*config["lim_x"])
     ax.set_ylim(*config["lim_y"])
     
-    fig.savefig(outpath)
+    fig.savefig(outpath, dpi = 300)
 
 if __name__ == "__main__":
 
