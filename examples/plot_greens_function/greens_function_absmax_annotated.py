@@ -35,11 +35,11 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
     E_abs_data = np.linalg.norm(data, axis = 3)
     E_abs_max_data = np.max(E_abs_data, axis = -1)
     
-    fig = plt.figure(figsize = (12, 4), layout = "constrained")
-    gs = GridSpec(1, 2, figure = fig)
+    fig = plt.figure(figsize = (6, 8), layout = "constrained")
+    gs = GridSpec(2, 1, figure = fig)
 
     # GridSpec for time=domain graphs
-    gs_detail = GridSpecFromSubplotSpec(config["annotation_cols"], config["annotation_rows"], subplot_spec = gs[0])
+    gs_detail = GridSpecFromSubplotSpec(config["annotation_cols"], config["annotation_rows"], subplot_spec = gs[1])
 
     annotation_labels = string.ascii_uppercase
     def field_annotation_epilog(ax):
@@ -48,7 +48,7 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
             ax.text(cur_annotation["pos"][0] + 4, cur_annotation["pos"][1], cur_label, color = "white", fontsize = fs, ha = "left", va = "center")
             
     # Field plot
-    ax_field = fig.add_subplot(gs[1])
+    ax_field = fig.add_subplot(gs[0])
     fieldplot = plotting_utils.plot_field(ax_field, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], epilog = field_annotation_epilog, fs = fs)
 
     divider = make_axes_locatable(ax_field)
@@ -67,15 +67,15 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
         ax_annotation.set_xlim(*cur_annotation["range_t"])
         ax_annotation.set_xlabel("Time [ns]", fontsize = fs)
         # ax_annotation.set_title(cur_title, fontsize = fs)
-        ax_annotation.text(cur_title, fontsize = fs)
+        ax_annotation.text(0.8, 0.8, cur_title, fontsize = fs, transform = ax_annotation.transAxes)
         ax_annotation.tick_params(axis = "y", direction = "in", left = True, right = True, labelsize = fs)
         ax_annotation.tick_params(axis = "x", direction = "in", bottom = True, top = True, labelsize = fs)    
         ax_annotation.legend(frameon = False)
 
-    ax.set_xlim(*config["lim_x"])
-    ax.set_ylim(*config["lim_y"])
+    ax_field.set_xlim(*config["lim_x"])
+    ax_field.set_ylim(*config["lim_y"])
         
-    fig.savefig(outpath)
+    fig.savefig(outpath, dpi = 300)
 
 if __name__ == "__main__":
 
