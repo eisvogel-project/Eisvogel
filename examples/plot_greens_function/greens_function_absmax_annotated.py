@@ -30,7 +30,7 @@ def pos_to_index(pos_xy, shape_xy, range_x, range_y):
 
     return (pos_xy - start_pos_xy) / (end_pos_xy - start_pos_xy) * shape_xy
 
-def greens_function_absmax_annotated(exported_green_path, outpath, config_path, fs = 15, os_factor = 10):
+def greens_function_absmax_annotated(exported_green_path, outpath, config_path, fs = 15, os_factor = 10, show_samples = False):
 
     with open(config_path) as configfile:
         config = yaml.safe_load(configfile)
@@ -78,24 +78,24 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
 
         E_z_data_for_plot = E_z_data[int(cur_detail_pos_ind[0]), int(cur_detail_pos_ind[1]), :]
         E_r_data_for_plot = E_r_data[int(cur_detail_pos_ind[0]), int(cur_detail_pos_ind[1]), :]
-        
-        ax_annotation.scatter(tvals, E_z_data_for_plot, color = "black", marker = "^", s = 14)
-        ax_annotation.scatter(tvals, E_r_data_for_plot, color = "gray", marker = "s", s = 14)
+
+        if show_samples:
+            ax_annotation.scatter(tvals, E_z_data_for_plot, color = "black", marker = "^", s = 14)
+            ax_annotation.scatter(tvals, E_r_data_for_plot, color = "gray", marker = "s", s = 14)
         
         tvals_oversampled, E_z_data_oversampled = oversample(tvals, E_z_data_for_plot, os_factor = os_factor)
         tvals_oversampled, E_r_data_oversampled = oversample(tvals, E_r_data_for_plot, os_factor = os_factor)
         
-        ax_annotation.plot(tvals_oversampled, E_z_data_oversampled, color = "black", label = r"$K_z$")
-        ax_annotation.plot(tvals_oversampled, E_r_data_oversampled, color = "gray", label = r"$K_r$", ls = "dashed")
+        ax_annotation.plot(tvals_oversampled, E_z_data_oversampled, color = "black", label = r"$K_z$ [a.u.]")
+        ax_annotation.plot(tvals_oversampled, E_r_data_oversampled, color = "gray", label = r"$K_r$ [a.u.]", ls = "dashed")
         ax_annotation.set_xlabel("Time [ns]", fontsize = fs)
-        # ax_annotation.set_title(cur_title, fontsize = fs)
-        ax_annotation.text(0.1, 0.8, cur_title, fontsize = fs, transform = ax_annotation.transAxes)
+        ax_annotation.text(0.07, 0.8, cur_title, fontsize = fs, transform = ax_annotation.transAxes)
         ax_annotation.tick_params(axis = "y", direction = "in", left = True, right = True, labelsize = fs)
         ax_annotation.tick_params(axis = "x", direction = "in", bottom = True, top = True, labelsize = fs)    
         ax_annotation.legend(frameon = False, fontsize = fs)
 
         ax_annotation.set_xlim(*cur_annotation["range_t"])
-        plotting_utils.autoscale_y(ax_annotation)
+        plotting_utils.autoscale_y(ax_annotation, margin = 0.15)
 
     ax_field.set_xlim(*config["lim_x"])
     ax_field.set_ylim(*config["lim_y"])

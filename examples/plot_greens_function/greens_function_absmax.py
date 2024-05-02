@@ -26,12 +26,12 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, n
     def show_ice_surface(ax):
         ax.axhline(0.0, color = "gray", ls = "dashed")
     
-    fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs, epilog = show_ice_surface)
+    fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs, epilog = show_ice_surface, cmap = "coolwarm")
 
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     cbar = fig.colorbar(fieldplot, cax = cax)
-    cbar.set_label("$\mathbf{K}_\mathrm{max}$ [a.u.]", fontsize = fs)
+    cbar.set_label("$|\mathbf{K}|_\mathrm{max}$ [a.u.]", fontsize = fs)
     cbar.ax.tick_params(labelsize = fs)
 
     ax.set_xlim(*config["lim_x"])
