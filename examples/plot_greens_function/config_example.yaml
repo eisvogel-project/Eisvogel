@@ -1,0 +1,21 @@
+range_x: [0, 333.33]
+range_y: [-100.0, 66.66]
+range_t: [0.0, 1500.0]
+lim_x: [0, 300.0]
+lim_y: [-100.0, 66.66]
+annotation_cols: 3
+annotation_rows: 2
+field_scale_fact: 1.0
+annotations:
+ - pos: [100, -20]
+   range_t: [440.0, 550.0]
+ - pos: [175, -20]
+   range_t: [750.0, 900.0]
+ - pos: [250, -20]
+   range_t: [1000.0, 1400.0]
+ - pos: [100, -80]
+   range_t: [500.0, 720.0]
+ - pos: [175, -80]
+   range_t: [860.0, 970.0]
+ - pos: [250, -80]
+   range_t: [1210.0, 1275.0]
