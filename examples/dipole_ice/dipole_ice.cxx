@@ -35,6 +35,12 @@ int main(int argc, char* argv[]) {
     return eps;
   };
 
+  auto eps_homogeneous = [](scalar_t r, scalar_t z) {
+    double n = 1.78;
+    double eps = std::pow(n, 2.0);
+    return eps;
+  };
+  
   auto impulse_response = [](scalar_t t) {
     unsigned int N = 4; // order of filter
     double tp = 2.0; // peaking time of filter
@@ -52,8 +58,8 @@ int main(int argc, char* argv[]) {
   // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(400, -400, 200, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
+  CylinderGeometry geom(400, -400, 400, eps_homogeneous);
+  InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   scalar_t t_end = 500;
   
   GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);

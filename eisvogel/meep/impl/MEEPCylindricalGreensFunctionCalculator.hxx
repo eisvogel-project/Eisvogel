@@ -483,7 +483,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
     
-    std::size_t cache_depth = 5;
+    std::size_t cache_depth = 15;
     RZTVector<std::size_t> init_cache_el_shape(1);
     RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
     darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);

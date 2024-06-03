@@ -28,7 +28,8 @@ data_eisvogel = np.genfromtxt(
 data_eisvogel[:, 1] / units.V
 times = data_eisvogel[:, 0]
 sampling_rate = 1. / (times[1] - times[0])
-arz_sampling_rate = 20.
+arz_sampling_rate = 5.
+
 arz_trace = NuRadioMC.SignalGen.askaryan.get_time_trace(
     args.shower_energy,
     viewing_angle,
@@ -40,6 +41,23 @@ arz_trace = NuRadioMC.SignalGen.askaryan.get_time_trace(
     "ARZ2020",
     iN=args.i_shower
 )
+
+import time
+start = time.time()
+arz_trace = NuRadioMC.SignalGen.askaryan.get_time_trace(
+    args.shower_energy,
+    viewing_angle,
+    data_eisvogel.shape[0] * (arz_sampling_rate / sampling_rate),
+    1. / arz_sampling_rate,
+    args.shower_type,
+    index_of_refraction,
+    np.sqrt(shower_position[0]**2 + shower_position[1]**2),
+    "ARZ2020",
+    iN=args.i_shower
+)
+end = time.time()
+print(f"ARZ took {end-start} sec")
+
 arz_trace = scipy.signal.resample(arz_trace, times.shape[0]) * np.cos(viewing_angle)
 freqs = np.fft.rfftfreq(times.shape[0], 1. / sampling_rate)
 arz_spec = fft.time2freq(arz_trace, sampling_rate) * filter_func(freqs)
@@ -51,7 +69,7 @@ ax1_1 = fig1.add_subplot(211)
 ax1_2 = fig1.add_subplot(212)
 ax1_1.plot(
     times,
-    data_eisvogel[:, 1] / np.max(data_eisvogel[:, 1]),
+    -data_eisvogel[:, 1] / np.max(-data_eisvogel[:, 1]),
     label='Eisvogel'
 )
 ax1_1.plot(

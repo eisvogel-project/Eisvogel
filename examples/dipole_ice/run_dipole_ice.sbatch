@@ -5,9 +5,9 @@
 #SBATCH --account=pi-avieregg
 #SBATCH --time=24:00:00
 #SBATCH --partition=avieregg
-#SBATCH --nodes=1
+#SBATCH --nodes=4
 #SBATCH --exclusive
-#SBATCH --ntasks-per-node=64
+#SBATCH --ntasks-per-node=32
 #SBATCH --mem=257660
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=None
