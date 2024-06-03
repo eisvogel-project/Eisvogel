@@ -5,12 +5,18 @@ on: [push, pull_request, workflow_dispatch]
 jobs:
   build_and_test:
     name: "Run build and tests"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CC: gcc-13
       CXX: g++-13
     steps:
-    
+
+    - name: Install compiler
+      run: |
+        sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+        sudo apt-get -y update
+        sudo apt-get install -y gcc-13 g++-13
+
     - name: Install dependencies
       run: |
         sudo apt-get -y update	
