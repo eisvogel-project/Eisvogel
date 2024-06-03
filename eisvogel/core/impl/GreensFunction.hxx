@@ -182,9 +182,11 @@ template <class KernelT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<scalar_t>& signal) {
 
+  std::cout << "HH in apply_accumulate HH" << std::endl;
+  
   // TODO: take this from the chunk sample rate / max frequency content of this Greens function
   // Max. integration step size delta_t_p
-  scalar_t max_itgr_step = 1.0f;
+  scalar_t max_itgr_step = 0.1f;
   
   // Determine total number of quadrature intervals (always integer) ...
   const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
@@ -199,8 +201,13 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / (seg.end_time - seg.start_time);
   XYZCoordVector seg_step = seg_vel * itgr_step;
 
+  std::cout << "seg_vel = " << seg_vel << std::endl;
+  std::cout << "seg_step = " << seg_step << std::endl;
+  
   // the current represented by this segment
   XYZFieldVector source_xyz = seg_vel * seg.charge;
+
+  std::cout << "source_xyz = " << source_xyz << std::endl;
   
   // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
 
@@ -215,22 +222,29 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   NDVecArray<scalar_t, 1, vec_dims> coords_rz(max_itgr_block_size);
   NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
   std::vector<scalar_t, no_init_alloc<scalar_t>> quadrature_weights(max_itgr_block_size);
-
-  // std::cout << "HHHHH" << std::endl;
-  // std::cout << "calculating with num_samples = " << num_samples << std::endl;
-  // std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
-  // std::cout << "HHHHH" << std::endl;
+  
+  std::cout << "HHHHH" << std::endl;
+  std::cout << "calculating with num_samples = " << num_samples << std::endl;
+  std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
+  std::cout << "HHHHH" << std::endl;
   
   // Iterate over (integration, output sample) blocks
   for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += max_itgr_block_size) {
     std::size_t itgr_block_size = std::min(max_itgr_block_size, num_itgr_steps - itgr_block_start);  // actual size of this integration block
+
+    std::cout << "itgr_block_size = " << itgr_block_size << std::endl;
     
     // Precompute a few things that we can then reuse for all sample blocks
     for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
 
+      std::cout << "i_pt = " << i_pt << std::endl;
+      continue;
+      
       // Current position along the segment
       std::size_t itgr_pt = i_pt + itgr_block_start;
       XYZCoordVector seg_pos = seg.start_pos + itgr_pt * seg_step;
+
+      std::cout << seg_pos << std::endl;
       
       // precalculate (r, z) coordinates of the segment evaluation points in this integration block
       coord_cart_to_cyl(seg_pos, coords_rz[i_pt]);
@@ -238,7 +252,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
       // precalculate (r, z) field components of the current source in this integration block
       field_cart_to_cyl(source_xyz, seg_pos, source_rz[i_pt]);
     }
-
+    
     // Precompute quadrature weights for the evaluation points in this integration block
     quadrature_weights.resize(itgr_block_size);
     QuadratureT::fill_weights(itgr_block_start, itgr_block_start + itgr_block_size, num_itgr_steps, quadrature_weights.begin(), quadrature_weights.end());
@@ -247,9 +261,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += max_sample_block_size) {
       std::size_t sample_block_end = std::min(sample_block_start + max_sample_block_size, num_samples);
 
-      // std::cout << "---------" << std::endl;
-      // std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
-      // std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
+      std::cout << "---------" << std::endl;
+      std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
+      std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
       
       // iterate over the segment evaluation points in this integration block
       for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
@@ -278,18 +292,18 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	// start time in integration block
 	scalar_t convolution_t_start = block_t_sig_start - t_p;
 
-	// std::cout << " . . . . . . . . " << std::endl;
-	// std::cout << "start to call accumulate_inner_product" << std::endl;
-	// std::cout << "t_p = " << t_p << std::endl;
-	// std::cout << "t_sig_start = " << t_sig_start << std::endl;
-	// std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
-	// std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
-	// std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
-	// std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
-	// std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
-	// std::cout << "num_samples = " << block_num_samples << std::endl;
-	// std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
-	// std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
+	std::cout << " . . . . . . . . " << std::endl;
+	std::cout << "start to call accumulate_inner_product" << std::endl;
+	std::cout << "t_p = " << t_p << std::endl;
+	std::cout << "t_sig_start = " << t_sig_start << std::endl;
+	std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
+	std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
+	std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
+	std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
+	std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
+	std::cout << "num_samples = " << block_num_samples << std::endl;
+	std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
+	std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
 
 	// The above should make sure we're only interested in the causal part of the Green's function
 	assert(convolution_t_start >= 0.0);
@@ -301,10 +315,10 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
 					  quadrature_weights[i_pt] * itgr_step * (-1.0));  // negative sign from how Green's function is defined
 
-	//std::cout << " . . . . . . . . " << std::endl;
+	std::cout << " . . . . . . . . " << std::endl;
       }
 
-      //std::cout << "-----------" << std::endl;
+      std::cout << "-----------" << std::endl;
     }         
   }  
 }
