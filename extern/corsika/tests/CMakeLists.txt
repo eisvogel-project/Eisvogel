@@ -1,0 +1,3 @@
+add_executable(testC8SignalCalculator testC8SignalCalculator.cxx)
+target_include_directories(testC8SignalCalculator PUBLIC ../include/)
+target_link_libraries(testC8SignalCalculator eisvogel-corsika)
