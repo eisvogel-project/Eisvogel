@@ -110,12 +110,12 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
   RZTIndexVector end_ind = end_f_ind.template as_type<std::size_t>();
   std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);  
 
-  std::cout << "start_ind = " << start_ind << std::endl;
-  std::cout << "end_ind = " << end_ind << std::endl;
-  std::cout << "start_f_ind = " << start_f_ind << std::endl;
-  std::cout << "end_f_ind = " << end_f_ind << std::endl;
+  // std::cout << "start_ind = " << start_ind << std::endl;
+  // std::cout << "end_ind = " << end_ind << std::endl;
+  // std::cout << "start_f_ind = " << start_f_ind << std::endl;
+  // std::cout << "end_f_ind = " << end_f_ind << std::endl;
   
-  std::cout << "stepsize_f_ind = " << stepsize_f_ind << std::endl;
+  // std::cout << "stepsize_f_ind = " << stepsize_f_ind << std::endl;
   
   // Iterate over all participating chunks
   for(const metadata_t& chunk_meta : required_chunks) {
@@ -132,20 +132,20 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
     RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(VectorUtils::max(output_start_f_ind, 0.0f));
     RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(VectorUtils::min(output_end_f_ind + 1, num_samples.template as_type<scalar_t>()));
 
-    std::cout << chunk_meta << std::endl;
+    // std::cout << chunk_meta << std::endl;
 
-    std::cout << "provides output_start_f_ind = " << output_start_f_ind << std::endl;
-    std::cout << "provides output_end_f_ind = " << output_end_f_ind << std::endl;
+    // std::cout << "provides output_start_f_ind = " << output_start_f_ind << std::endl;
+    // std::cout << "provides output_end_f_ind = " << output_end_f_ind << std::endl;
     
-    std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
-    std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
+    // std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
+    // std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
 
     // Iterate over the outer output indices available in this chunk
     RZIndexVector output_start_outer_ind = output_start_ind.rz_view();
     RZIndexVector output_end_outer_ind = output_end_ind.rz_view();
 
-    std::cout << "provides output_start_outer_ind = " << output_start_outer_ind << std::endl;
-    std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
+    // std::cout << "provides output_start_outer_ind = " << output_start_outer_ind << std::endl;
+    // std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
 
     // Range of inner indices at that location in this chunk
     std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t();
@@ -201,13 +201,13 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / (seg.end_time - seg.start_time);
   XYZCoordVector seg_step = seg_vel * itgr_step;
 
-  std::cout << "seg_vel = " << seg_vel << std::endl;
-  std::cout << "seg_step = " << seg_step << std::endl;
+  // std::cout << "seg_vel = " << seg_vel << std::endl;
+  // std::cout << "seg_step = " << seg_step << std::endl;
   
   // the current represented by this segment
   XYZFieldVector source_xyz = seg_vel * seg.charge;
 
-  std::cout << "source_xyz = " << source_xyz << std::endl;
+  // std::cout << "source_xyz = " << source_xyz << std::endl;
   
   // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
 
@@ -223,28 +223,27 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
   std::vector<scalar_t, no_init_alloc<scalar_t>> quadrature_weights(max_itgr_block_size);
   
-  std::cout << "HHHHH" << std::endl;
-  std::cout << "calculating with num_samples = " << num_samples << std::endl;
-  std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
-  std::cout << "HHHHH" << std::endl;
+  // std::cout << "HHHHH" << std::endl;
+  // std::cout << "calculating with num_samples = " << num_samples << std::endl;
+  // std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
+  // std::cout << "HHHHH" << std::endl;
   
   // Iterate over (integration, output sample) blocks
   for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += max_itgr_block_size) {
     std::size_t itgr_block_size = std::min(max_itgr_block_size, num_itgr_steps - itgr_block_start);  // actual size of this integration block
-
-    std::cout << "itgr_block_size = " << itgr_block_size << std::endl;
+    
+    // std::cout << "itgr_block_size = " << itgr_block_size << std::endl;
     
     // Precompute a few things that we can then reuse for all sample blocks
     for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
 
-      std::cout << "i_pt = " << i_pt << std::endl;
-      // continue;
+      // std::cout << "i_pt = " << i_pt << std::endl;
       
       // Current position along the segment
       std::size_t itgr_pt = i_pt + itgr_block_start;
       XYZCoordVector seg_pos = seg.start_pos + itgr_pt * seg_step;
 
-      std::cout << seg_pos << std::endl;
+      // std::cout << seg_pos << std::endl;
       
       // precalculate (r, z) coordinates of the segment evaluation points in this integration block
       coord_cart_to_cyl(seg_pos, coords_rz[i_pt]);
@@ -261,9 +260,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     for(std::size_t sample_block_start = 0; sample_block_start < num_samples; sample_block_start += max_sample_block_size) {
       std::size_t sample_block_end = std::min(sample_block_start + max_sample_block_size, num_samples);
 
-      std::cout << "---------" << std::endl;
-      std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
-      std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
+      // std::cout << "---------" << std::endl;
+      // std::cout << "now on integration block with start = " << itgr_block_start << ", size = " << itgr_block_size << std::endl;
+      // std::cout << "now on sample block with start = " << sample_block_start << ", end = " << sample_block_end << std::endl;
       
       // iterate over the segment evaluation points in this integration block
       for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
@@ -292,18 +291,18 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	// start time in integration block
 	scalar_t convolution_t_start = block_t_sig_start - t_p;
 
-	std::cout << " . . . . . . . . " << std::endl;
-	std::cout << "start to call accumulate_inner_product" << std::endl;
-	std::cout << "t_p = " << t_p << std::endl;
-	std::cout << "t_sig_start = " << t_sig_start << std::endl;
-	std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
-	std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
-	std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
-	std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
-	std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
-	std::cout << "num_samples = " << block_num_samples << std::endl;
-	std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
-	std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
+	// std::cout << " . . . . . . . . " << std::endl;
+	// std::cout << "start to call accumulate_inner_product" << std::endl;
+	// std::cout << "t_p = " << t_p << std::endl;
+	// std::cout << "t_sig_start = " << t_sig_start << std::endl;
+	// std::cout << "block_t_sig_start = " << block_t_sig_start << std::endl;
+	// std::cout << "convolution_t_start = " << convolution_t_start << std::endl;
+	// std::cout << "output sample offset = " << block_sample_ind_start << std::endl;
+	// std::cout << "coords_rz = " << coords_rz[i_pt] << std::endl;
+	// std::cout << "t_sig_samp = " << t_sig_samp << std::endl;
+	// std::cout << "num_samples = " << block_num_samples << std::endl;
+	// std::cout << "source_rz = " << source_rz[i_pt] << std::endl;
+	// std::cout << "quadrature_weight = " << quadrature_weights[i_pt] << std::endl;
 
 	// The above should make sure we're only interested in the causal part of the Green's function
 	assert(convolution_t_start >= 0.0);
@@ -315,10 +314,10 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
 					  quadrature_weights[i_pt] * itgr_step * (-1.0));  // negative sign from how Green's function is defined
 
-	std::cout << " . . . . . . . . " << std::endl;
+	// std::cout << " . . . . . . . . " << std::endl;
       }
 
-      std::cout << "-----------" << std::endl;
+      // std::cout << "-----------" << std::endl;
     }         
   }  
 }
