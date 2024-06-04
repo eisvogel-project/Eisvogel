@@ -186,7 +186,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   
   // TODO: take this from the chunk sample rate / max frequency content of this Greens function
   // Max. integration step size delta_t_p
-  scalar_t max_itgr_step = 0.1f;
+  scalar_t max_itgr_step = 1.0f;
   
   // Determine total number of quadrature intervals (always integer) ...
   const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
@@ -238,7 +238,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
 
       std::cout << "i_pt = " << i_pt << std::endl;
-      continue;
+      // continue;
       
       // Current position along the segment
       std::size_t itgr_pt = i_pt + itgr_block_start;
