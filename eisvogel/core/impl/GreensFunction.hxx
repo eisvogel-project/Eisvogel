@@ -182,7 +182,7 @@ template <class KernelT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<scalar_t>& signal) {
 
-  std::cout << "HH in apply_accumulate HH" << std::endl;
+  // std::cout << "HH in apply_accumulate HH" << std::endl;
   
   // TODO: take this from the chunk sample rate / max frequency content of this Greens function
   // Max. integration step size delta_t_p

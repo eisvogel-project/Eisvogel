@@ -17,12 +17,12 @@ C8SignalCalculator::~C8SignalCalculator() {
 void C8SignalCalculator::calculate(const std::array<float, 4>& track_start_xyzt, const std::array<float, 4>& track_end_xyzt, float track_charge,
 				   float t_sig_start, float t_sig_samp, std::size_t num_samples, std::vector<float>& signal) {
 
-  std::cout << "====================" << std::endl;
-  std::cout << "EV track start (x, y, z, t) = " << track_start_xyzt[0] << ", " << track_start_xyzt[1] << ", " << track_start_xyzt[2] << ", " << track_start_xyzt[3] << std::endl;
-  std::cout << "EV track end (x, y, z, t) = " << track_end_xyzt[0] << ", " << track_end_xyzt[1] << ", " << track_end_xyzt[2] << ", " << track_end_xyzt[3] << std::endl;
-  std::cout << "EV track charge = " << track_charge << std::endl;
-  std::cout << "EV t_sig_start = " << t_sig_start << ", t_sig_samp = " << t_sig_samp << ", number_samples = " << num_samples << std::endl;
-  std::cout << "====================" << std::endl;
+  // std::cout << "====================" << std::endl;
+  // std::cout << "EV track start (x, y, z, t) = " << track_start_xyzt[0] << ", " << track_start_xyzt[1] << ", " << track_start_xyzt[2] << ", " << track_start_xyzt[3] << std::endl;
+  // std::cout << "EV track end (x, y, z, t) = " << track_end_xyzt[0] << ", " << track_end_xyzt[1] << ", " << track_end_xyzt[2] << ", " << track_end_xyzt[3] << std::endl;
+  // std::cout << "EV track charge = " << track_charge << std::endl;
+  // std::cout << "EV t_sig_start = " << t_sig_start << ", t_sig_samp = " << t_sig_samp << ", number_samples = " << num_samples << std::endl;
+  // std::cout << "====================" << std::endl;
 
   LineCurrentSegment track(XYZCoordVector{track_start_xyzt[0], track_start_xyzt[1], track_start_xyzt[2]},    // track start position
 			   XYZCoordVector{track_end_xyzt[0], track_end_xyzt[1], track_end_xyzt[2]},   // track end position
@@ -48,10 +48,10 @@ void C8SignalCalculator::calculate(const std::array<float, 4>& track_start_xyzt,
   
   // // -----------
 
-  std::cout << "EV starting" << std::endl;
-  std::cout << "EV at: " << m_gf.get() << std::endl;
-  std::cout << "EV calling into apply_accumulate" << std::endl;
+  // std::cout << "EV starting" << std::endl;
+  // std::cout << "EV at: " << m_gf.get() << std::endl;
+  // std::cout << "EV calling into apply_accumulate" << std::endl;
   
   m_gf -> apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal);
-  std::cout << "EV done" << std::endl;
+  // std::cout << "EV done" << std::endl;
 }
