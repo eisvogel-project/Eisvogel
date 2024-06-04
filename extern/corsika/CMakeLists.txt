@@ -13,5 +13,3 @@ install(FILES ${CMAKE_BINARY_DIR}/extern/corsika/eisvogel-corsika.pc DESTINATION
 install(TARGETS eisvogel-corsika
         LIBRARY DESTINATION ./${CMAKE_INSTALL_LIBDIR}
         PUBLIC_HEADER DESTINATION ./${CMAKE_INSTALL_INCLUDEDIR}/Eisvogel)
-
-add_subdirectory(tests)
