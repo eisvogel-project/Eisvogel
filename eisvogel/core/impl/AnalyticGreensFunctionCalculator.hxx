@@ -13,6 +13,7 @@ namespace {
 
     scalar_t Qw = 1.0;
     scalar_t eps0 = 1.0;  // vacuum dielectric constant
+    scalar_t eps = eps0 * std::pow(ior, 2);
     scalar_t ds = 1.0;
     scalar_t c = 1.0;  // speed of light in vacuum
     
@@ -47,7 +48,7 @@ namespace {
       scalar_t t_prop = r * ior / c, t_del = t - t_prop;
       scalar_t cos_theta = z / r;
 
-      return -2.0 * Qw * ds / (eps0 * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del) + 
+      return -2.0 * Qw * ds / (eps * 4 * M_PI) * cos_theta / std::pow(r, 3) * (filtered_theta(t_del) + 
 										t_prop * filtered_delta(t_del));
     };
 
@@ -59,7 +60,7 @@ namespace {
       }
       scalar_t t_prop = r * ior / c, t_del = t - t_prop;
       scalar_t sin_theta = r_xy / r;
-      return -Qw * ds / (eps0 * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del) + t_prop * filtered_delta(t_del)
+      return -Qw * ds / (eps * 4 * M_PI) * sin_theta / std::pow(r, 3) * (filtered_theta(t_del) + t_prop * filtered_delta(t_del)
 									  + std::pow(t_prop, 2) * filtered_delta_prime(t_del));
     };
 
