@@ -7,11 +7,6 @@
 C8SignalCalculator::C8SignalCalculator(std::filesystem::path gf_path, std::size_t cache_depth) {
   
   m_gf = std::make_shared<CylindricalGreensFunction>(gf_path, cache_depth);
-  std::cout << "created EV at " << m_gf.get() << std::endl;
-}
-
-C8SignalCalculator::~C8SignalCalculator() {
-  std::cout << "EVEVEVEV C8SignalCalculator destructor EVEVEVEVEV" << std::endl;
 }
 
 void C8SignalCalculator::calculate(const std::array<float, 4>& track_start_xyzt, const std::array<float, 4>& track_end_xyzt, float track_charge,
