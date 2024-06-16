@@ -16,5 +16,5 @@ void C8SignalCalculator::calculate(const std::array<float, 4>& track_start_xyzt,
 			   XYZCoordVector{track_end_xyzt[0], track_end_xyzt[1], track_end_xyzt[2]},   // track end position
 			   track_start_xyzt[3], track_end_xyzt[3], track_charge);
     
-  m_gf -> apply_accumulate<Interpolation::Kernel::Keys>(track, t_sig_start, t_sig_samp, num_samples, signal);
+  m_gf -> apply_accumulate<Interpolation::Kernel::Linear>(track, t_sig_start, t_sig_samp, num_samples, signal);
 }
