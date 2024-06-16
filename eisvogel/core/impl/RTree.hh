@@ -9,7 +9,7 @@ public:
   
   RTree();
 
-  void AddElement(const PayloadT& elem);
+  void AddElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
 
   // Rebuild the tree and rebalance the nodes, if needed
   void Rebuild();
@@ -17,6 +17,12 @@ public:
   const PayloadT& Search(const IndexT& ind) const;
   PayloadT& Search(const IndexT& ind);
   std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
+
+private:
+
+  struct Node {
+
+  };
   
 private:
 
