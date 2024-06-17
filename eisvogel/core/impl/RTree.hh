@@ -5,11 +5,8 @@
 #include <numeric>
 
 // Contiguous storage
-template <class T>
+template <class T, std::unsigned_integral IndT>
 class MemoryPool {
-
-public:
-  using IndT = std::size_t;
   
 public:
 
@@ -85,19 +82,18 @@ public:
   PayloadT& Search(const IndexT& ind);
   std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
 
-private:
-
-  using NodeIndT = MemoryPool<class NodeT>::IndT;
-  using PayloadIndT = MemoryPool<PayloadT>::IndT;
   
-  using TreeNode = Node<IndexT, NodeIndT, MAX_NODESIZE>;
+private:
+  
+  using IndT = std::size_t;
+  using TreeNode = Node<IndexT, IndT, MAX_NODESIZE>;
 
-  NodeIndT m_root_node_ind;
+  IndT m_root_node_ind;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)
-  MemoryPool<TreeNode> m_nodes;
-  MemoryPool<PayloadT> m_data;
+  MemoryPool<TreeNode, IndT> m_nodes;
+  MemoryPool<PayloadT, IndT> m_data;
 };
 
 #include "RTree.hxx"

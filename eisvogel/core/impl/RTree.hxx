@@ -1,24 +1,24 @@
 #include <algorithm>
 
-template <class T>
-MemoryPool<T>::MemoryPool(std::size_t init_size) : m_data(init_size), m_slots_free(init_size) {
+template <class T, std::unsigned_integral IndT>
+MemoryPool<T, IndT>::MemoryPool(std::size_t init_size) : m_data(init_size), m_slots_free(init_size) {
 
   // Mark all slots as free
   std::iota(m_slots_free.begin(), m_slots_free.end(), 0);
 }
 
-template <class T>
-T& MemoryPool<T>::operator[](IndT ind) {
+template <class T, std::unsigned_integral IndT>
+T& MemoryPool<T, IndT>::operator[](IndT ind) {
   return m_data[ind];
 }
 
-template <class T>
-const T& MemoryPool<T>::operator[](IndT ind) const {
+template <class T, std::unsigned_integral IndT>
+const T& MemoryPool<T, IndT>::operator[](IndT ind) const {
   return m_data[ind];
 }
 
-template <class T>
-MemoryPool<T>::IndT MemoryPool<T>::get_empty_slot() {
+template <class T, std::unsigned_integral IndT>
+IndT MemoryPool<T, IndT>::get_empty_slot() {
 
   // Grow the pool if needed
   if(m_slots_free.size() == 0) {
@@ -38,8 +38,8 @@ MemoryPool<T>::IndT MemoryPool<T>::get_empty_slot() {
   return slot_ind;
 }
 
-template <class T>
-void MemoryPool<T>::grow() {
+template <class T, std::unsigned_integral IndT>
+void MemoryPool<T, IndT>::grow() {
 
   // Double the size of the currently-allocated memory
   std::size_t current_size = m_data.size();
@@ -52,13 +52,13 @@ void MemoryPool<T>::grow() {
   m_slots_free.insert(m_slots_free.end(), new_slots_free.begin(), new_slots_free.end());
 }
 
-template <class T>
-bool MemoryPool<T>::is_free(IndT ind) {
+template <class T, std::unsigned_integral IndT>
+bool MemoryPool<T, IndT>::is_free(IndT ind) {
   return std::find(m_slots_free.begin(), m_slots_free.end(), ind) != m_slots_free.end();
 }
 
-template <class T>
-bool MemoryPool<T>::is_allocated(IndT ind) {
+template <class T, std::unsigned_integral IndT>
+bool MemoryPool<T, IndT>::is_allocated(IndT ind) {
   return !is_free(ind);
 }
 
@@ -105,11 +105,11 @@ template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESI
 void RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::AddElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind) {
 
   // Take ownership of the `elem` and store it
-  PayloadIndT payload_ind = m_data.get_empty_slot();
+  IndT payload_ind = m_data.get_empty_slot();
   m_data[payload_ind] = elem;
 
   // Build a tree node that points to it ...
-  NodeIndT node_ind = m_nodes.get_empty_slot();
+  IndT node_ind = m_nodes.get_empty_slot();
   m_nodes[node_ind].mark_as_empty_leaf();
 
   // ... and make this the child of an existing node in the tree

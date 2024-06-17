@@ -5,7 +5,7 @@
 
 int main(void) {
 
-  MemoryPool<int> pool(10);
+  MemoryPool<int, std::size_t> pool(10);
   pool[pool.get_empty_slot()] = 18;
   std::cout << pool[9] << std::endl;
   
