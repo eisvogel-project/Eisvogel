@@ -5,6 +5,8 @@
 
 int main(void) {
 
+  MemoryPool<int> pool(10);
+  
   constexpr int dims = 3;
   using IndexT = Vector<std::size_t, dims>;
   using PayloadT = float;

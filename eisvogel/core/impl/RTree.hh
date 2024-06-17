@@ -1,8 +1,75 @@
 #pragma once
 
 #include <vector>
+#include <cassert>
+#include <numeric>
 
-template <class IndexT, class PayloadT, std::size_t dims, std::size_t max_elems = 5>
+// Contiguous storage
+template <class T>
+class MemoryPool {
+
+public:
+  using IndT = std::size_t;
+  
+public:
+
+  MemoryPool(std::size_t init_size);
+
+  // Get reference to empty slot into which new element can be placed
+  T& get_empty_slot();
+  
+  // Element retrieval
+  T& operator[](IndT ind);
+  const T& operator[](IndT ind) const;  
+
+private:
+
+  // Grow the memory pool to make room for new elements
+  void grow();
+
+  // To test the status (allocated / free) of an element with a given index
+  bool is_allocated(IndT ind);
+  bool is_free(IndT ind);
+  
+private:
+  
+  std::vector<T> m_data;
+  std::vector<IndT> m_slots_free;
+};
+
+// =======================
+
+// A general bounding box with start and end coordinates
+template <class IndexT>
+struct BoundingBox {
+  IndexT start_ind;
+  IndexT end_ind;
+};
+
+// Tree node
+template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
+struct Node : BoundingBox<IndexT> {
+  
+  // Default constructor
+  Node();
+  
+  void mark_as_leaf(PayloadIndT payload_ind);
+  void mark_as_internal();
+  void add_child(NodeIndT child_ind);
+  
+  bool is_leaf;
+  
+  // If this is a leaf index, this is the pointer to the payload
+  PayloadIndT payload_ind;
+  
+  // List of pointers to nodes that are children of this node
+  std::size_t num_child_nodes;
+  std::array<NodeIndT, MAX_NODESIZE> child_inds;
+};
+
+// =======================
+
+template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE = 5>
 class RTree {
 
 public:
@@ -21,46 +88,14 @@ public:
 
 private:
 
-  // A general bounding box with start and end coordinates
-  struct BoundingBox {
-    IndexT start_ind;
-    IndexT end_ind;
-  };
-
-  // Internal tree node
-  template <class BoundedT>
-  struct Node : BoundedT {
-
-    // List of pointers to items that are children of this node
-    std::vector<BoundedT*> items;
-  };
-
-  // Leaf node of the tree
-  template <class BoundedT>
-  struct Leaf : BoundedT {
-
-    // Tree leaf node with pointer to the data
-    PayloadT* data;
-  };
-
-  using RTreeNode = Node<BoundingBox>;
-  using RTreeLeaf = Leaf<BoundingBox>;
-
-private:
-
-  // Methods to request new slots for nodes, leaves, and the actual data
-  RTreeNode* get_new_node();
-  RTreeLeaf* get_new_leaf();
-  PayloadT* get_new_payload();
+  using NodeIndT = MemoryPool<class NodeT>::IndT;
+  using PayloadIndT = MemoryPool<PayloadT>::IndT;
+  using TreeNode = Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>;
   
-private:
-
-  // Contiguous storage for all internal tree nodes and tree leaves
-  std::vector<RTreeNode> m_nodes;
-  std::vector<RTreeLeaf> m_leaves;
-  
-  // Contiguous storage for all data members
-  std::vector<PayloadT> m_data;
+  // Contiguous storage for all internal tree nodes (that define the structure of the tree)
+  // and tree leaves (where the data lives)
+  MemoryPool<TreeNode> m_nodes;
+  MemoryPool<PayloadT> m_data;
 };
 
 #include "RTree.hxx"
