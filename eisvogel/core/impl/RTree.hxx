@@ -18,7 +18,7 @@ const T& MemoryPool<T>::operator[](IndT ind) const {
 }
 
 template <class T>
-T& MemoryPool<T>::get_empty_slot() {
+MemoryPool<T>::IndT MemoryPool<T>::get_empty_slot() {
 
   // Grow the pool if needed
   if(m_slots_free.size() == 0) {
@@ -35,7 +35,7 @@ T& MemoryPool<T>::get_empty_slot() {
   // ----------------------------------------------------------------------
   IndT slot_ind = m_slots_free.back();
   m_slots_free.pop_back();
-  return m_data[slot_ind];
+  return slot_ind;
 }
 
 template <class T>
@@ -65,29 +65,27 @@ bool MemoryPool<T>::is_allocated(IndT ind) {
 // =======================
 
 // Default constructor: mark everything as invalid
-template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
-Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>::Node() : is_leaf(false), payload_ind(0), num_child_nodes(0) {
+template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
+Node<IndexT, IndT, MAX_NODESIZE>::Node() : is_leaf(true), num_child_nodes(0) {
   child_inds.fill(0);
 }
 
-template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>::mark_as_leaf(PayloadIndT payload_ind) {
-  this -> payload_ind = payload_ind;
+template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, IndT, MAX_NODESIZE>::mark_as_empty_leaf() {
   is_leaf = true;
   num_child_nodes = 0;
   child_inds.fill(0);
 }
 
-template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>::mark_as_internal() {
-  this -> payload_ind = 0;
+template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, IndT, MAX_NODESIZE>::mark_as_empty_internal() {
   is_leaf = false;
   num_child_nodes = 0;
   child_inds.fill(0);
 }
 
-template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>::add_child(NodeIndT child_ind) {
+template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, IndT, MAX_NODESIZE>::add_child(IndT child_ind) {
   assert(num_child_nodes < MAX_NODESIZE);     
   child_inds[num_child_nodes] = child_ind;
   num_child_nodes++;
@@ -95,21 +93,36 @@ void Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>::add_child(NodeIndT child
 
 // =======================
 
-template <class IndexT, class PayloadT, std::size_t dims, std::size_t max_elems>
-RTree<IndexT, PayloadT, dims, max_elems>::RTree(std::size_t init_slot_size) : m_nodes(init_slot_size), m_data(init_slot_size) { }
+template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE>
+RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::RTree(std::size_t init_slot_size) : m_nodes(init_slot_size), m_data(init_slot_size) {
 
-template <class IndexT, class PayloadT, std::size_t dims, std::size_t max_elems>
-void RTree<IndexT, PayloadT, dims, max_elems>::AddElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind) {
-
+  // Start with an empty root node
+  m_root_node_ind = m_nodes.get_empty_slot();
+  m_nodes[m_root_node_ind].mark_as_empty_leaf();
 }
 
-template <class IndexT, class PayloadT, std::size_t dims, std::size_t max_elems>
-void RTree<IndexT, PayloadT, dims, max_elems>::Rebuild() {
+template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE>
+void RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::AddElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind) {
 
+  // Take ownership of the `elem` and store it
+  PayloadIndT payload_ind = m_data.get_empty_slot();
+  m_data[payload_ind] = elem;
+
+  // Build a tree node that points to it ...
+  NodeIndT node_ind = m_nodes.get_empty_slot();
+  m_nodes[node_ind].mark_as_empty_leaf();
+
+  // ... and make this the child of an existing node in the tree
+  
 }
 
-// template <class IndexT, class PayloadT, std::size_t dims, std::size_t max_elems>
-// const PayloadT& RTree<IndexT, PayloadT, dims, max_elems>::Search(const IndexT& ind) {
+// template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE>
+// void RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::Rebuild() {
+
+// }
+
+// template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE>
+// const PayloadT& RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::Search(const IndexT& ind) {
 
 // }
 

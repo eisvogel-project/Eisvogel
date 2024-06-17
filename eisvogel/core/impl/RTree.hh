@@ -16,7 +16,7 @@ public:
   MemoryPool(std::size_t init_size);
 
   // Get reference to empty slot into which new element can be placed
-  T& get_empty_slot();
+  IndT get_empty_slot();
   
   // Element retrieval
   T& operator[](IndT ind);
@@ -42,29 +42,28 @@ private:
 // A general bounding box with start and end coordinates
 template <class IndexT>
 struct BoundingBox {
+   
   IndexT start_ind;
   IndexT end_ind;
 };
 
 // Tree node
-template <class IndexT, typename PayloadIndT, typename NodeIndT, std::size_t MAX_NODESIZE>
+template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
 struct Node : BoundingBox<IndexT> {
   
   // Default constructor
   Node();
   
-  void mark_as_leaf(PayloadIndT payload_ind);
-  void mark_as_internal();
-  void add_child(NodeIndT child_ind);
+  void mark_as_empty_leaf();
+  void mark_as_empty_internal();
+  void add_child(IndT child_ind);
   
   bool is_leaf;
   
-  // If this is a leaf index, this is the pointer to the payload
-  PayloadIndT payload_ind;
-  
   // List of pointers to nodes that are children of this node
+  // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
   std::size_t num_child_nodes;
-  std::array<NodeIndT, MAX_NODESIZE> child_inds;
+  std::array<IndT, MAX_NODESIZE> child_inds;
 };
 
 // =======================
@@ -90,7 +89,10 @@ private:
 
   using NodeIndT = MemoryPool<class NodeT>::IndT;
   using PayloadIndT = MemoryPool<PayloadT>::IndT;
-  using TreeNode = Node<IndexT, PayloadIndT, NodeIndT, MAX_NODESIZE>;
+  
+  using TreeNode = Node<IndexT, NodeIndT, MAX_NODESIZE>;
+
+  NodeIndT m_root_node_ind;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)

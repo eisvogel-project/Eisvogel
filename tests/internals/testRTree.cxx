@@ -6,6 +6,8 @@
 int main(void) {
 
   MemoryPool<int> pool(10);
+  pool[pool.get_empty_slot()] = 18;
+  std::cout << pool[9] << std::endl;
   
   constexpr int dims = 3;
   using IndexT = Vector<std::size_t, dims>;
