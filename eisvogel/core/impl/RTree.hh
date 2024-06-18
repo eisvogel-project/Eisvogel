@@ -5,22 +5,20 @@
 #include <numeric>
 
 // Contiguous storage
-template <class T, std::unsigned_integral IndT>
+template <class T, std::unsigned_integral SlotIndT>
 class MemoryPool {
   
 public:
 
   MemoryPool(std::size_t init_size);
 
-  // Get reference to empty slot into which new element can be placed, starting from the front or the back of the pool
-  IndT get_empty_slot_front();
-  IndT get_empty_slot_back();
-  
-  void free_slot(IndT slot_ind);
+  // Get reference to empty slot into which new element can be placed, starting from the front of the pool
+  SlotIndT get_empty_slot_front(); 
+  void free_slot(SlotIndT slot_ind);
   
   // Element retrieval if the index of the slot is known
-  T& operator[](IndT ind);
-  const T& operator[](IndT ind) const;
+  T& operator[](SlotIndT ind);
+  const T& operator[](SlotIndT ind) const;
 
   // Fills copies of the stored elements into the vector at `dest`
   void fill_elements(std::vector<T> dest);
@@ -30,33 +28,55 @@ public:
 
 public:
 
-  // debug output
+  // debug output: mark as private after testing
   void print_free();
   void print_allocated();
 
   // Grow the memory pool to make room for new elements
-  void grow();
+  void grow(); // mark as private after testing
   
 private:
 
   void reset_slot_lists();
   
   // To test the status (allocated / free) of an element with a given index
-  bool is_allocated(IndT slot_ind);
-  bool is_free(IndT slot_ind);
+  bool is_allocated(SlotIndT slot_ind);
+  bool is_free(SlotIndT slot_ind);
   
 private:
 
   struct Slot {
 
-    static constexpr IndT INVALID = std::numeric_limits<IndT>::max();
+    static constexpr SlotIndT INVALID = std::numeric_limits<SlotIndT>::max();
 
-    Slot() : data_ind(INVALID), next_data_ind(INVALID), prev_data_ind(INVALID) { };
+    Slot() : next_data_ind(INVALID), prev_data_ind(INVALID) { };
     
-    IndT data_ind;  // Index in the array `m_data` ("data index") where the data for this slot lives
-    IndT next_data_ind;  // Points to the data index of the next slot of the same kind ("free" or "allocated")
-    IndT prev_data_ind;  // Points to the data index of the previous slot of the same kind ("free" or "allocated")
+    SlotIndT next_data_ind;  // Points to the data index of the next slot of the same kind ("free" or "allocated")
+    SlotIndT prev_data_ind;  // Points to the data index of the previous slot of the same kind ("free" or "allocated")
   };
+
+  using SlotListDataT = std::vector<Slot>;
+
+  bool is_valid_slot(SlotIndT& ind);
+  
+  // Operations on doubly-linked lists:
+  // A doubly-linked list is described by its `list_start` and `list_end`
+
+  // Remove element with slot index `to_remove` from list
+  void remove_from_slot_list(SlotIndT& to_remove, SlotIndT& list_start, SlotIndT& list_end);
+
+  // Add element with slot index `to_add` to the back of the list
+  void add_to_slot_list_back(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end);
+
+  // Add element with slot index `to_add` to the beginning of the list
+  void add_to_slot_list_front(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end);
+
+  // Helpers to iterate over linked list
+  template <class CallableT>
+  void loop_over_elements_front_to_back(SlotIndT& list_start, CallableT&& worker);
+
+  template <class CallableT>
+  void loop_over_elements_back_to_front(SlotIndT& list_end, CallableT&& worker);
   
 private:
 
@@ -64,20 +84,20 @@ private:
 
   // Use indices as relative pointers to access all elements; since the pool can grow, any absolute references
   // will get invalidated!
-  IndT m_free_start;
-  IndT m_free_end;
+  SlotIndT m_free_start;
+  SlotIndT m_free_end;
 
-  IndT m_alloc_start;
-  IndT m_alloc_end;
-  
-  std::vector<T> m_data;
-  std::vector<Slot> m_slots;
+  SlotIndT m_alloc_start;
+  SlotIndT m_alloc_end;
+
+  std::vector<T> m_data;      // Memory pool has contiguous storage
+  SlotListDataT m_slots;  // Metadata to keep track of the individual slots
 };
 
 // =======================
 
 // A general bounding box with start and end coordinates
-template <class IndexT>
+template <class IndexT>  // TODO: put a `requires` constraint so that `IndexT` must implement the [] operator
 struct BoundingBox {
   
   IndexT start_ind;

@@ -6,8 +6,8 @@
 int main(void) {
 
   MemoryPool<int, std::size_t> pool(10);
-  pool.print_free();
-
+  pool.print_free();  
+  
   pool.grow();
 
   pool.print_free();

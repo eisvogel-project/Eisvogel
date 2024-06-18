@@ -1,7 +1,7 @@
 #include <algorithm>
 
-template <class T, std::unsigned_integral IndT>
-MemoryPool<T, IndT>::MemoryPool(std::size_t init_size) : m_init_size(init_size),
+template <class T, std::unsigned_integral SlotIndT>
+MemoryPool<T, SlotIndT>::MemoryPool(std::size_t init_size) : m_init_size(init_size),
 							 m_free_start(Slot::INVALID), m_free_end(Slot::INVALID),
 							 m_alloc_start(Slot::INVALID), m_alloc_end(Slot::INVALID),
 							 m_data(init_size), m_slots(init_size) {
@@ -9,8 +9,8 @@ MemoryPool<T, IndT>::MemoryPool(std::size_t init_size) : m_init_size(init_size),
   reset_slot_lists();
 }
 
-template <class T, std::unsigned_integral IndT>
-void MemoryPool<T, IndT>::reset() {
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::reset() {
 
   m_data.clear();
   m_data.resize(m_init_size);
@@ -21,44 +21,36 @@ void MemoryPool<T, IndT>::reset() {
   reset_slot_lists();
 }
 
-template <class T, std::unsigned_integral IndT>
-void MemoryPool<T, IndT>::reset_slot_lists() {
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::reset_slot_lists() {
 
   assert(m_data.size() == m_slots.size());
 
-  std::size_t number_slots = m_slots.size();
+  // Reset the two doubly-linked lists
+  m_alloc_start = Slot::INVALID;
+  m_alloc_end = Slot::INVALID;
+
+  m_free_start = Slot::INVALID;
+  m_free_end = Slot::INVALID;
   
-  // Set the two end points of the doubly-linked lists:
-  // Nothing is allocated yet ...
-  m_alloc_start = Slot::INVALID; 
-  m_alloc_end = Slot::INVALID;  
-
-  // ... and everything is free
-  m_free_start = 0;
-  m_free_end = number_slots - 1;
-
-  // Link up the list
-  for(IndT i = 0; i < number_slots; i++) {
-    m_slots[i].data_ind = i;
-    m_slots[i].next_data_ind = i + 1;
-    m_slots[i].prev_data_ind = i - 1;
+  // Mark everything as free
+  for(SlotIndT i = 0; i < m_slots.size(); i++) {
+    add_to_slot_list_back(i, m_free_start, m_free_end);
   }
-  m_slots.front().prev_data_ind = Slot::INVALID;
-  m_slots.back().next_data_ind = Slot::INVALID;   
 }
 
-template <class T, std::unsigned_integral IndT>
-T& MemoryPool<T, IndT>::operator[](IndT ind) {
+template <class T, std::unsigned_integral SlotIndT>
+T& MemoryPool<T, SlotIndT>::operator[](SlotIndT ind) {
   return m_data[ind];
 }
 
-template <class T, std::unsigned_integral IndT>
-const T& MemoryPool<T, IndT>::operator[](IndT ind) const {
+template <class T, std::unsigned_integral SlotIndT>
+const T& MemoryPool<T, SlotIndT>::operator[](SlotIndT ind) const {
   return m_data[ind];
 }
 
-template <class T, std::unsigned_integral IndT>
-IndT MemoryPool<T, IndT>::get_empty_slot_front() {
+template <class T, std::unsigned_integral SlotIndT>
+SlotIndT MemoryPool<T, SlotIndT>::get_empty_slot_front() {
 
   // Grow the pool if needed
   if(m_free_start == Slot::Invalid) {
@@ -66,29 +58,30 @@ IndT MemoryPool<T, IndT>::get_empty_slot_front() {
   }
 
   // Get the index of the next free slot
-  IndT alloc_slot_ind = m_free_start;
-
-  // Update the lists
+  SlotIndT alloc_slot_ind = m_free_start;  
   
-  if(m_alloc_start == Slot::INVALID) {
-    assert(m_alloc_end == Slot::INVALID);
-    m_alloc_start = alloc_slot_ind;
-    m_alloc_end = alloc_slot_ind;
+  // Remove the newly allocated slot from the beginning of the list of free slots ...
+  remove_from_slot_list(alloc_slot_ind, m_free_start, m_free_end);
 
-    m_slots[alloc_slot_ind].next_data_ind = Slot::INVALID;
-    m_slots[alloc_slot_ind].prev_data_ind = Slot::INVALID;
-  }
-  else {  
-    m_slots[m_alloc_end].next_data_ind = alloc_slot_ind;
-    m_slots[alloc_slot_ind].prev_data_ind = m_alloc_end;
-    m_alloc_end = alloc_slot_ind;
-  }
-  
+  // ... and add it to the back of the list of allocated slots
+  add_to_slot_list_back(alloc_slot_ind, m_alloc_start, m_alloc_end);
+
+  // Return the allocated slot
   return alloc_slot_ind;
 }
 
-template <class T, std::unsigned_integral IndT>
-void MemoryPool<T, IndT>::grow() {
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::free_slot(SlotIndT ind) {
+
+  // Remove the slot with index `ind` from the list of allocated slots ...
+  remove_from_slot_list(ind, m_alloc_start, m_alloc_end);
+
+  // ... and add it to the back of the list of free slots
+  add_to_slot_list_back(ind, m_free_start, m_free_end);
+}
+
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::grow() {
 
   // Double the size of the currently-allocated memory
   std::size_t current_size = m_data.size();
@@ -97,48 +90,178 @@ void MemoryPool<T, IndT>::grow() {
 
   // Extend the slot list
   std::vector<Slot> new_slots_free(new_size - current_size);
-  m_slots.insert(m_slots.end(), new_slots_free.begin(), new_slots_free.end());  
-  for(IndT i = current_size; i < new_size; i++) {
-    m_slots[i].data_ind = i;
-    m_slots[i].next_data_ind = i + 1;
-    m_slots[i].prev_data_ind = i - 1;
-  }
-  m_slots[current_size].prev_data_ind = m_free_end; // Points back to the element that was previously the last free slot
-                                                    // (irrespective of whether it was Slot::INVALID or not)
-  m_slots.back().next_data_ind = Slot::INVALID;
+  m_slots.insert(m_slots.end(), new_slots_free.begin(), new_slots_free.end());
 
-  if(m_free_end != Slot::INVALID) {
-    m_slots[m_free_end].next_data_ind = current_size;
-  } 
-
-  if(m_free_start == Slot::INVALID) {
-    m_free_start = current_size;
-  }
-  m_free_end = new_size - 1;
+  // Mark the new slots as free
+  for(SlotIndT i = current_size; i < new_size; i++) {
+    add_to_slot_list_back(i, m_free_start, m_free_end);
+  }  
 }
 
-template <class T, std::unsigned_integral IndT>
-void MemoryPool<T, IndT>::print_free() {
+template <class T, std::unsigned_integral SlotIndT>
+bool MemoryPool<T, SlotIndT>::is_valid_slot(SlotIndT& ind) {
+  return (ind != Slot::INVALID) && (ind < m_slots.size());
+}
 
-  IndT cur_free = m_free_start;
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::remove_from_slot_list(SlotIndT& to_remove, SlotIndT& list_start, SlotIndT& list_end) {
+
+  assert(is_valid_slot(to_remove));
   
-  while(true) {
-    if(cur_free == Slot::INVALID) {
-      break;
-    }
+  // Get the indices of the previous and next element from the list
+  SlotIndT& next_elem = m_slots[to_remove].next_data_ind;
+  SlotIndT& prev_elem = m_slots[to_remove].prev_data_ind;
 
-    std::cout << cur_free << std::endl;
-    cur_free = m_slots[cur_free].next_data_ind;
+  if(prev_elem != Slot::INVALID) {
+
+    // Connect the "previous" element to the "next" element
+    m_slots[prev_elem].next_data_ind = next_elem;    
+  }
+  else {
+
+    // The removed element was the first entry in the list; update `list_start`
+    list_start = next_elem;
+  }
+
+  if(next_elem != Slot::INVALID) {
+
+    // Connect the "next" element to the "previous" one
+    m_slots[next_elem].prev_data_ind = prev_elem;
+  }
+  else {
+
+    // The removed element was the last entry in the list; update `list_end`
+    list_end = prev_elem;
   }
 }
 
-template <class T, std::unsigned_integral IndT>
-bool MemoryPool<T, IndT>::is_free(IndT ind) {
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::add_to_slot_list_back(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end) {
+
+  assert(is_valid_slot(to_add));
+
+  if(list_end != Slot::INVALID) {
+
+    // Non-empty list: link the last element to the newly-added one
+    m_slots[list_end].next_data_ind = to_add;
+    m_slots[to_add].prev_data_ind = list_end;
+    m_slots[to_add].next_data_ind = Slot::INVALID;
+    list_end = to_add;
+  }
+  else {
+
+    // Consistency: for an empty list, both `list_start` and `list_end` must be invalid
+    assert(list_start == Slot::INVALID);
+    
+    // Empty list: `to_add` is the first element in the list
+    list_start = to_add;
+    list_end = to_add;
+    m_slots[to_add].prev_data_ind = Slot::INVALID;
+    m_slots[to_add].next_data_ind = Slot::INVALID;
+  }
+}
+
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::add_to_slot_list_front(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end) {
+
+  assert(is_valid_slot(to_add));
+
+  if(list_start != Slot::INVALID) {
+
+    // Non-empty list: list the first element to the newly-added one
+    m_slots[list_start].prev_data_ind = to_add;
+    m_slots[to_add].next_data_ind = list_start;
+    m_slots[to_add].prev_data_ind = Slot::INVALID;
+    list_start = to_add;
+  }
+  else {
+
+    // Consistency: for an empty list, both `list_start` and `list_end` must be invalid
+    assert(list_end == Slot::INVALID);
+
+    // Empty list: `to_add` is the first element in the list
+    list_start = to_add;
+    list_end = to_add;
+    m_slots[to_add].prev_data_ind = Slot::INVALID;
+    m_slots[to_add].next_data_ind = Slot::INVALID;
+  }
+}
+
+template <class T, std::unsigned_integral SlotIndT>
+template <class CallableT>
+void MemoryPool<T, SlotIndT>::loop_over_elements_front_to_back(SlotIndT& list_start, CallableT&& worker) {
+
+  SlotIndT cur_elem = list_start;
+  while(cur_elem != Slot::INVALID) {
+    
+    // call worker
+    worker(cur_elem);
+    // worker(m_data[cur_elem]);
+
+    // Walk to the following element in the list
+    cur_elem = m_slots[cur_elem].next_data_ind;
+  }  
+}
+
+template <class T, std::unsigned_integral SlotIndT>
+template <class CallableT>
+void MemoryPool<T, SlotIndT>::loop_over_elements_back_to_front(SlotIndT& list_end, CallableT&& worker) {
+
+  SlotIndT cur_elem = list_end;
+  while(cur_elem != Slot::INVALID) {
+
+    // call worker
+    worker(cur_elem);
+    // worker(m_data[cur_elem]);
+
+    // Walk to the previoud element in the list
+    cur_elem = m_slots[cur_elem].prev_data_ind;
+  }
+}
+
+// ------
+
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::print_free() {
+
+  auto printer = [](const SlotIndT& cur_slot) {
+    std::cout << cur_slot << " ";
+  };
+
+  std::cout << "----------------- " << std::endl;
+  loop_over_elements_front_to_back(m_free_start, printer);
+  std::cout << std::endl;
+
+  loop_over_elements_back_to_front(m_free_end, printer);
+  std::cout << std::endl;
+  std::cout << "----------------- " << std::endl;
+}
+
+template <class T, std::unsigned_integral SlotIndT>
+void MemoryPool<T, SlotIndT>::print_allocated() {
+
+  auto printer = [](const SlotIndT& cur_slot) {
+    std::cout << cur_slot << " ";
+  };
+
+  std::cout << "----------------- " << std::endl;
+  loop_over_elements_front_to_back(m_alloc_start, printer);
+  std::cout << std::endl;
+
+  loop_over_elements_back_to_front(m_free_end, printer);
+  std::cout << std::endl;
+  std::cout << "----------------- " << std::endl;
+}
+
+// ------
+
+template <class T, std::unsigned_integral SlotIndT>
+bool MemoryPool<T, SlotIndT>::is_free(SlotIndT ind) {
   return false; // TODO
 }
 
-template <class T, std::unsigned_integral IndT>
-bool MemoryPool<T, IndT>::is_allocated(IndT ind) {
+template <class T, std::unsigned_integral SlotIndT>
+bool MemoryPool<T, SlotIndT>::is_allocated(SlotIndT ind) {
   return !is_free(ind);
 }
 
