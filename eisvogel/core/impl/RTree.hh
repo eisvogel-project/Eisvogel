@@ -97,7 +97,7 @@ private:
 // =======================
 
 // A general bounding box with start and end coordinates
-template <class IndexT>  // TODO: put a `requires` constraint so that `IndexT` must implement the [] operator
+template <class IndexT, std::size_t dims>  // TODO: put a `requires` constraint so that `IndexT` must implement the [] operator
 struct BoundingBox {
   
   IndexT start_ind;
@@ -105,27 +105,27 @@ struct BoundingBox {
 };
 
 // Tree node
-template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
-struct Node : BoundingBox<IndexT> {
+template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
+struct Node : BoundingBox<IndexT, dims> {
   
   // Default constructor
   Node();
   
   void mark_as_empty_leaf();
   void mark_as_empty_internal();
-  void add_child(IndT child_ind);
+  void add_child(SlotIndT child_ind);
   
   bool is_leaf;
   
   // List of pointers to nodes that are children of this node
   // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
   std::size_t num_child_nodes;
-  std::array<IndT, MAX_NODESIZE> child_inds;
+  std::array<SlotIndT, MAX_NODESIZE> child_inds;
 };
 
 // Tree entry
-template <class IndexT, class PayloadT>
-struct Entry : BoundingBox<IndexT> {
+template <class IndexT, std::size_t dims, class PayloadT>
+struct Entry : BoundingBox<IndexT, dims> {
   PayloadT payload;
 };
 
@@ -151,8 +151,8 @@ public:
 private:
 
   using IndT = std::size_t;
-  using TreeNode = Node<IndexT, IndT, MAX_NODESIZE>;
-  using TreeEntry = Entry<IndexT, PayloadT>;
+  using TreeNode = Node<IndexT, dims, IndT, MAX_NODESIZE>;
+  using TreeEntry = Entry<IndexT, dims, PayloadT>;
 
 private:
 

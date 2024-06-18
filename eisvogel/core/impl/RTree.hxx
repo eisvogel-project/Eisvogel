@@ -271,27 +271,27 @@ bool MemoryPool<T, SlotIndT>::is_allocated(SlotIndT ind) {
 // =======================
 
 // Default constructor: mark everything as invalid
-template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
-Node<IndexT, IndT, MAX_NODESIZE>::Node() : is_leaf(true), num_child_nodes(0) {
+template <class IndexT, std::size_t dims, typename IndT, std::size_t MAX_NODESIZE>
+Node<IndexT, dims, IndT, MAX_NODESIZE>::Node() : is_leaf(true), num_child_nodes(0) {
   child_inds.fill(0);
 }
 
-template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, IndT, MAX_NODESIZE>::mark_as_empty_leaf() {
+template <class IndexT, std::size_t dims, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, dims, IndT, MAX_NODESIZE>::mark_as_empty_leaf() {
   is_leaf = true;
   num_child_nodes = 0;
   child_inds.fill(0);
 }
 
-template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, IndT, MAX_NODESIZE>::mark_as_empty_internal() {
+template <class IndexT, std::size_t dims, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, dims, IndT, MAX_NODESIZE>::mark_as_empty_internal() {
   is_leaf = false;
   num_child_nodes = 0;
   child_inds.fill(0);
 }
 
-template <class IndexT, typename IndT, std::size_t MAX_NODESIZE>
-void Node<IndexT, IndT, MAX_NODESIZE>::add_child(IndT child_ind) {
+template <class IndexT, std::size_t dims, typename IndT, std::size_t MAX_NODESIZE>
+void Node<IndexT, dims, IndT, MAX_NODESIZE>::add_child(IndT child_ind) {
   assert(num_child_nodes < MAX_NODESIZE);     
   child_inds[num_child_nodes] = child_ind;
   num_child_nodes++;
