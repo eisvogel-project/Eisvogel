@@ -25,7 +25,7 @@ public:
   
   // Reset the memory pool
   void reset();
-
+  
 public:
 
   // debug output: mark as private after testing
@@ -55,6 +55,12 @@ private:
     SlotIndT prev_data_ind;  // Points to the data index of the previous slot of the same kind ("free" or "allocated")
   };
 
+public:
+
+  static constexpr SlotIndT INVALID_SLOT = Slot::INVALID;
+  
+private:
+  
   using SlotListDataT = std::vector<Slot>;
 
   bool is_valid_slot(SlotIndT& ind);
@@ -140,12 +146,15 @@ struct Entry : BoundingBox<IndexT, dims> {
 template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE = 5, std::size_t MIN_NODESIZE = 2>
 class RTree {
 
+  static_assert(MAX_NODESIZE > 1);
+  static_assert(MIN_NODESIZE < MAX_NODESIZE);
+  
 public:
 
   // Constructs empty tree and reserves `init_slot_size` slots to hold elements
   RTree(std::size_t init_slot_size);
 
-  void AddElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
+  void InsertElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
 
   // Rebuild the tree and rebalance the nodes, if needed
   void Rebuild();
@@ -156,22 +165,26 @@ public:
   
 private:
 
-  using IndT = std::size_t;
-  using TreeNode = Node<IndexT, dims, IndT, MAX_NODESIZE>;
+  using SlotIndT = std::size_t;
+  using TreeNode = Node<IndexT, dims, SlotIndT, MAX_NODESIZE>;
   using TreeEntry = Entry<IndexT, dims, PayloadT>;
+  
+  using NodePool = MemoryPool<TreeNode, SlotIndT>;
+  using EntryPool = MemoryPool<TreeEntry, SlotIndT>;
 
 private:
 
-  IndT choose_subtree(IndT start_node);
+  SlotIndT insert_raw(SlotIndT& entry_ind, SlotIndT& node_ind, bool first_insert = true);
+  SlotIndT choose_subtree(SlotIndT& start_node);
   
 private:
   
-  IndT m_root_node_ind;
+  SlotIndT m_root_node_ind;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)
-  MemoryPool<TreeNode, IndT> m_nodes;
-  MemoryPool<TreeEntry, IndT> m_entries;
+  NodePool m_nodes;
+  EntryPool m_entries;
 };
 
 #include "RTree.hxx"
