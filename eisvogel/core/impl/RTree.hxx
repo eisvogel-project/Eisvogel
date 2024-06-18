@@ -270,6 +270,18 @@ bool MemoryPool<T, SlotIndT>::is_allocated(SlotIndT ind) {
 
 // =======================
 
+template <class IndexT, std::size_t dims>
+bool BoundingBox<IndexT, dims>::contains(const IndexT& ind) {
+  return false;
+}
+
+template <class IndexT, std::size_t dims>
+void BoundingBox<IndexT, dims>::stretch(const IndexT& ind) {
+
+}
+
+// =======================
+
 // Default constructor: mark everything as invalid
 template <class IndexT, std::size_t dims, typename IndT, std::size_t MAX_NODESIZE>
 Node<IndexT, dims, IndT, MAX_NODESIZE>::Node() : is_leaf(true), num_child_nodes(0) {

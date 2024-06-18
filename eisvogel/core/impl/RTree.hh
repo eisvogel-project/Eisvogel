@@ -99,6 +99,12 @@ private:
 // A general bounding box with start and end coordinates
 template <class IndexT, std::size_t dims>  // TODO: put a `requires` constraint so that `IndexT` must implement the [] operator
 struct BoundingBox {
+
+  // Checks if this bounding box contains the point with `ind`
+  bool contains(const IndexT& ind);
+
+  // Streches this bounding box (if needed) so that it also contains the point with `ind`
+  void stretch(const IndexT& ind);
   
   IndexT start_ind;
   IndexT end_ind;
