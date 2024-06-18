@@ -109,8 +109,11 @@ struct BoundingBox {
   // Checks if this bounding box contains the point with `ind`
   bool contains(const IndexT& ind);
 
-  // Streches this bounding box (if needed) so that it also contains the point with `ind`
-  void stretch(const IndexT& ind);
+  // Checks if this bounding box overlaps with the passed `bbox`
+  bool overlaps(const BoundingBox& bbox);
+
+  // Stretches this bounding box (if needed) so that it also contains the passed bounding `bbox`
+  void stretch(const BoundingBox& bbox);
   
   IndexT start_ind;
   IndexT end_ind;
@@ -125,14 +128,14 @@ struct Node : BoundingBox<IndexT, dims> {
   
   void mark_as_empty_leaf();
   void mark_as_empty_internal();
-  void add_child(SlotIndT child_ind);
+  void add_child(SlotIndT child_ind);  
   
   bool is_leaf;
   
   // List of pointers to nodes that are children of this node
   // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
   std::size_t num_child_nodes;
-  std::array<SlotIndT, MAX_NODESIZE> child_inds;
+  std::array<SlotIndT, MAX_NODESIZE + 1> child_inds;
 };
 
 // Tree entry
@@ -174,8 +177,9 @@ private:
 
 private:
 
-  SlotIndT insert_raw(SlotIndT& entry_ind, SlotIndT& node_ind, bool first_insert = true);
-  SlotIndT choose_subtree(SlotIndT& start_node);
+  SlotIndT insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert = true);
+  SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
+  SlotIndT overflow_treatment(const SlotIndT& node_ind, bool first_insert);
   
 private:
   

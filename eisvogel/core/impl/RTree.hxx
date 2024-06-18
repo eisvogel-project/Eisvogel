@@ -276,7 +276,12 @@ bool BoundingBox<IndexT, dims>::contains(const IndexT& ind) {
 }
 
 template <class IndexT, std::size_t dims>
-void BoundingBox<IndexT, dims>::stretch(const IndexT& ind) {
+bool BoundingBox<IndexT, dims>::overlaps(const BoundingBox& bbox) {
+  return false;
+}
+
+template <class IndexT, std::size_t dims>
+void BoundingBox<IndexT, dims>::stretch(const BoundingBox& bbox) {
 
 }
 
@@ -304,7 +309,7 @@ void Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::mark_as_empty_internal() {
 
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 void Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::add_child(SlotIndT child_ind) {
-  assert(num_child_nodes < MAX_NODESIZE);     
+  assert(num_child_nodes <= MAX_NODESIZE);
   child_inds[num_child_nodes] = child_ind;
   num_child_nodes++;
 }
@@ -342,23 +347,81 @@ void RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(co
   else {
 
     // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location
-    insert_raw(entry_ind, m_root_node_ind);
+    insert(entry_ind, m_root_node_ind);
   }    
 }
 
 template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::insert_raw(SlotIndT& entry_ind, SlotIndT& node_ind, bool first_insert) {
+RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert) {
 
-  // Current node
+  // Current node and entry to add
   TreeNode& node = m_nodes[node_ind];
+  TreeEntry& entry = m_entries[entry_ind];
+
+  // I4: adjust the bounding box of this node to include the newly added entry
+  node.stretch(entry);
+
+  if(node.is_leaf) {
+
+    // CS2: if `node` is a leaf, insert the new `entry` into it
+    // (We take care of overfull leaves below)
+    node.add_child(entry_ind);
+  }
+  else {
+
+    // I1: call `choose_subtree` to find an appropriate node in which to place the entry, starting from the current `node_ind`, and insert it there
+    SlotIndT new_node_ind = insert(entry_ind,
+				   choose_subtree(node_ind, entry_ind),
+				   first_insert);
+
+    // No modifications need to be propagated up the tree
+    if(new_node_ind == NodePool::INVALID_SLOT) {     
+      return new_node_ind;
+    }
+
+    // The downstream insert resulted in a `new_node_ind` that now needs to be recorded
+    node.add_child(new_node_ind);
+  }
+
+  // If the procedure above resulted in an overfull tree node, handle it
+  if(node.num_child_nodes > MAX_NODESIZE) {
+    return overflow_treatment(node_ind, first_insert);
+  }
   
   return NodePool::INVALID_SLOT;
 }
 
 template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::choose_subtree(SlotIndT& start_node) {
+RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::overflow_treatment(const SlotIndT& node_ind, bool first_insert) {
+  return NodePool::INVALID_SLOT;
+}
+
+template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::choose_subtree(const SlotIndT& start_node_ind, const SlotIndT& entry_ind) {
   
-  return start_node;
+  TreeNode& start_node = m_nodes[start_node_ind];
+  TreeEntry& entry = m_entries[entry_ind];
+
+  // This algorithm requires to start at an internal tree node (i.e. a node that does not directly contain entries)
+  assert(!start_node.is_leaf);
+
+  // Empty nodes cannot exist
+  assert(start_node.num_child_nodes > 0);
+
+  TreeNode& child = m_nodes[start_node.child_inds[0]];
+  if(child.is_leaf) {
+
+    // All child elements of `start_node` are leaves
+    // CS2: choose the entry whose bounding box needs the least overlap enlargement to accommodate the new data
+
+    // std::min_element()
+  }
+
+  // The child elements of `start_node` are internal nodes themselves
+  // CS2: choose the entry in `start_node` whose bounding box needs the least volume enlargement to include the new data
+  // (Recall that `start_node` already has its bounding box extended to include the new entry)
+
+  // std::min_element()
 }
 
 template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
