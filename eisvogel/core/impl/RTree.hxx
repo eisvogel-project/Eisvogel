@@ -53,7 +53,7 @@ template <class T, std::unsigned_integral SlotIndT>
 SlotIndT MemoryPool<T, SlotIndT>::get_empty_slot_front() {
 
   // Grow the pool if needed
-  if(m_free_start == Slot::Invalid) {
+  if(m_free_start == Slot::INVALID) {
     grow();
   }
 
@@ -229,6 +229,8 @@ void MemoryPool<T, SlotIndT>::print_free() {
   };
 
   std::cout << "----------------- " << std::endl;
+  std::cout << "Free:" << std::endl;
+  std::cout << "----------------- " << std::endl;
   loop_over_elements_front_to_back(m_free_start, printer);
   std::cout << std::endl;
 
@@ -245,10 +247,11 @@ void MemoryPool<T, SlotIndT>::print_allocated() {
   };
 
   std::cout << "----------------- " << std::endl;
+  std::cout << "Allocated:" << std::endl;
   loop_over_elements_front_to_back(m_alloc_start, printer);
   std::cout << std::endl;
 
-  loop_over_elements_back_to_front(m_free_end, printer);
+  loop_over_elements_back_to_front(m_alloc_end, printer);
   std::cout << std::endl;
   std::cout << "----------------- " << std::endl;
 }
