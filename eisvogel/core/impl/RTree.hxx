@@ -285,6 +285,48 @@ void BoundingBox<IndexT, dims>::stretch(const BoundingBox& bbox) {
 
 }
 
+template <class IndexT, std::size_t dims>
+std::size_t BoundingBox<IndexT, dims>::compute_overlap(const BoundingBox& other) {
+  return 0;
+}
+
+// =======================
+
+// Methods to compare different bounding boxes (needed to determine optimal insertion position)
+
+// template <class BoundedT>
+// struct CompareByVolumeEnlargement {
+
+//   CompareByVolumeEnlargement(const BoundedT& new_element) : m_new_element(new_element) { };
+
+//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
+//   // in _less_ volume enlargement than adding `new_element` to `bd_2`
+//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
+//     return true;
+//   }
+
+// private:
+//   const BoundedT& m_new_element;
+// };
+
+// template <class BoundedT>
+// struct CompareByOverlapEnlargement {
+
+//   CompareByOverlapEnlargement(const BoundedT& new_element, std::vector<std::reference_wrapper<BoundedT>>& other_elements) :
+//     m_new_element(new_element), m_other_elements(other_elements) { };
+
+//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
+//   // in less _overlap_ enlargement than adding `new_element` to `bd_2`
+//   // (The overlap is calculated with respect to the `other_elements`.)
+//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
+//     return true;
+//   }
+  
+// private:
+//   const BoundedT& m_new_element;
+//   const std::vector<std::reference_wrapper<BoundedT>> m_other_elements;
+// };
+
 // =======================
 
 // Default constructor: mark everything as invalid
@@ -313,6 +355,40 @@ void Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::add_child(SlotIndT child_ind) {
   child_inds[num_child_nodes] = child_ind;
   num_child_nodes++;
 }
+
+template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
+SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_min_area_enlargement_child(SlotIndT& new_entry_ind) {
+
+  
+  for(std::size_t i = 0; i < num_child_nodes; i++) {
+    
+  }
+  
+  return 0;
+}
+
+template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
+std::size_t Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_child_overlap(SlotIndT& child_ind) {
+
+  return 0;
+}
+
+template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
+SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_min_overlap_enlargement_child(SlotIndT& new_entry) {
+
+  SlotIndT min_child = std::nullopt;
+  
+  return min_child;
+}
+
+template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
+template <class ComparatorT>
+SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::min_child(ComparatorT&& comp) {
+
+  
+  
+  return 0;
+};										 
 
 // =======================
 

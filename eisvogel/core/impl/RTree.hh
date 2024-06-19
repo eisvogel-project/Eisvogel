@@ -3,6 +3,7 @@
 #include <vector>
 #include <cassert>
 #include <numeric>
+#include <optional>
 
 // Contiguous storage
 template <class T, std::unsigned_integral SlotIndT>
@@ -112,30 +113,62 @@ struct BoundingBox {
   // Checks if this bounding box overlaps with the passed `bbox`
   bool overlaps(const BoundingBox& bbox);
 
+  // Volume of this bounding box
+  std::size_t volume();
+
+  // Overlap between this bounding box and `other`
+  std::size_t compute_overlap(const BoundingBox& other);
+
+  // Compute volume growth of this bounding box if it were to be extended to also include `other`
+  std::size_t compute_volume_enlargement(const BoundingBox& other);
+  
   // Stretches this bounding box (if needed) so that it also contains the passed bounding `bbox`
   void stretch(const BoundingBox& bbox);
-  
+      
   IndexT start_ind;
   IndexT end_ind;
 };
 
+// =======================
+
 // Tree node
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 struct Node : BoundingBox<IndexT, dims> {
+
+public:
   
   // Default constructor
   Node();
   
   void mark_as_empty_leaf();
   void mark_as_empty_internal();
-  void add_child(SlotIndT child_ind);  
+  void add_child(SlotIndT child_ind);
+
+  SlotIndT get_min_area_enlargement_child(SlotIndT& new_entry);
+  SlotIndT get_min_overlap_enlargement_child(SlotIndT& new_entry);
   
   bool is_leaf;
-  
+  std::size_t num_child_nodes;
+
   // List of pointers to nodes that are children of this node
   // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
-  std::size_t num_child_nodes;
   std::array<SlotIndT, MAX_NODESIZE + 1> child_inds;
+  
+private:
+
+  // Calculates the overlap of the child with index `child_ind` with all remaining
+  // children of this node
+  std::size_t get_child_overlap(SlotIndT& child_ind);
+  
+  BoundingBox<IndexT, dims>& get_child_bbox(SlotIndT& child_ind);
+  
+  // Returns references to the children in this node
+  // std::vector<std::reference_wrapper<BoundingBox<IndexT, dims>>> dereference_children();  
+  
+  // Finds the index of the "minimum-element" child, where `comp` implements pairwise
+  // comparison between two children
+  template <class ComparatorT>
+  SlotIndT min_child(ComparatorT&& comp);   
 };
 
 // Tree entry
@@ -177,8 +210,12 @@ private:
 
 private:
 
+  // Internal insertion routine that is called recursively
   SlotIndT insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert = true);
+
+  // Returns the index of the tree node (leaf or internal) into which the entry with `entry_ind` should best be inserted
   SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
+  
   SlotIndT overflow_treatment(const SlotIndT& node_ind, bool first_insert);
   
 private:
