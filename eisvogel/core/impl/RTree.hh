@@ -3,7 +3,8 @@
 #include <vector>
 #include <cassert>
 #include <numeric>
-#include <optional>
+#include <fstream>
+#include "Vector.hh"
 
 // Contiguous storage
 template <class T, std::unsigned_integral SlotIndT>
@@ -103,30 +104,53 @@ private:
 
 // =======================
 
+template <typename CoordT, std::size_t dims>
+struct BoundingBox;
+
+template <typename CoordT, std::size_t dims>
+std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& bbox);
+
 // A general bounding box with start and end coordinates
-template <class IndexT, std::size_t dims>  // TODO: put a `requires` constraint so that `IndexT` must implement the [] operator
+template <typename CoordT, std::size_t dims>
 struct BoundingBox {
 
-  // Checks if this bounding box contains the point with `ind`
-  bool contains(const IndexT& ind);
+  // Default constructor
+  BoundingBox();
+  
+  // Construct a new bounding box from start and end coordinates
+  BoundingBox(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
+
+  // Copy constructor
+  BoundingBox(const BoundingBox<CoordT, dims>& bbox);
+  
+  // Construct a new bounding box as the convex hull of two other bounding boxes `bbox_1` and `bbox_2`
+  BoundingBox(const BoundingBox<CoordT, dims>& bbox_1, const BoundingBox<CoordT, dims>& bbox_2);
+  
+  // Checks if this bounding box contains the point with `coords`
+  bool contains(const Vector<CoordT, dims>& coords);
+  bool contains(const Vector<CoordT, dims>& coords) requires(std::same_as<CoordT, std::size_t>);
 
   // Checks if this bounding box overlaps with the passed `bbox`
-  bool overlaps(const BoundingBox& bbox);
+  bool overlaps(const BoundingBox<CoordT, dims>& bbox);
 
   // Volume of this bounding box
-  std::size_t volume();
+  CoordT volume();
 
-  // Overlap between this bounding box and `other`
-  std::size_t compute_overlap(const BoundingBox& other);
-
-  // Compute volume growth of this bounding box if it were to be extended to also include `other`
-  std::size_t compute_volume_enlargement(const BoundingBox& other);
+  // Overlap between this bounding box and `bbox`
+  CoordT compute_overlap_volume(const BoundingBox<CoordT, dims>& bbox);
   
-  // Stretches this bounding box (if needed) so that it also contains the passed bounding `bbox`
-  void stretch(const BoundingBox& bbox);
-      
-  IndexT start_ind;
-  IndexT end_ind;
+  // Extends this bounding box (if needed) so that it also contains the passed bounding `bbox`
+  void extend(const BoundingBox<CoordT, dims>& bbox);
+
+  // Pretty printing
+  friend std::ostream& operator<< <CoordT, dims> (std::ostream& stream, const BoundingBox& bbox);
+  
+  // The start- and end coordinates describing this bounding box
+  Vector<CoordT, dims> start_coords;
+  Vector<CoordT, dims> end_coords;
+
+  // Also keep track of the shape
+  Vector<CoordT, dims> shape;
 };
 
 // =======================
@@ -174,6 +198,10 @@ private:
 // Tree entry
 template <class IndexT, std::size_t dims, class PayloadT>
 struct Entry : BoundingBox<IndexT, dims> {
+
+  // Default constructor
+  Entry();
+  
   PayloadT payload;
 };
 

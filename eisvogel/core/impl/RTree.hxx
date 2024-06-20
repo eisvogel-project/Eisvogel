@@ -270,68 +270,150 @@ bool MemoryPool<T, SlotIndT>::is_allocated(SlotIndT ind) {
 
 // =======================
 
-template <class IndexT, std::size_t dims>
-bool BoundingBox<IndexT, dims>::contains(const IndexT& ind) {
-  return false;
+template <class CoordT, std::size_t dims>
+BoundingBox<CoordT, dims>::BoundingBox(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) :
+  start_coords(start_coords), end_coords(end_coords), shape(end_coords - start_coords) { }
+
+template <class CoordT, std::size_t dims>
+BoundingBox<CoordT, dims>::BoundingBox(const BoundingBox<CoordT, dims>& bbox) : BoundingBox<CoordT, dims>(bbox.start_coords, bbox.end_coords) { }
+
+template <class CoordT, std::size_t dims>
+BoundingBox<CoordT, dims>::BoundingBox(const BoundingBox<CoordT, dims>& bbox_1, const BoundingBox<CoordT, dims>& bbox_2) : BoundingBox<CoordT, dims>(bbox_1) {
+  extend(bbox_2);
 }
 
-template <class IndexT, std::size_t dims>
-bool BoundingBox<IndexT, dims>::overlaps(const BoundingBox& bbox) {
-  return false;
+template <class CoordT, std::size_t dims>
+void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
+
+  // To take the convex hull, take the elementwise minimum or -maximum of the two start- or end coordinates ...
+  start_coords = VectorUtils::min(start_coords, bbox.start_coords);
+  end_coords = VectorUtils::max(end_coords, bbox.end_coords);
+
+  // ... and update the shape
+  shape = end_coords - start_coords;
 }
 
-template <class IndexT, std::size_t dims>
-void BoundingBox<IndexT, dims>::stretch(const BoundingBox& bbox) {
-
+template <class CoordT, std::size_t dims>
+bool BoundingBox<CoordT, dims>::contains(const Vector<CoordT, dims>& coords) {
+  throw std::logic_error("Not implemented yet!");
 }
 
-template <class IndexT, std::size_t dims>
-std::size_t BoundingBox<IndexT, dims>::compute_overlap(const BoundingBox& other) {
-  return 0;
+template <class CoordT, std::size_t dims>
+bool BoundingBox<CoordT, dims>::contains(const Vector<CoordT, dims>& coords) requires(std::same_as<CoordT, std::size_t>) {
+
+  for(std::size_t i = 0; i < dims; i++) {
+    
+    // Efficient out-of-range comparison with a single branch
+    if((coords[i] - start_coords[i]) >= shape[i]) {
+      return false;
+    }
+  }  
+  return true;
+}
+
+template <class CoordT, std::size_t dims>
+bool BoundingBox<CoordT, dims>::overlaps(const BoundingBox<CoordT, dims>& bbox) {
+
+  for(std::size_t i = 0; i < dims; i++) {
+
+    // the `start_ind` of the specified region must lie "to the left of" the chunk endpoint in all directions
+    if(start_coords[i] >= bbox.end_coords[i]) {
+      return false;
+    }
+
+    // the `end_ind` of the specified region must lie "to the right of" the chunk endpoint in all directions
+    if(end_coords[i] <= bbox.start_coords[i]) {
+      return false;
+    }    
+  }
+  
+  return true;
+}
+
+template <class CoordT, std::size_t dims>
+CoordT BoundingBox<CoordT, dims>::volume() {
+  return std::accumulate(shape.cbegin(), shape.cend(), (CoordT)1u, std::multiplies<CoordT>());
+}
+
+template <class CoordT, std::size_t dims>
+CoordT BoundingBox<CoordT, dims>::compute_overlap_volume(const BoundingBox<CoordT, dims>& bbox) {
+
+  // Start- and end coordinates of the overlapping region
+  Vector<CoordT, dims> overlap_start_coords = VectorUtils::max(start_coords, bbox.start_coords);
+  Vector<CoordT, dims> overlap_end_coords = VectorUtils::min(end_coords, bbox.end_coords);
+    
+  CoordT overlap_volume = (CoordT)1u;
+  for(std::size_t i = 0; i < dims; i++) {
+
+    // If the overlap has non-negative extent along a particular direction ...
+    if(overlap_end_coords[i] > overlap_start_coords[i]) {
+
+      // ... take it into account in its volume
+      overlap_volume *= (overlap_end_coords[i] - overlap_start_coords[i]);
+    }
+    else {
+
+      // Otherwise there is no finite overlap
+      return (CoordT)0u;
+    }
+  }  
+  return overlap_volume;
+}
+
+template <class CoordT, std::size_t dims>
+std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& bbox) {
+
+  // TODO: use box-drawing characters to make this nicer
+  stream << "-----------------------------------------\n";
+  stream << "start_coords: " << bbox.start_coords << "\n";
+  stream << "end_coords: " << bbox.end_coords     << "\n";
+  stream << "-----------------------------------------\n";
+
+  return stream;
 }
 
 // =======================
 
 // Methods to compare different bounding boxes (needed to determine optimal insertion position)
 
-// template <class BoundedT>
-// struct CompareByVolumeEnlargement {
+template <class BoundedT>
+struct CompareByVolumeEnlargement {
 
-//   CompareByVolumeEnlargement(const BoundedT& new_element) : m_new_element(new_element) { };
+  CompareByVolumeEnlargement(const BoundedT& new_element) : m_new_element(new_element) { };
 
-//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
-//   // in _less_ volume enlargement than adding `new_element` to `bd_2`
-//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
-//     return true;
-//   }
+  // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
+  // in _less_ volume enlargement than adding `new_element` to `bd_2`
+  bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
+    return true;
+  }
 
-// private:
-//   const BoundedT& m_new_element;
-// };
+private:
+  const BoundedT& m_new_element;
+};
 
-// template <class BoundedT>
-// struct CompareByOverlapEnlargement {
+template <class BoundedT>
+struct CompareByOverlapEnlargement {
 
-//   CompareByOverlapEnlargement(const BoundedT& new_element, std::vector<std::reference_wrapper<BoundedT>>& other_elements) :
-//     m_new_element(new_element), m_other_elements(other_elements) { };
+  CompareByOverlapEnlargement(const BoundedT& new_element, std::vector<std::reference_wrapper<BoundedT>>& other_elements) :
+    m_new_element(new_element), m_other_elements(other_elements) { };
 
-//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
-//   // in less _overlap_ enlargement than adding `new_element` to `bd_2`
-//   // (The overlap is calculated with respect to the `other_elements`.)
-//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
-//     return true;
-//   }
+  // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
+  // in less _overlap_ enlargement than adding `new_element` to `bd_2`
+  // (The overlap is calculated with respect to the `other_elements`.)
+  bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
+    return true;
+  }
   
-// private:
-//   const BoundedT& m_new_element;
-//   const std::vector<std::reference_wrapper<BoundedT>> m_other_elements;
-// };
+private:
+  const BoundedT& m_new_element;
+  const std::vector<std::reference_wrapper<BoundedT>> m_other_elements;
+};
 
 // =======================
 
 // Default constructor: mark everything as invalid
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::Node() : is_leaf(true), num_child_nodes(0) {
+Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::Node() : BoundingBox<IndexT, dims>(0, 0), is_leaf(true), num_child_nodes(0) {
   child_inds.fill(0);
 }
 
@@ -359,12 +441,15 @@ void Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::add_child(SlotIndT child_ind) {
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_min_area_enlargement_child(SlotIndT& new_entry_ind) {
 
-  
+  // Does not make sense to call this function if there are no child nodes
+  assert(num_child_nodes > 0);
+
+  SlotIndT min_child_ind;
   for(std::size_t i = 0; i < num_child_nodes; i++) {
     
   }
   
-  return 0;
+  return min_child_ind;
 }
 
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
@@ -375,20 +460,21 @@ std::size_t Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_child_overlap(SlotIn
 
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::get_min_overlap_enlargement_child(SlotIndT& new_entry) {
-
-  SlotIndT min_child = std::nullopt;
   
-  return min_child;
+  return 0;
 }
 
 template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 template <class ComparatorT>
 SlotIndT Node<IndexT, dims, SlotIndT, MAX_NODESIZE>::min_child(ComparatorT&& comp) {
-
-  
   
   return 0;
-};										 
+}
+
+// =======================
+
+template <class IndexT, std::size_t dims, class PayloadT>
+Entry<IndexT, dims, PayloadT>::Entry() : BoundingBox<IndexT, dims>(0, 0) { }
 
 // =======================
 
@@ -435,7 +521,7 @@ RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT
   TreeEntry& entry = m_entries[entry_ind];
 
   // I4: adjust the bounding box of this node to include the newly added entry
-  node.stretch(entry);
+  node.extend(entry);
 
   if(node.is_leaf) {
 
