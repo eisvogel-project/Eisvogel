@@ -509,6 +509,7 @@ template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NOD
 std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_subtree(std::size_t entry_slot, std::size_t start_node_slot) {
   
   TreeNode& start_node = m_nodes[start_node_slot];
+  TreeEntry& entry = m_entries[entry_slot];
 
   // Empty nodes cannot exist
   assert(start_node.num_children > 0);
@@ -521,18 +522,12 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_su
 
     // All child nodes of `start_node` are leaf nodes
     // CS2: choose the entry in `start_node` whose bounding box needs the least overlap enlargement to accommodate the new data
-    
-    
+    return find_min_overlap_enlargement_child(start_node_slot, entry);
   }
 
   // The child nodes of `start_node` are internal nodes themselves
   // CS2: choose the entry in `start_node` whose bounding box needs the least volume enlargement to include the new data
-
-  
-  
-  // (Recall that `start_node` already has its bounding box extended to include the new entry)
-    
-  return NodePool::INVALID_SLOT;
+  return find_min_volume_enlargement_child(start_node_slot, entry);
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
@@ -545,7 +540,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_
 
   // Returns `true` if adding `to_add` to the child at `child_slot_a` is strictly more advantageous than
   // adding it to `child_slot_b`.
-  auto comp = [&node_slot, &to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
+  auto comp = [this, &node_slot, &to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
 
     // Test for overlap enlargement first
     std::size_t overlap_enlargement_a = child_overlap_enlargement(node_slot, child_slot_a, to_add);
@@ -566,7 +561,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_
   };
 
   return *std::min_element(node.child_slots.begin(),
-			   std::advance(node.child_slots.begin() + node.num_children),
+			   node.child_slots.begin() + node.num_children,
 			   comp); 
 }
 
@@ -580,7 +575,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_
 
   // Returns `true` if adding `to_add` to the child at `child_slot_a` is strictly more advantagous than
   // adding it to `child_slot_b`
-  auto comp = [&to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
+  auto comp = [this, &to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
 
     // Test for volume enlargement first
     std::size_t volume_enlargement_a = node_volume_enlargement(child_slot_a, to_add);
@@ -598,7 +593,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_
   };
 
   return *std::min_element(node.child_slots.begin(),
-			   std::advance(node.child_slots.begin() + node.num_children),
+			   node.child_slots.begin() + node.num_children,
 			   comp);
 }
 
@@ -623,7 +618,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::child_ove
     }
     
     BoundingBox<CoordT, dims>& other_child_bbox = get_bbox(node_slot, other_child_slot);
-    child_overlap_enlargement += (extended_child_bbox.compute_overlap(other_child_bbox) - child_bbox.compute_overlap(other_child_bbox));
+    child_overlap_enlargement += (extended_child_bbox.compute_overlap_volume(other_child_bbox) - child_bbox.compute_overlap_volume(other_child_bbox));
   }
 
   return child_overlap_enlargement;  
