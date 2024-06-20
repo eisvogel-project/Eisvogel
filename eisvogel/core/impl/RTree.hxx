@@ -419,24 +419,6 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 
 // =======================
 
-// template <typename CoordT, std::size_t dims, class EntryT, std::size_t MAX_NODESIZE>
-// void Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::mark_as_empty_leaf_node(MemoryPool<EntryT>* entry_storage) {
-//   m_entry_storage = entry_storage;
-//   m_node_storage = nullptr;
-//   is_leaf = true;
-//   num_children = 0;
-//   m_child_inds.fill(0);
-// }
-
-// template <typename CoordT, std::size_t dims, class EntryT, std::size_t MAX_NODESIZE>
-// void Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::mark_as_empty_internal_node(MemoryPool<NodeT>* node_storage) {
-//   m_node_storage = node_storage;
-//   m_entry_storage = nullptr;
-//   is_leaf = false;
-//   num_children = 0;
-//   child_inds.fill(0);
-// }
-
 
 
 
@@ -481,17 +463,28 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 //   return 0;
 // }
 
-// template <typename CoordT, std::size_t dims, class PayloadT>
-// Entry<CoordT, dims, PayloadT>::Entry() : BoundingBox<CoordT, dims>(0, 0), payload() { }
+// ===============
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeEntry::TreeEntry() : BoundingBox<CoordT, dims>(0, 0), payload() { }
 
-// Default constructor: mark everything as invalid
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::TreeNode() : BoundingBox<CoordT, dims>(0, 0), is_leaf(true), num_children(0),
-										  m_node_storage(nullptr), m_entry_storage(nullptr) {
-  m_child_inds.fill(0);
+RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::TreeNode() : BoundingBox<CoordT, dims>(0, 0), is_leaf(true), num_children(0) {
+  child_slots.fill(0);
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::set_as_empty_leaf_node() {
+  is_leaf = true;
+  num_children = 0;
+  child_slots.fill(0);  
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::set_as_empty_internal_node() {
+  is_leaf = false;
+  num_children = 0;
+  child_slots.fill(0);
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>

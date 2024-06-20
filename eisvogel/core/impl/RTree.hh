@@ -186,20 +186,15 @@ private:
     TreeNode();
     
     // To initialize as internal or leaf node
-    void mark_as_empty_leaf_node(MemoryPool<TreeEntry>* entry_storage);
-    void mark_as_empty_internal_node(MemoryPool<TreeNode>* node_storage);
+    void set_as_empty_leaf_node();
+    void set_as_empty_internal_node();
     
-    bool is_leaf;  
+    bool is_leaf;
     std::size_t num_children;
     
-  private:
-    
-    MemoryPool<TreeNode>* m_node_storage;
-    MemoryPool<TreeEntry>* m_entry_storage;
-    
-    // List of pointers to nodes that are children of this node
+    // List of pointers to nodes that are children of this node    
     // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
-    std::array<std::size_t, MAX_NODESIZE + 1> m_child_inds;
+    std::array<std::size_t, MAX_NODESIZE + 1> child_slots;
   };
   
 public:
