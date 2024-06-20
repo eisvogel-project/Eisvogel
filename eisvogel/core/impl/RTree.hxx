@@ -542,49 +542,57 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(co
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(std::size_t entry_slot, std::size_t node_slot, bool first_insert) {
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(std::size_t entry_slot, std::size_t start_node_slot, bool first_insert) {  
+
+  // Current node and entry to add
+  TreeNode& start_node = m_nodes[start_node_slot];
+  TreeEntry& entry = m_entries[entry_slot];
+  
+  // I4: adjust the bounding box of this node to include the newly added entry
+  start_node.extend(entry);
+
+  if(start_node.is_leaf) {
+
+    // CS2: if `start_node` already is a leaf, simply insert the new `entry` into it
+    // (We take care of overfull leaves below)
+    start_node.add_child(entry_slot);
+  }
+  else {
+
+    // I1: call `choose_subtree` to walk the tree and find the next `start_node` to check, and insert the `entry` there
+    std::size_t new_node_slot = insert(entry_slot,
+				       choose_subtree(entry_slot, start_node_slot),
+				       first_insert);
+
+    // Check if a new node was created during the insertion process
+    if(new_node_slot == NodePool::INVALID_SLOT) {
+
+      // No new slot created; nothing needs to be done by the caller
+      return NodePool::INVALID_SLOT;
+    }
+
+    // The downstream insert resulted in a new node at `new_node_slot` that now needs to be added to our `start_node`
+    start_node.add_child(new_node_slot);
+  }
+
+  // If the procedure above resulted in an overfull start_node, take care of it now
+  if(start_node.num_child_nodes > MAX_NODESIZE) {
+    return overflow_treatment(start_node_slot, first_insert);
+  }
+  
+  return NodePool::INVALID_SLOT;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_subtree(std::size_t entry_slot, std::size_t start_node_slot) {
+
   return 0;
 }
 
-// template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-// RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert) {
-
-//   // Current node and entry to add
-//   TreeNode& node = m_nodes[node_ind];
-//   TreeEntry& entry = m_entries[entry_ind];
-
-//   // I4: adjust the bounding box of this node to include the newly added entry
-//   node.extend(entry);
-
-//   if(node.is_leaf) {
-
-//     // CS2: if `node` is a leaf, insert the new `entry` into it
-//     // (We take care of overfull leaves below)
-//     node.add_child(entry_ind);
-//   }
-//   else {
-
-//     // I1: call `choose_subtree` to find an appropriate node in which to place the entry, starting from the current `node_ind`, and insert it there
-//     SlotIndT new_node_ind = insert(entry_ind,
-// 				   choose_subtree(node_ind, entry_ind),
-// 				   first_insert);
-
-//     // No modifications need to be propagated up the tree
-//     if(new_node_ind == NodePool::INVALID_SLOT) {     
-//       return new_node_ind;
-//     }
-
-//     // The downstream insert resulted in a `new_node_ind` that now needs to be recorded
-//     node.add_child(new_node_ind);
-//   }
-
-//   // If the procedure above resulted in an overfull tree node, handle it
-//   if(node.num_child_nodes > MAX_NODESIZE) {
-//     return overflow_treatment(node_ind, first_insert);
-//   }
-  
-//   return NodePool::INVALID_SLOT;
-// }
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::overflow_treatment(std::size_t node_slot, bool first_insert) {
+  return 0;
+}
 
 // template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 // RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::overflow_treatment(const SlotIndT& node_ind, bool first_insert) {

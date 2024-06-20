@@ -220,13 +220,16 @@ private:
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
   std::size_t build_new_leaf_node(std::size_t entry_slot);
 
-  // Internal insertion routine that is called recursively
-  std::size_t insert(std::size_t entry_slot, std::size_t node_slot, bool first_insert = true);
+  // Insert the entry at `entry_slot` into the tree starting at the node at `start_node_slot`.
+  // If any tree rearrangements occured during insertion, this will return the slot of the tree node that should be inserted
+  // into the node at `node_slot`. This needs to be done by the caller.
+  std::size_t insert(std::size_t entry_slot, std::size_t start_node_slot, bool first_insert = true);
 
-//   // Returns the index of the tree node (leaf or internal) into which the entry with `entry_ind` should best be inserted
-//   SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
-  
-//   SlotIndT overflow_treatment(const SlotIndT& node_ind, bool first_insert);
+  // Returns the slot of the child node of `start_node` where the entry at `entry_slot` should be inserted
+  std::size_t choose_subtree(std::size_t entry_slot, std::size_t start_node_slot);
+
+  // Handles an overfull node at `node_slot`; if as part of the clean-up an additional node was created, return its slot so that the caller can take care of it
+  std::size_t overflow_treatment(std::size_t node_slot, bool first_insert);
   
 private:
   
