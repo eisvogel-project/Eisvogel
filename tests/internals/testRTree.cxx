@@ -61,8 +61,7 @@ int main(void) {
   using PayloadT = float;
   
   RTree<CoordT, dims, PayloadT, max_nodesize, min_nodesize> tree(100);
-
-  // tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
+  tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
   
   std::cout << "done" << std::endl;
 }

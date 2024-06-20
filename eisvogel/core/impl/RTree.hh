@@ -188,11 +188,13 @@ private:
     // To initialize as internal or leaf node
     void set_as_empty_leaf_node();
     void set_as_empty_internal_node();
+
+    void add_child(std::size_t child_slot);
     
     bool is_leaf;
     std::size_t num_children;
     
-    // List of pointers to nodes that are children of this node    
+    // List of pointers to nodes that are children of this node
     // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
     std::array<std::size_t, MAX_NODESIZE + 1> child_slots;
   };
@@ -202,8 +204,8 @@ public:
   // Constructs empty tree and reserves `init_slot_size` slots to hold elements
   RTree(std::size_t init_slot_size);
 
-  // // Insert a new element into the tree whose bounding box is spanned by `start_coords` and `end_coords`
-  // void InsertElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
+  // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
+  void InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
   // // Rebuild the tree and rebalance the nodes, if needed
   // void Rebuild();
@@ -213,11 +215,13 @@ public:
   // std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
   
 private:
- 
-// private:
 
-//   // Internal insertion routine that is called recursively
-//   SlotIndT insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert = true);
+  // Generators that build new leaves or entries
+  std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
+  std::size_t build_new_leaf_node(std::size_t entry_slot);
+
+  // Internal insertion routine that is called recursively
+  std::size_t insert(std::size_t entry_slot, std::size_t node_slot, bool first_insert = true);
 
 //   // Returns the index of the tree node (leaf or internal) into which the entry with `entry_ind` should best be inserted
 //   SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
@@ -226,12 +230,15 @@ private:
   
 private:
   
-  std::size_t m_root_node_ind;
+  std::size_t m_root_slot;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)
-  MemoryPool<TreeNode> m_nodes;
-  MemoryPool<TreeEntry> m_entries;
+  using NodePool = MemoryPool<TreeNode>;
+  using EntryPool = MemoryPool<TreeEntry>;
+  
+  NodePool m_nodes;
+  EntryPool m_entries;
 };
 
 #include "RTree.hxx"

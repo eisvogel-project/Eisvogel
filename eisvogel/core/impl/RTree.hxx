@@ -424,13 +424,6 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 
 
 // template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-// void Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::add_child(SlotIndT child_ind) {
-//   assert(num_child_nodes <= MAX_NODESIZE);
-//   child_inds[num_child_nodes] = child_ind;
-//   num_child_nodes++;
-// }
-
-// template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
 // SlotIndT Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::get_min_area_enlargement_child(SlotIndT& new_entry_ind) {
 
 //   // Does not make sense to call this function if there are no child nodes
@@ -488,39 +481,70 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::set_as
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::RTree(std::size_t init_slot_size) : m_root_node_ind(MemoryPool<TreeNode>::INVALID_SLOT),
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::add_child(std::size_t child_slot) {
+  assert(num_children <= MAX_NODESIZE);
+  child_slots[num_children] = child_slot;
+  num_children++;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::RTree(std::size_t init_slot_size) : m_root_slot(MemoryPool<TreeNode>::INVALID_SLOT),
 											       m_nodes(init_slot_size), m_entries(init_slot_size) { }
 
-// template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-// void RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind) {
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new_entry(const PayloadT& elem,
+										       const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+  std::size_t entry_slot = m_entries.get_empty_slot_front();
+  TreeEntry& entry = m_entries[entry_slot];
+  
+  entry.payload = elem;
+  entry.start_coords = start_coords;
+  entry.end_coords = end_coords;
+  
+  return entry_slot;
+}
 
-//   // Take ownership of the `elem` and store it as an entry in the memory pool
-//   SlotIndT entry_ind = m_entries.get_empty_slot_front();
-//   TreeEntry& entry = m_entries[entry_ind];
-//   entry.payload = elem;
-//   entry.start_ind = start_ind;
-//   entry.end_ind = end_ind;
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new_leaf_node(std::size_t entry_slot) {
+  
+  std::size_t node_slot = m_nodes.get_empty_slot_front();
+  TreeNode& node = m_nodes[node_slot];
 
-//   // Insert the entry into the node structure of the tree
-//   if(m_root_node_ind == NodePool::INVALID_SLOT) {
+  // The new node is a leaf ...
+  node.set_as_empty_leaf_node();
+  
+  // ... and holds a reference to the new entry
+  node.add_child(entry_slot);
+  
+  return node_slot;
+}
 
-//     // Empty tree, create a new root node
-//     SlotIndT node_ind = m_nodes.get_empty_slot_front();
-//     m_root_node_ind = node_ind;
-//     TreeNode& node = m_nodes[node_ind];
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(const PayloadT& elem,
+									      const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
 
-//     // The new root node is a leaf ...
-//     node.mark_as_empty_leaf();
+  // Take ownership of the `elem` and store it as an entry in the memory pool
+  std::size_t entry_slot = build_new_entry(elem, start_coords, end_coords);
 
-//     // ... and holds a reference to the new entry
-//     node.add_child(entry_ind);
-//   }
-//   else {
+  std::cout << "put new element into slot " << entry_slot << std::endl;
 
-//     // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location
-//     insert(entry_ind, m_root_node_ind);
-//   }    
-// }
+  // Insert the entry into the node structure of the tree
+  if(m_root_slot == NodePool::INVALID_SLOT) {
+
+    // Empty tree: build new root node
+    m_root_slot = build_new_leaf_node(entry_slot);
+  }
+  else {
+
+    // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location
+    insert(entry_slot, m_root_slot);
+  }    
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(std::size_t entry_slot, std::size_t node_slot, bool first_insert) {
+  return 0;
+}
 
 // template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 // RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::SlotIndT RTree<IndexT, PayloadT, dims, MAX_NODESIZE, MIN_NODESIZE>::insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert) {
