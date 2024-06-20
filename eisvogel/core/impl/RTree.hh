@@ -7,7 +7,7 @@
 #include "Vector.hh"
 
 // Contiguous storage
-template <class T, std::unsigned_integral SlotIndT>
+template <class T>
 class MemoryPool {
   
 public:
@@ -15,15 +15,18 @@ public:
   MemoryPool(std::size_t init_size);
 
   // Get reference to empty slot into which new element can be placed, starting from the front of the pool
-  SlotIndT get_empty_slot_front(); 
-  void free_slot(SlotIndT slot_ind);
+  std::size_t get_empty_slot_front(); 
+  void free_slot(std::size_t slot_ind);
   
   // Element retrieval if the index of the slot is known
-  T& operator[](SlotIndT ind);
-  const T& operator[](SlotIndT ind) const;
+  T& operator[](std::size_t ind);
+  const T& operator[](std::size_t ind) const;
 
+  // Determine the slot where `obj` is seated
+  std::size_t get_slot(const T& obj) const;
+  
   // Fills copies of the stored elements into the vector at `dest`
-  void fill_elements(std::vector<T> dest);
+  // void fill_elements(std::vector<T> dest);
   
   // Reset the memory pool
   void reset();
@@ -42,49 +45,49 @@ private:
   void reset_slot_lists();
   
   // To test the status (allocated / free) of an element with a given index
-  bool is_allocated(SlotIndT slot_ind);
-  bool is_free(SlotIndT slot_ind);
+  bool is_allocated(std::size_t slot_ind);
+  bool is_free(std::size_t slot_ind);
   
 private:
 
   struct Slot {
 
-    static constexpr SlotIndT INVALID = std::numeric_limits<SlotIndT>::max();
+    static constexpr std::size_t INVALID = std::numeric_limits<std::size_t>::max();
 
     Slot() : next_data_ind(INVALID), prev_data_ind(INVALID) { };
     
-    SlotIndT next_data_ind;  // Points to the data index of the next slot of the same kind ("free" or "allocated")
-    SlotIndT prev_data_ind;  // Points to the data index of the previous slot of the same kind ("free" or "allocated")
+    std::size_t next_data_ind;  // Points to the data index of the next slot of the same kind ("free" or "allocated")
+    std::size_t prev_data_ind;  // Points to the data index of the previous slot of the same kind ("free" or "allocated")
   };
 
 public:
 
-  static constexpr SlotIndT INVALID_SLOT = Slot::INVALID;
+  static constexpr std::size_t INVALID_SLOT = Slot::INVALID;
   
 private:
   
   using SlotListDataT = std::vector<Slot>;
 
-  bool is_valid_slot(SlotIndT& ind);
+  bool is_valid_slot(std::size_t& ind);
   
   // Operations on doubly-linked lists:
   // A doubly-linked list is described by its `list_start` and `list_end`
 
   // Remove element with slot index `to_remove` from list
-  void remove_from_slot_list(SlotIndT& to_remove, SlotIndT& list_start, SlotIndT& list_end);
+  void remove_from_slot_list(std::size_t& to_remove, std::size_t& list_start, std::size_t& list_end);
 
   // Add element with slot index `to_add` to the back of the list
-  void add_to_slot_list_back(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end);
+  void add_to_slot_list_back(std::size_t& to_add, std::size_t& list_start, std::size_t& list_end);
 
   // Add element with slot index `to_add` to the beginning of the list
-  void add_to_slot_list_front(SlotIndT& to_add, SlotIndT& list_start, SlotIndT& list_end);
+  void add_to_slot_list_front(std::size_t& to_add, std::size_t& list_start, std::size_t& list_end);
 
   // Helpers to iterate over linked list
   template <class CallableT>
-  void loop_over_elements_front_to_back(SlotIndT& list_start, CallableT&& worker);
+  void loop_over_elements_front_to_back(std::size_t& list_start, CallableT&& worker);
 
   template <class CallableT>
-  void loop_over_elements_back_to_front(SlotIndT& list_end, CallableT&& worker);
+  void loop_over_elements_back_to_front(std::size_t& list_end, CallableT&& worker);
   
 private:
 
@@ -92,11 +95,11 @@ private:
 
   // Use indices as relative pointers to access all elements; since the pool can grow, any absolute references
   // will get invalidated!
-  SlotIndT m_free_start;
-  SlotIndT m_free_end;
+  std::size_t m_free_start;
+  std::size_t m_free_end;
 
-  SlotIndT m_alloc_start;
-  SlotIndT m_alloc_end;
+  std::size_t m_alloc_start;
+  std::size_t m_alloc_end;
 
   std::vector<T> m_data;      // Memory pool has contiguous storage
   SlotListDataT m_slots;  // Metadata to keep track of the individual slots
@@ -155,105 +158,85 @@ struct BoundingBox {
 
 // =======================
 
-// Tree node
-template <class IndexT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-struct Node : BoundingBox<IndexT, dims> {
-
-public:
-  
-  // Default constructor
-  Node();
-  
-  void mark_as_empty_leaf();
-  void mark_as_empty_internal();
-  void add_child(SlotIndT child_ind);
-
-  SlotIndT get_min_area_enlargement_child(SlotIndT& new_entry);
-  SlotIndT get_min_overlap_enlargement_child(SlotIndT& new_entry);
-  
-  bool is_leaf;
-  std::size_t num_child_nodes;
-
-  // List of pointers to nodes that are children of this node
-  // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
-  std::array<SlotIndT, MAX_NODESIZE + 1> child_inds;
-  
-private:
-
-  // Calculates the overlap of the child with index `child_ind` with all remaining
-  // children of this node
-  std::size_t get_child_overlap(SlotIndT& child_ind);
-  
-  BoundingBox<IndexT, dims>& get_child_bbox(SlotIndT& child_ind);
-  
-  // Returns references to the children in this node
-  // std::vector<std::reference_wrapper<BoundingBox<IndexT, dims>>> dereference_children();  
-  
-  // Finds the index of the "minimum-element" child, where `comp` implements pairwise
-  // comparison between two children
-  template <class ComparatorT>
-  SlotIndT min_child(ComparatorT&& comp);   
-};
-
-// Tree entry
-template <class IndexT, std::size_t dims, class PayloadT>
-struct Entry : BoundingBox<IndexT, dims> {
-
-  // Default constructor
-  Entry();
-  
-  PayloadT payload;
-};
-
 // =======================
 
-template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE = 5, std::size_t MIN_NODESIZE = 2>
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE = 5, std::size_t MIN_NODESIZE = 2>
 class RTree {
 
   static_assert(MAX_NODESIZE > 1);
   static_assert(MIN_NODESIZE < MAX_NODESIZE);
+
+private:
+
+  // Tree entry
+  struct TreeEntry : BoundingBox<CoordT, dims> {
+    
+    // Construct an empty node with zero spatial extent and default-constructed payload
+    TreeEntry();
+    
+    PayloadT payload;
+  };
+
+  // Tree node
+  struct TreeNode : BoundingBox<CoordT, dims> {
+    
+  public:
+    
+    // Construct an empty node with zero spatial extent
+    TreeNode();
+    
+    // To initialize as internal or leaf node
+    void mark_as_empty_leaf_node(MemoryPool<TreeEntry>* entry_storage);
+    void mark_as_empty_internal_node(MemoryPool<TreeNode>* node_storage);
+    
+    bool is_leaf;  
+    std::size_t num_children;
+    
+  private:
+    
+    MemoryPool<TreeNode>* m_node_storage;
+    MemoryPool<TreeEntry>* m_entry_storage;
+    
+    // List of pointers to nodes that are children of this node
+    // These can either be other internal nodes (if `is_leaf == false`) or entries (if `is_leaf == true`)
+    std::array<std::size_t, MAX_NODESIZE + 1> m_child_inds;
+  };
   
 public:
 
   // Constructs empty tree and reserves `init_slot_size` slots to hold elements
   RTree(std::size_t init_slot_size);
 
-  void InsertElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
+  // // Insert a new element into the tree whose bounding box is spanned by `start_coords` and `end_coords`
+  // void InsertElement(const PayloadT& elem, const IndexT& start_ind, const IndexT& end_ind);
 
-  // Rebuild the tree and rebalance the nodes, if needed
-  void Rebuild();
+  // // Rebuild the tree and rebalance the nodes, if needed
+  // void Rebuild();
   
-  const PayloadT& Search(const IndexT& ind) const;
-  PayloadT& Search(const IndexT& ind);
-  std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
+  // const PayloadT& Search(const IndexT& ind) const;
+  // PayloadT& Search(const IndexT& ind);
+  // std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
   
 private:
+ 
+// private:
 
-  using SlotIndT = std::size_t;
-  using TreeNode = Node<IndexT, dims, SlotIndT, MAX_NODESIZE>;
-  using TreeEntry = Entry<IndexT, dims, PayloadT>;
+//   // Internal insertion routine that is called recursively
+//   SlotIndT insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert = true);
+
+//   // Returns the index of the tree node (leaf or internal) into which the entry with `entry_ind` should best be inserted
+//   SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
   
-  using NodePool = MemoryPool<TreeNode, SlotIndT>;
-  using EntryPool = MemoryPool<TreeEntry, SlotIndT>;
-
-private:
-
-  // Internal insertion routine that is called recursively
-  SlotIndT insert(const SlotIndT& entry_ind, const SlotIndT& node_ind, bool first_insert = true);
-
-  // Returns the index of the tree node (leaf or internal) into which the entry with `entry_ind` should best be inserted
-  SlotIndT choose_subtree(const SlotIndT& start_node, const SlotIndT& entry_ind);
-  
-  SlotIndT overflow_treatment(const SlotIndT& node_ind, bool first_insert);
+//   SlotIndT overflow_treatment(const SlotIndT& node_ind, bool first_insert);
   
 private:
   
-  SlotIndT m_root_node_ind;
+  std::size_t m_root_node_ind;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)
-  NodePool m_nodes;
-  EntryPool m_entries;
+  MemoryPool<TreeNode> m_nodes;
+  MemoryPool<TreeEntry> m_entries;
 };
 
 #include "RTree.hxx"
