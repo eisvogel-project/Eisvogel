@@ -380,84 +380,6 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 
 // =======================
 
-// Methods to compare different bounding boxes (needed to determine optimal insertion position)
-
-// template <class BoundedT>
-// struct CompareByVolumeEnlargement {
-
-//   CompareByVolumeEnlargement(const BoundedT& new_element) : m_new_element(new_element) { };
-
-//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
-//   // in _less_ volume enlargement than adding `new_element` to `bd_2`
-//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
-//     return true;
-//   }
-
-// private:
-//   const BoundedT& m_new_element;
-// };
-
-// template <class BoundedT>
-// struct CompareByOverlapEnlargement {
-
-//   CompareByOverlapEnlargement(const BoundedT& new_element, std::vector<std::reference_wrapper<BoundedT>>& other_elements) :
-//     m_new_element(new_element), m_other_elements(other_elements) { };
-
-//   // Compares `bd_1` and `bd_2`: returns `true` if adding `new_element` to `bd_1` results
-//   // in less _overlap_ enlargement than adding `new_element` to `bd_2`
-//   // (The overlap is calculated with respect to the `other_elements`.)
-//   bool operator()(const BoundedT& bd_1, const BoundedT& bd_2) {
-//     return true;
-//   }
-  
-// private:
-//   const BoundedT& m_new_element;
-//   const std::vector<std::reference_wrapper<BoundedT>> m_other_elements;
-// };
-
-// =======================
-
-// =======================
-
-
-
-
-
-// template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-// SlotIndT Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::get_min_area_enlargement_child(SlotIndT& new_entry_ind) {
-
-//   // Does not make sense to call this function if there are no child nodes
-//   assert(num_child_nodes > 0);
-
-//   SlotIndT min_child_ind;
-//   for(std::size_t i = 0; i < num_child_nodes; i++) {
-    
-//   }
-  
-//   return min_child_ind;
-// }
-
-// template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-// std::size_t Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::get_child_overlap(SlotIndT& child_ind) {
-
-//   return 0;
-// }
-
-// template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-// SlotIndT Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::get_min_overlap_enlargement_child(SlotIndT& new_entry) {
-  
-//   return 0;
-// }
-
-// template <typename CoordT, std::size_t dims, typename SlotIndT, std::size_t MAX_NODESIZE>
-// template <class ComparatorT>
-// SlotIndT Node<CoordT, dims, SlotIndT, MAX_NODESIZE>::min_child(ComparatorT&& comp) {
-  
-//   return 0;
-// }
-
-// ===============
-
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeEntry::TreeEntry() : BoundingBox<CoordT, dims>(0, 0), payload() { }
 
@@ -600,6 +522,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_su
     // All child nodes of `start_node` are leaf nodes
     // CS2: choose the entry in `start_node` whose bounding box needs the least overlap enlargement to accommodate the new data
     
+    
   }
 
   // The child nodes of `start_node` are internal nodes themselves
@@ -610,6 +533,131 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_su
   // (Recall that `start_node` already has its bounding box extended to include the new entry)
     
   return NodePool::INVALID_SLOT;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_overlap_enlargement_child(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add) {
+
+  TreeNode& node = m_nodes[node_slot];
+
+  // This only makes sense if the children of `node_slot` are themselves nodes that can accept `to_add`, i.e. `node_slot` is not a leaf
+  assert(!node.is_leaf);
+
+  // Returns `true` if adding `to_add` to the child at `child_slot_a` is strictly more advantageous than
+  // adding it to `child_slot_b`.
+  auto comp = [&node_slot, &to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
+
+    // Test for overlap enlargement first
+    std::size_t overlap_enlargement_a = child_overlap_enlargement(node_slot, child_slot_a, to_add);
+    std::size_t overlap_enlargement_b = child_overlap_enlargement(node_slot, child_slot_b, to_add);
+    if(overlap_enlargement_a < overlap_enlargement_b) {
+      return true;
+    }
+    else if(overlap_enlargement_a == overlap_enlargement_b) {
+
+      // Break ties by looking at volume enlargement
+      std::size_t volume_enlargement_a = node_volume_enlargement(child_slot_a, to_add);
+      std::size_t volume_enlargement_b = node_volume_enlargement(child_slot_b, to_add);
+      
+      return volume_enlargement_a < volume_enlargement_b;
+    }
+    
+    return false;    
+  };
+
+  return *std::min_element(node.child_slots.begin(),
+			   std::advance(node.child_slots.begin() + node.num_children),
+			   comp); 
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::find_min_volume_enlargement_child(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add) {
+
+  TreeNode& node = m_nodes[node_slot];
+  
+  // This only makes sense if the children of `node_slot` are themselves nodes that can accept `to_add`, i.e. `node_slot` is not a leaf
+  assert(!node.is_leaf);
+
+  // Returns `true` if adding `to_add` to the child at `child_slot_a` is strictly more advantagous than
+  // adding it to `child_slot_b`
+  auto comp = [&to_add](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
+
+    // Test for volume enlargement first
+    std::size_t volume_enlargement_a = node_volume_enlargement(child_slot_a, to_add);
+    std::size_t volume_enlargement_b = node_volume_enlargement(child_slot_b, to_add);
+    if(volume_enlargement_a < volume_enlargement_b) {
+      return true;
+    }
+    else if(volume_enlargement_a == volume_enlargement_b) {
+
+      // Break ties by looking at the absolute volume
+      return node_volume(child_slot_a) < node_volume(child_slot_b);
+    }
+    
+    return false;      
+  };
+
+  return *std::min_element(node.child_slots.begin(),
+			   std::advance(node.child_slots.begin() + node.num_children),
+			   comp);
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::child_overlap_enlargement(std::size_t node_slot, std::size_t child_slot,
+												 const BoundingBox<CoordT, dims>& to_add) {
+  // Get the bounding box of the child node ...
+  BoundingBox<CoordT, dims>& child_bbox = get_bbox(node_slot, child_slot);
+
+  // ... and also the bounding box of the child, extended by `to_add`
+  BoundingBox<CoordT, dims> extended_child_bbox(child_bbox);
+  extended_child_bbox.extend(to_add);
+
+  TreeNode& node = m_nodes[node_slot];
+  
+  std::size_t child_overlap_enlargement = 0u;  
+  for(std::size_t i = 0; i < node.num_children; i++) {
+    
+    std::size_t other_child_slot = node.child_slots[i];
+    if(other_child_slot == child_slot) {
+      continue;  // Don't compute overlap against itself
+    }
+    
+    BoundingBox<CoordT, dims>& other_child_bbox = get_bbox(node_slot, other_child_slot);
+    child_overlap_enlargement += (extended_child_bbox.compute_overlap(other_child_bbox) - child_bbox.compute_overlap(other_child_bbox));
+  }
+
+  return child_overlap_enlargement;  
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::node_volume_enlargement(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add) {
+
+  BoundingBox<CoordT, dims>& node_bbox = m_nodes[node_slot];
+  BoundingBox<CoordT, dims> extended_node_bbox(node_bbox);
+  extended_node_bbox.extend(to_add);
+
+  return extended_node_bbox.volume() - node_bbox.volume();
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::node_volume(std::size_t node_slot) {
+  return m_nodes[node_slot].volume();
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+BoundingBox<CoordT, dims>& RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::get_bbox(std::size_t node_slot, std::size_t child_slot) {
+  
+  TreeNode& node = m_nodes[node_slot];
+  if(node.is_leaf) {
+    
+    // This node's children are actually entries
+    return m_entries[child_slot];
+  }
+  else {
+
+    // This node's children are other nodes
+    return m_nodes[child_slot];
+  }
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
