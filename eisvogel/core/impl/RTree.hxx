@@ -576,7 +576,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(st
   }
 
   // If the procedure above resulted in an overfull start_node, take care of it now
-  if(start_node.num_child_nodes > MAX_NODESIZE) {
+  if(start_node.num_children > MAX_NODESIZE) {
     return overflow_treatment(start_node_slot, first_insert);
   }
   
