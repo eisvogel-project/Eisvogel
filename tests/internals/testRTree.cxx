@@ -56,11 +56,9 @@ int main(void) {
 
   using CoordT = std::size_t;
   constexpr int dims = 3;
-  constexpr int min_nodesize = 3;
-  constexpr int max_nodesize = 5;
   using PayloadT = float;
   
-  RTree<CoordT, dims, PayloadT, max_nodesize, min_nodesize> tree(100);
+  RTree<CoordT, dims, PayloadT> tree(100);
   tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
   
   std::cout << "done" << std::endl;

@@ -173,15 +173,16 @@ struct BoundingBox {
 
 // =======================
 
-// TODO: can think about moving MAX_NODESIZE and MIN_NODESIZE to constexpr float
-template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE = 5, std::size_t MIN_NODESIZE = 2>
+template <typename CoordT, std::size_t dims, class PayloadT>
 class RTree {
+
+  static constexpr float REINSERT_P_FRAC = 0.30;
+  static constexpr std::size_t MAX_NODESIZE = 5;
+  static constexpr std::size_t MIN_NODESIZE = 2;
 
   static_assert(MAX_NODESIZE > 1);
   static_assert(MIN_NODESIZE < MAX_NODESIZE);
-
-  static constexpr float REINSERT_P_FRAC = 0.30;
-
+  
 private:
 
   // Tree entry
