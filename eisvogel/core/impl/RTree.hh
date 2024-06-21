@@ -139,6 +139,9 @@ struct BoundingBox {
   // Volume of this bounding box
   CoordT volume();
 
+  // "Margin" of this bounding box, defined as the surface area
+  CoordT margin();
+  
   // Overlap between this bounding box and `bbox`
   CoordT compute_overlap_volume(const BoundingBox<CoordT, dims>& bbox);
 

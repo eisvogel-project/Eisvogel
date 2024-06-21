@@ -353,6 +353,11 @@ CoordT BoundingBox<CoordT, dims>::volume() {
 }
 
 template <class CoordT, std::size_t dims>
+CoordT BoundingBox<CoordT, dims>::margin() {
+  return std::accumulate(shape.cbegin(), shape.cend(), (CoordT)0u, std::plus<CoordT>());
+}
+
+template <class CoordT, std::size_t dims>
 CoordT BoundingBox<CoordT, dims>::compute_overlap_volume(const BoundingBox<CoordT, dims>& bbox) {
 
   // Start- and end coordinates of the overlapping region
@@ -776,8 +781,13 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::split(std
   // Number of possible ways in which to split the children into two groups, each of which contains less than `MAX_NODESIZE` elements,
   // but at least `MIN_NODESIZE` elements
   constexpr std::size_t number_possible_splits = MAX_NODESIZE + 2 - 2 * MIN_NODESIZE;
-  
-  
+
+  // Bounding boxes to use when testing various splits 
+  ElemBoundingBox bbox_1, bbox_2;
+
+  for(std::size_t axis = 0; axis < dims; axis++) {
+
+  }
   
   // Create a new node at the same tree level which will take over some of the excess elements
   std::size_t new_node_slot = build_new_node(node.level, {});    
