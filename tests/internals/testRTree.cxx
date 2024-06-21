@@ -60,6 +60,10 @@ int main(void) {
   
   RTree<CoordT, dims, PayloadT> tree(100);
   tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
+
+  PayloadT retrieved = tree.Search({5u, 5u, 5u});
+
+  std::cout << "retrieved: " << retrieved << std::endl;
   
   std::cout << "done" << std::endl;
 }

@@ -410,6 +410,7 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
   stream << "-----------------------------------------\n";
   stream << "start_coords: " << bbox.start_coords << "\n";
   stream << "end_coords: " << bbox.end_coords     << "\n";
+  stream << "shape: " << bbox.shape     << "\n";
   stream << "-----------------------------------------\n";
 
   return stream;
@@ -434,17 +435,18 @@ void RTree<CoordT, dims, PayloadT>::TreeNode::add_child(std::size_t child_slot) 
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 RTree<CoordT, dims, PayloadT>::RTree(std::size_t init_slot_size) : m_root_slot(MemoryPool<TreeNode>::INVALID_SLOT),
-											       m_nodes(init_slot_size), m_entries(init_slot_size) { }
+								   m_nodes(init_slot_size), m_entries(init_slot_size) { }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
-										       const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+							   const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
   std::size_t entry_slot = m_entries.get_empty_slot_front();
   TreeEntry& entry = m_entries[entry_slot];
   
   entry.payload = elem;
   entry.start_coords = start_coords;
   entry.end_coords = end_coords;
+  entry.shape = end_coords - start_coords;
   
   return entry_slot;
 }
@@ -470,7 +472,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, con
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 void RTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
-									      const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+						  const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
 
   // Take ownership of the `elem` and store it as an entry in the memory pool
   std::size_t entry_slot = build_new_entry(elem, start_coords, end_coords);
@@ -480,19 +482,25 @@ void RTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
   // Insert the entry into the node structure of the tree
   if(m_root_slot == NodePool::INVALID_SLOT) {
 
+    std::cout << "new root node" << std::endl;
+    
     // Empty tree: build new root node
     m_root_slot = build_new_node(0, {entry_slot});
+    recalculate_bbox(m_root_slot);
   }
   else {
 
     // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location at level 0 (i.e. as a leaf node)
     insert_slot(entry_slot, 0, m_root_slot, true);
-  }    
+  }
+
+  std::cout << "at end of insert" << std::endl;
+  std::cout << m_nodes[m_root_slot] << std::endl;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_add, std::size_t level_to_insert,
-										   std::size_t start_node_slot, bool first_insert) {  
+						       std::size_t start_node_slot, bool first_insert) {  
 
   // Start node: must be above the target level in the tree hierarchy!
   TreeNode& start_node = m_nodes[start_node_slot];  
@@ -909,6 +917,50 @@ std::size_t RTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
   return new_node_slot;
 }
 
+template <typename CoordT, std::size_t dims, class PayloadT>
+const PayloadT& RTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
+
+  std::cout << "searching for " << coords << std::endl;
+  
+  std::size_t cur_node_slot = m_root_slot;
+  while(true) {
+
+    TreeNode& cur_node = m_nodes[cur_node_slot];
+
+    std::cout << "cur _node = " << cur_node << std::endl;
+    
+    // Iterate over all children in this node
+    for(std::size_t i = 0; i < cur_node.num_children; i++) {
+      std::size_t cur_child_slot = cur_node.child_slots[i];
+      
+      std::cout << "on child at slot " << cur_child_slot << std::endl;
+      std::cout << "with bbox = " << get_bbox(cur_child_slot, cur_node.level) << std::endl;
+      
+      // This is the correct child to follow
+      if(get_bbox(cur_child_slot, cur_node.level).contains(coords)) {
+
+	std::cout << "found match" << std::endl;
+	
+	if(cur_node.level == 0) {
+	  
+	  // Already at a leaf node, found the entry!
+	  return m_entries[cur_child_slot].payload;
+	}
+	else {
+
+	  // Not yet at the leaf level; continue with the child
+	  cur_node_slot = cur_child_slot;
+	  break;
+	}
+      }
+    }
+
+    if(cur_node.level == 0) {
+      throw std::runtime_error("Element not found!");
+    }
+  } 
+}
+
 // template <class IndexT, class PayloadT, std::size_t dims>
 // void RTree<IndexT, PayloadT, dims>::Rebuild() {
 
@@ -923,9 +975,3 @@ std::size_t RTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
   
 //   // -> also need to reorder the memory pools  
 // }
-
-// // template <class IndexT, class PayloadT, std::size_t dims, std::size_t MAX_NODESIZE>
-// // const PayloadT& RTree<IndexT, PayloadT, dims, MAX_NODESIZE>::Search(const IndexT& ind) {
-
-// // }
-

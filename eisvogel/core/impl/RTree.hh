@@ -220,13 +220,14 @@ public:
   // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
   void InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
-  // // Rebuild the tree and rebalance the nodes, if needed
-  // void Rebuild();
-  
-  // const PayloadT& Search(const IndexT& ind) const;
+  const PayloadT& Search(const Vector<CoordT, dims>& coords);
+
   // PayloadT& Search(const IndexT& ind);
   // std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
   
+  // // Rebuild the tree and rebalance the nodes, if needed
+  // void Rebuild();
+    
 private:
 
   using ElemBoundingBox = BoundingBox<CoordT, dims>;
