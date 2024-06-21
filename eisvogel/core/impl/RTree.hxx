@@ -277,6 +277,10 @@ bool MemoryPool<T>::is_allocated(std::size_t ind) {
 // =======================
 
 template <class CoordT, std::size_t dims>
+BoundingBox<CoordT, dims>::BoundingBox() : start_coords(std::numeric_limits<CoordT>::max()), end_coords(std::numeric_limits<CoordT>::min()),
+					   shape((CoordT)0u) { };
+
+template <class CoordT, std::size_t dims>
 BoundingBox<CoordT, dims>::BoundingBox(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) :
   start_coords(start_coords), end_coords(end_coords), shape(end_coords - start_coords) { }
 
@@ -297,6 +301,13 @@ void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
 
   // ... and update the shape
   shape = end_coords - start_coords;
+}
+
+template <class CoordT, std::size_t dims>
+void BoundingBox<CoordT, dims>::reset_bounding_box() {
+  start_coords = std::numeric_limits<CoordT>::max();
+  end_coords = std::numeric_limits<CoordT>::min();
+  shape = (CoordT)0u;
 }
 
 template <class CoordT, std::size_t dims>
@@ -381,10 +392,10 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 // =======================
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeEntry::TreeEntry() : BoundingBox<CoordT, dims>(0, 0), payload() { }
+RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeEntry::TreeEntry() : BoundingBox<CoordT, dims>(), payload() { }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::TreeNode() : BoundingBox<CoordT, dims>(0, 0), is_leaf(true), num_children(0) {
+RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::TreeNode::TreeNode() : BoundingBox<CoordT, dims>(), is_leaf(true), num_children(0) {
   child_slots.fill(0);
 }
 
@@ -434,9 +445,32 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new
 
   // The new node is a leaf ...
   node.set_as_empty_leaf_node();
+
+  // ... has a new bounding box ...
+  node.reset_bounding_box();
   
   // ... and holds a reference to the new entry
   node.add_child(entry_slot);
+  
+  return node_slot;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new_internal_node(const std::vector<std::size_t>& child_node_slots) {
+  
+  std::size_t node_slot = m_nodes.get_empty_slot_front();
+  TreeNode& node = m_nodes[node_slot];
+
+  // The new node is an internal one ...
+  node.set_as_empty_internal_node();
+
+  // ... has a new bounding box ...
+  node.reset_bounding_box();
+  
+  // ... and already comes with a few children
+  for(std::size_t child_slot: child_node_slots) {
+    node.add_child(child_slot);
+  }
   
   return node_slot;
 }
@@ -656,7 +690,61 @@ BoundingBox<CoordT, dims>& RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODES
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::recalculate_bbox(std::size_t node_slot) {
+
+  TreeNode& node = m_nodes[node_slot];
+  node.reset_bounding_box(); // reset everything ...
+
+  // ... and grow the bounding box again for all children
+  for(std::size_t i = 0; i < node.num_children; i++) {    
+    std::size_t cur_child_slot = node.child_slots[i];    
+    node.extend(get_bbox(node_slot, cur_child_slot));
+  }
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::overflow_treatment(std::size_t node_slot, bool first_insert) {
+
+  // This assumes we are given a node that is overfull and needs to be cleaned up
+  assert(m_nodes[node_slot].num_children == MAX_NODESIZE + 1);
+  
+  // OT1: If we are not sitting at the root node _and_ this is the first call during an insertion, use reinsertion to clean up the overfull node ...
+  if((node_slot != m_root_slot) && first_insert) {
+    
+    reinsert(node_slot);
+    return NodePool::INVALID_SLOT;
+  }
+
+  // OT1: ... otherwise split the node to distribute its too many children
+  std::size_t new_node_slot = split(node_slot);
+
+  // If we actually split the root node, create a new root node whose children are `node_slot` and `new_node_slot`
+  if(node_slot == m_root_slot) {
+
+    std::size_t new_root_slot = build_new_internal_node({node_slot, new_node_slot});
+
+    // I4: recalculate the bounding box of the new root node
+    recalculate_bbox(new_root_slot);
+
+    // Update the root node
+    m_root_slot = new_root_slot;
+    
+    // Already updated the root node, nothing to propagate upwards
+    return NodePool::INVALID_SLOT;
+  }
+
+  return new_node_slot;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::reinsert(std::size_t node_slot) {
+
+  
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::split(std::size_t node_slot) {
+
   return NodePool::INVALID_SLOT;
 }
 

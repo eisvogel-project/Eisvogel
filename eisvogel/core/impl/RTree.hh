@@ -145,6 +145,9 @@ struct BoundingBox {
   // Extends this bounding box (if needed) so that it also contains the passed bounding `bbox`
   void extend(const BoundingBox<CoordT, dims>& bbox);
 
+  // Resets this bounding box
+  void reset_bounding_box();
+
   // Pretty printing
   friend std::ostream& operator<< <CoordT, dims> (std::ostream& stream, const BoundingBox& bbox);
   
@@ -224,6 +227,7 @@ private:
   // Generators that build new leaves or entries
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
   std::size_t build_new_leaf_node(std::size_t entry_slot);
+  std::size_t build_new_internal_node(const std::vector<std::size_t>& child_node_slots);
 
   // Insert the entry at `entry_slot` into the tree starting at the node at `start_node_slot`.
   // If any tree rearrangements occured during insertion, this will return the slot of the tree node that should be inserted
@@ -236,8 +240,18 @@ private:
   // Handles an overfull node at `node_slot`; if as part of the clean-up an additional node was created, return its slot so that the caller can take care of it
   std::size_t overflow_treatment(std::size_t node_slot, bool first_insert);
 
+  // Cleans up the tree starting at `node_slot` by reinserting its children
+  void reinsert(std::size_t node_slot);
+
+  // Cleans up the tree starting at `node_slot` by splitting the node and distributing its elements
+  // Returns the slot of the newly-created node that needs to be added at the caller's level
+  std::size_t split(std::size_t node_slot);
+  
   // Fetch the bounding box of the child at `child_slot` of the node at `node_slot`
   BoundingBox<CoordT, dims>& get_bbox(std::size_t node_slot, std::size_t child_slot);
+
+  // Force recalculation of the bounding box of the node at `node_slot`
+  void recalculate_bbox(std::size_t node_slot);
 
   // Among all child nodes of the node at `node_slot`, find the one whose overlap with the other child nodes increases by the least amount
   // if the element with bounding box `to_add` was added to it, and return its node slot.
