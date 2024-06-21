@@ -378,6 +378,27 @@ CoordT BoundingBox<CoordT, dims>::compute_overlap_volume(const BoundingBox<Coord
 }
 
 template <class CoordT, std::size_t dims>
+Vector<CoordT, dims> BoundingBox<CoordT, dims>::compute_center() {
+  return (start_coords + end_coords) / (CoordT)2;
+}
+
+template <class CoordT, std::size_t dims>
+CoordT BoundingBox<CoordT, dims>::compute_center_distance(const BoundingBox<CoordT, dims>& bbox) {
+
+  Vector<CoordT, dims> center_distance_vec = bbox.compute_center() - compute_center();
+
+  // Actually calculates the squared distance, which is fine, as we only use it for relative comparisons
+  return VectorUtils::inner(center_distance_vec, center_distance_vec);
+}
+
+template <class CoordT, std::size_t dims>
+CoordT BoundingBox<CoordT, dims>::compute_center_distance(const Vector<CoordT, dims>& center) {
+
+  Vector<CoordT, dims> center_distance_vec = center - compute_center();  
+  return VectorUtils::inner(center_distance_vec, center_distance_vec);
+}
+
+template <class CoordT, std::size_t dims>
 std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& bbox) {
 
   // TODO: use box-drawing characters to make this nicer
@@ -739,7 +760,43 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::overflow_
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::reinsert(std::size_t node_slot) {
 
+  TreeNode& node = m_nodes[node_slot];
+
+  // We have a leaf node with too many entries
+  assert(node.is_leaf);
   
+  // We have an overfull node that we need to clean up
+  assert(node.num_children == MAX_NODESIZE + 1);
+
+  constexpr std::size_t num_children = MAX_NODESIZE + 1;
+  constexpr std::size_t p = std::max<std::size_t>(REINSERT_P_FRAC * num_children, 1u);
+  assert(p < num_children);
+
+  // RI1 + RI2: Sort the children of the node at `node_slot` in increasing order w.r.t. the distance between
+  // the center of the child's bounding rectangle and the center of the bounding rectangle of the node
+  Vector<CoordT, dims> node_center = node.compute_center();
+  auto comp = [this, &node_slot, &node_center](const std::size_t& child_slot_a, const std::size_t& child_slot_b) -> bool {
+
+    CoordT center_distance_a = get_bbox(node_slot, child_slot_a).compute_center_distance(node_center);
+    CoordT center_distance_b = get_bbox(node_slot, child_slot_b).compute_center_distance(node_center);
+    
+    return center_distance_a < center_distance_b;
+  };
+  std::partial_sort(node.child_slots.begin(), node.child_slots.end() - p, node.child_slots.end(), comp);
+
+  // After the partial sort, the first `num_children - p` elements contain the `num_children - p` entries whose
+  // bounding box centers have the smallest distance to the center of the bounding box of the node  
+  
+  // Remove the `p` children with the largest distance from this node ...
+  std::array<std::size_t, p> removed_entry_node_slots;
+  std::copy(node.child_slots.end() - p, node.child_slots.end(), removed_entry_node_slots.begin());
+  std::fill(node.child_slots.end() - p, node.child_slots.end(), NodePool::INVALID_SLOT);
+  node.num_children = num_children - p;
+
+  // ... and reinsert them into the tree starting at the root node
+  for(std::size_t entry_slot_to_insert: removed_entry_node_slots) {
+    insert(entry_slot_to_insert, m_root_slot, false);
+  }
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>

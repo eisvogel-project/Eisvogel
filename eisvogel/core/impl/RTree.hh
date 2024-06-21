@@ -141,6 +141,15 @@ struct BoundingBox {
 
   // Overlap between this bounding box and `bbox`
   CoordT compute_overlap_volume(const BoundingBox<CoordT, dims>& bbox);
+
+  // The coordinates of the center point of this bounding box
+  Vector<CoordT, dims> compute_center();
+  
+  // Distance between the center of this bounding box and the center of `bbox` ...
+  CoordT compute_center_distance(const BoundingBox<CoordT, dims>& bbox);
+
+  // ... or an explicitly-passed center point
+  CoordT compute_center_distance(const Vector<CoordT, dims>& center);
   
   // Extends this bounding box (if needed) so that it also contains the passed bounding `bbox`
   void extend(const BoundingBox<CoordT, dims>& bbox);
@@ -161,13 +170,14 @@ struct BoundingBox {
 
 // =======================
 
-// =======================
-
+// TODO: can think about moving MAX_NODESIZE and MIN_NODESIZE to constexpr float
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE = 5, std::size_t MIN_NODESIZE = 2>
 class RTree {
 
   static_assert(MAX_NODESIZE > 1);
   static_assert(MIN_NODESIZE < MAX_NODESIZE);
+
+  static constexpr float REINSERT_P_FRAC = 0.30;
 
 private:
 
