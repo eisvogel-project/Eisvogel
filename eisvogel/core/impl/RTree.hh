@@ -236,7 +236,7 @@ private:
   
   // Generators that build new leaves or entries
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
-  std::size_t build_new_leaf_node(std::size_t entry_slot);
+  std::size_t build_new_leaf_node(const std::vector<std::size_t>& entry_slots);
   std::size_t build_new_internal_node(const std::vector<std::size_t>& child_node_slots);
 
   // Insert the entry at `entry_slot` into the tree starting at the node at `start_node_slot`.

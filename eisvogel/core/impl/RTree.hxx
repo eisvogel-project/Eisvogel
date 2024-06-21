@@ -459,7 +459,7 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
-std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new_leaf_node(std::size_t entry_slot) {
+std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new_leaf_node(const std::vector<std::size_t>& entry_slots) {
   
   std::size_t node_slot = m_nodes.get_empty_slot_front();
   TreeNode& node = m_nodes[node_slot];
@@ -471,7 +471,9 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::build_new
   node.reset_bounding_box();
   
   // ... and holds a reference to the new entry
-  node.add_child(entry_slot);
+  for(std::size_t entry_slot: entry_slots) {
+    node.add_child(entry_slot);
+  }
   
   return node_slot;
 }
@@ -509,7 +511,7 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(co
   if(m_root_slot == NodePool::INVALID_SLOT) {
 
     // Empty tree: build new root node
-    m_root_slot = build_new_leaf_node(entry_slot);
+    m_root_slot = build_new_leaf_node({entry_slot});
   }
   else {
 
@@ -729,8 +731,9 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::overflow_
   // This assumes we are given a node that is overfull and needs to be cleaned up
   assert(m_nodes[node_slot].num_children == MAX_NODESIZE + 1);
   
-  // OT1: If we are not sitting at the root node _and_ this is the first call during an insertion, use reinsertion to clean up the overfull node ...
-  if((node_slot != m_root_slot) && first_insert) {
+  // OT1: If we are sitting at a leaf node that is not the root _and_ this is the first call during an insertion, use reinsertion to clean up the overfull node ...
+  // (Note: this is a deviation from the original R*-Tree, which permits forced reinsertion at all levels of the tree, not just for root nodes)
+  if((node_slot != m_root_slot) && m_nodes[node_slot].is_leaf && first_insert) {
     
     reinsert(node_slot);
     return NodePool::INVALID_SLOT;
@@ -762,7 +765,7 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::reinsert(std::si
 
   TreeNode& node = m_nodes[node_slot];
 
-  // We have a leaf node with too many entries
+  // We have a leaf node with too many entries and are trying to re-insert some of them into the tree
   assert(node.is_leaf);
   
   // We have an overfull node that we need to clean up
@@ -792,6 +795,7 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::reinsert(std::si
   std::copy(node.child_slots.end() - p, node.child_slots.end(), removed_entry_node_slots.begin());
   std::fill(node.child_slots.end() - p, node.child_slots.end(), NodePool::INVALID_SLOT);
   node.num_children = num_children - p;
+  recalculate_bbox(node_slot);
 
   // ... and reinsert them into the tree starting at the root node
   for(std::size_t entry_slot_to_insert: removed_entry_node_slots) {
@@ -802,6 +806,18 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::reinsert(std::si
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::split(std::size_t node_slot) {
 
+  TreeNode& node = m_nodes[node_slot];
+
+  // We have an overfull node that we need to clean up
+  assert(node.num_children == MAX_NODESIZE + 1);
+  
+  // Determine how to best split the entries into two groups, each of which contains less than `MAX_NODESIZE` elements
+
+  // First, create a new node that will take over some of the elements
+  // std::size_t new_node_slot = 
+
+  
+  
   return NodePool::INVALID_SLOT;
 }
 
