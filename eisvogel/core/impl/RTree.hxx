@@ -785,12 +785,127 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::split(std
   // Bounding boxes to use when testing various splits 
   ElemBoundingBox bbox_1, bbox_2;
 
-  for(std::size_t axis = 0; axis < dims; axis++) {
+  enum Edge {
+    Lower, Upper
+  };
+  
+  // Parameterization of the best way to split the entries in this node
+  std::size_t best_split_axis = 0;
+  Edge best_edge = Edge::Lower;
+  std::size_t best_split = 0;
+  
+  CoordT best_split_axis_margin = std::numeric_limits<CoordT>::max();
+  
+  // The following is a combined determination of the axis along which the node split is best performed, and the
+  // partitioning of the node entries that is best
+  for(std::size_t cur_axis = 0; cur_axis < dims; cur_axis++) {
+    
+    // The margin for this particular axis (calculated below) is used to identify the axis along which to split
+    CoordT cur_axis_margin = (CoordT)0;
 
+    // Also keep track of the overlap- and volume-values for a particular split
+    CoordT cur_axis_min_overlap = std::numeric_limits<CoordT>::max();
+    CoordT cur_axis_min_volume = std::numeric_limits<CoordT>::max();
+    Edge cur_axis_best_edge = Edge::Lower;
+    std::size_t cur_axis_best_split = 0;
+    
+    // Identifying the best split involves iterating over different ways of sorting the entries ... 
+    for(auto cur_edge: {Edge::Lower, Edge::Upper}) {
+        
+        if(cur_edge == Edge::Lower) {
+
+	  // Sort nodes by the lower values of their bounding boxes along `cur_axis`
+	  auto sort_lower = [this, &node, &cur_axis](const std::size_t& child_slot_a, const std::size_t& child_slot_b) {
+	    return get_bbox(child_slot_a, node.level).start_coords[cur_axis] < get_bbox(child_slot_b, node.level).start_coords[cur_axis];
+	  };
+	  std::sort(node.child_slots.begin(), node.child_slots.end(), sort_lower);
+        }
+	else {
+	  
+	  // Sort nodes by the upper values of their bounding boxes along `cur_axis`
+	  auto sort_upper = [this, &node, &cur_axis](const std::size_t& child_slot_a, const std::size_t& child_slot_b) {
+	    return get_bbox(child_slot_a, node.level).end_coords[cur_axis] < get_bbox(child_slot_b, node.level).end_coords[cur_axis];
+	  };
+	  std::sort(node.child_slots.begin(), node.child_slots.end(), sort_upper);
+        }
+
+	// ... and different ways of actually splitting the entries
+	for(std::size_t cur_split = 0; cur_split < number_possible_splits; cur_split++) {
+
+	  // The split we're currently investigating is [0, MIN_NODESIZE + cur_split] and [MIN_NODESIZE + cur_split + 1, MAX_NODESIZE + 1]
+	  // Calculate the bounding boxes of the two partitions
+	  bbox_1.reset_bounding_box();
+	  auto extend_bbox_1 = [this, &node, &bbox_1](const std::size_t& child_slot) {bbox_1.extend(get_bbox(child_slot, node.level));};
+	  std::for_each(node.child_slots.begin(), node.child_slots.begin() + MIN_NODESIZE + cur_split, extend_bbox_1);
+	  
+	  auto extend_bbox_2 = [this, &node, &bbox_2](const std::size_t& child_slot) {bbox_2.extend(get_bbox(child_slot, node.level));};
+	  bbox_2.reset_bounding_box();
+	  std::for_each(node.child_slots.begin() + MIN_NODESIZE + cur_split, node.child_slots.end(), extend_bbox_2);
+
+	  // Compute statistics for this split
+	  cur_axis_margin += (bbox_1.margin() + bbox_2.margin());
+	  CoordT cur_split_volume = bbox_1.volume() + bbox_2.volume();
+	  CoordT cur_split_overlap = bbox_1.compute_overlap_volume(bbox_2);
+
+	  // Keep updating the best split for this axis
+	  if((cur_split_overlap < cur_axis_min_overlap) ||
+	     ((cur_split_overlap == cur_axis_min_overlap) && (cur_split_volume < cur_axis_min_volume))) {
+	    
+	    cur_axis_min_overlap = cur_split_overlap;
+	    cur_axis_min_volume = cur_split_volume;
+
+	    cur_axis_best_split = cur_split;
+	    cur_axis_best_edge = cur_edge;
+	  }
+	}	
+    }
+
+    // Keep track of the axis which minimum margin; this is the one along which the split will be performed below
+    if(cur_axis_margin < best_split_axis_margin) {
+      best_split_axis_margin = cur_axis_margin;
+      best_split_axis = cur_axis;
+      best_edge = cur_axis_best_edge;
+      best_split = cur_axis_best_split;
+    }
   }
+
+  // Now, all splits have been examined, and the best split axis, edge for the sort-before-split, and partitioning have been determined
+
+  // Reconstruct the order that was found to be the optimal one
+  if(best_edge == Edge::Lower) {
+
+    // Re-sort according to the lower edge along the split axis
+    auto sort_lower = [this, &node, &best_split_axis](const std::size_t& child_slot_a, const std::size_t& child_slot_b) {
+      return get_bbox(child_slot_a, node.level).start_coords[best_split_axis] < get_bbox(child_slot_b, node.level).start_coords[best_split_axis];
+    };
+    std::sort(node.child_slots.begin(), node.child_slots.end(), sort_lower);    
+  }
+  else if(best_split_axis != dims - 1) {
+
+    // Re-sort according to the upper edge along the split axis
+    // (But don't need to re-sort if the state after the above loop is already the best, in which case everything is already correct)
+    auto sort_upper = [this, &node, &best_split_axis](const std::size_t& child_slot_a, const std::size_t& child_slot_b) {
+      return get_bbox(child_slot_a, node.level).end_coords[best_split_axis] < get_bbox(child_slot_b, node.level).end_coords[best_split_axis];
+    };
+    std::sort(node.child_slots.begin(), node.child_slots.end(), sort_upper);
+  }
+
+  // The state of the node and its children is now in the correct state for the best split
+
+  // Extract the children that will go into the new node ...
+  std::vector<std::size_t> new_node_children(node.child_slots.begin() + MIN_NODESIZE + best_split, node.child_slots.end());
+
+  // ... and remove them from the old node
+  std::fill(node.child_slots.begin() + MIN_NODESIZE + best_split, node.child_slots.end(), NodePool::INVALID_SLOT);
+  node.num_children = MIN_NODESIZE + best_split;
   
   // Create a new node at the same tree level which will take over some of the excess elements
-  std::size_t new_node_slot = build_new_node(node.level, {});    
+  std::size_t new_node_slot = build_new_node(node.level, new_node_children);
+
+  // Recalculate the bounding boxes of both the old and the new node
+  recalculate_bbox(new_node_slot);
+  recalculate_bbox(node_slot);
+  
   return new_node_slot;
 }
 
