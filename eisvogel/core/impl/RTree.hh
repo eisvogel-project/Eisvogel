@@ -198,10 +198,6 @@ private:
     // Construct an empty node with zero spatial extent
     TreeNode();
     
-    // To initialize as internal or leaf node
-    void set_as_empty_leaf_node();
-    void set_as_empty_internal_node(std::size_t level);
-
     void add_child(std::size_t child_slot);
 
     std::size_t level;    
@@ -229,6 +225,10 @@ public:
   
 private:
 
+  using ElemBoundingBox = BoundingBox<CoordT, dims>;
+  
+private:
+  
   // Internal functions that do all the work
   // Note: nodes and entries are passed around through their "slots" in the respective memory pools. These slots are never
   // invalidated, even if the memory pool changes the actual memory allocation (which can happen during some of the recursive
@@ -236,8 +236,7 @@ private:
   
   // Generators that build new leaves or entries
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
-  std::size_t build_new_leaf_node(const std::vector<std::size_t>& entry_slots);
-  std::size_t build_new_internal_node(std::size_t level, const std::vector<std::size_t>& child_node_slots);
+  std::size_t build_new_node(std::size_t level, const std::vector<std::size_t>& child_node_slots);
 
   // Insert the element at slot `to_add` (which is not currently in the tree) into the tree at `level`, starting at the node at `start_node_slot`.
   // If any tree rearrangements occured during insertion, this will return the slot of the tree node that should be inserted
@@ -258,7 +257,7 @@ private:
   std::size_t split(std::size_t node_slot);
   
   // Fetch the bounding box of the item stored at `slot` at `level` in the tree
-  BoundingBox<CoordT, dims>& get_bbox(std::size_t slot, std::size_t level);
+  ElemBoundingBox& get_bbox(std::size_t slot, std::size_t level);
 
   // Force recalculation of the bounding box of the node at `node_slot`
   void recalculate_bbox(std::size_t node_slot);
@@ -266,19 +265,19 @@ private:
   // Among all child nodes of the node at `node_slot`, find the one whose overlap with the other child nodes increases by the least amount
   // if the element with bounding box `to_add` was added to it, and return its node slot.
   // Resolves ties by returning the child that nees least volume enlargement.
-  std::size_t find_min_overlap_enlargement_child(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add);
+  std::size_t find_min_overlap_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add);
 
   // Among all child nodes of the node at `node_slot`, find the one whose volume increases by the least amount
   // if the element with bounding box `to_add` was added to it, and return its node slot.
   // Resolves ties by returning the child whose bounding box has the smallest volume.
-  std::size_t find_min_volume_enlargement_child(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add);
+  std::size_t find_min_volume_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add);
 
   // Calculates the overlap enlargement (as defined by Beckmann et. al) of `child_slot` with all other children in the node at `node_slot`,
   // if `to_add` is added to the child at `child_slot`.
-  std::size_t child_overlap_enlargement(std::size_t node_slot, std::size_t child_slot, const BoundingBox<CoordT, dims>& to_add);
+  std::size_t child_overlap_enlargement(std::size_t node_slot, std::size_t child_slot, const ElemBoundingBox& to_add);
 
   // Calculates the volume enlargement of the node at `node_slot` if `to_add` is added to `node_slot`
-  std::size_t node_volume_enlargement(std::size_t node_slot, const BoundingBox<CoordT, dims>& to_add);
+  std::size_t node_volume_enlargement(std::size_t node_slot, const ElemBoundingBox& to_add);
 
   // Gets the absolute volume of the node at `node_slot`
   std::size_t node_volume(std::size_t node_slot);
