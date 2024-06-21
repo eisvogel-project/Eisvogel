@@ -200,11 +200,11 @@ private:
     
     // To initialize as internal or leaf node
     void set_as_empty_leaf_node();
-    void set_as_empty_internal_node();
+    void set_as_empty_internal_node(std::size_t level);
 
     void add_child(std::size_t child_slot);
-    
-    bool is_leaf;
+
+    std::size_t level;    
     std::size_t num_children;
     
     // List of pointers to nodes that are children of this node
@@ -237,15 +237,15 @@ private:
   // Generators that build new leaves or entries
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
   std::size_t build_new_leaf_node(const std::vector<std::size_t>& entry_slots);
-  std::size_t build_new_internal_node(const std::vector<std::size_t>& child_node_slots);
+  std::size_t build_new_internal_node(std::size_t level, const std::vector<std::size_t>& child_node_slots);
 
-  // Insert the entry at `entry_slot` into the tree starting at the node at `start_node_slot`.
+  // Insert the element at slot `to_add` (which is not currently in the tree) into the tree at `level`, starting at the node at `start_node_slot`.
   // If any tree rearrangements occured during insertion, this will return the slot of the tree node that should be inserted
   // into the node at `node_slot`. This needs to be done by the caller.
-  std::size_t insert(std::size_t entry_slot, std::size_t start_node_slot, bool first_insert = true);
+  std::size_t insert_slot(std::size_t slot_to_add, std::size_t level_to_insert, std::size_t start_node_slot, bool first_insert);
 
-  // Returns the slot of the child node of `start_node` where the entry at `entry_slot` should be inserted
-  std::size_t choose_subtree(std::size_t entry_slot, std::size_t start_node_slot);
+  // Returns the slot of the child node of `start_node` where the entry at `to_add` should be inserted
+  std::size_t choose_subtree(std::size_t slot_to_add, std::size_t level_to_insert, std::size_t start_node_slot);
   
   // Handles an overfull node at `node_slot`; if as part of the clean-up an additional node was created, return its slot so that the caller can take care of it
   std::size_t overflow_treatment(std::size_t node_slot, bool first_insert);
@@ -257,8 +257,8 @@ private:
   // Returns the slot of the newly-created node that needs to be added at the caller's level
   std::size_t split(std::size_t node_slot);
   
-  // Fetch the bounding box of the child at `child_slot` of the node at `node_slot`
-  BoundingBox<CoordT, dims>& get_bbox(std::size_t node_slot, std::size_t child_slot);
+  // Fetch the bounding box of the item stored at `slot` at `level` in the tree
+  BoundingBox<CoordT, dims>& get_bbox(std::size_t slot, std::size_t level);
 
   // Force recalculation of the bounding box of the node at `node_slot`
   void recalculate_bbox(std::size_t node_slot);
