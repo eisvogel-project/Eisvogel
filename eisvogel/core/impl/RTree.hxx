@@ -520,16 +520,26 @@ void RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::InsertElement(co
   }    
 }
 
+// TODO: generalize this to add a "level" parameter that determines at which level of the tree the new element should be inserted
+// also need to generalize "choose_subtree" so that it accepts the level parameter and stops at that level instead of at the leaf node (like it does now)
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(std::size_t entry_slot, std::size_t start_node_slot, bool first_insert) {  
 
+  // insert(std::size_t entry_slot, std::size_t level, std::size_t start_node_slot, bool first_insert)
+  // if `level == 0`, then `entry_slot` must point to an actual data entry, if `level > 0` instead, then we're inserting a tree node at a non-leaf level
+  
+  // The `start_node` is always a node (leaf or internal), but entry at `entry_slot` can either be another node or an actual data entry
+  
   // Current node and entry to add
   TreeNode& start_node = m_nodes[start_node_slot];
   TreeEntry& entry = m_entries[entry_slot];
+
+  // BoundingBox<CoordT, dims> entry_bbox = get_bbox();
   
   // I4: adjust the bounding box of this node to include the newly added entry
-  start_node.extend(entry);
+  start_node.extend(entry); // this only needs the bounding box of `entry`
 
+  // if(start_node.level == level_to_insert)
   if(start_node.is_leaf) {
 
     // CS2: if `start_node` already is a leaf, simply insert the new `entry` into it
@@ -564,9 +574,11 @@ std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::insert(st
 
 template <typename CoordT, std::size_t dims, class PayloadT, std::size_t MAX_NODESIZE, std::size_t MIN_NODESIZE>
 std::size_t RTree<CoordT, dims, PayloadT, MAX_NODESIZE, MIN_NODESIZE>::choose_subtree(std::size_t entry_slot, std::size_t start_node_slot) {
+
+  // choose_subtree(std::size_t entry_slot, std::size_t level, std::size_t start_node_slot)
   
   TreeNode& start_node = m_nodes[start_node_slot];
-  TreeEntry& entry = m_entries[entry_slot];
+  TreeEntry& entry = m_entries[entry_slot];  // again, this just needs the bounding box of the `entry`
 
   // Empty nodes cannot exist
   assert(start_node.num_children > 0);
