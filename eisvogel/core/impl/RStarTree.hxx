@@ -419,26 +419,26 @@ std::ostream& operator<<(std::ostream& stream, const BoundingBox<CoordT, dims>& 
 // =======================
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-RTree<CoordT, dims, PayloadT>::TreeEntry::TreeEntry() : ElemBoundingBox(), payload() { }
+RStarTree<CoordT, dims, PayloadT>::TreeEntry::TreeEntry() : ElemBoundingBox(), payload() { }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-RTree<CoordT, dims, PayloadT>::TreeNode::TreeNode() : ElemBoundingBox(), level(0), num_children(0) {
+RStarTree<CoordT, dims, PayloadT>::TreeNode::TreeNode() : ElemBoundingBox(), level(0), num_children(0) {
   child_slots.fill(0);
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RTree<CoordT, dims, PayloadT>::TreeNode::add_child(std::size_t child_slot) {
+void RStarTree<CoordT, dims, PayloadT>::TreeNode::add_child(std::size_t child_slot) {
   assert(num_children <= MAX_NODESIZE);
   child_slots[num_children] = child_slot;
   num_children++;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-RTree<CoordT, dims, PayloadT>::RTree(std::size_t init_slot_size) : m_root_slot(MemoryPool<TreeNode>::INVALID_SLOT),
+RStarTree<CoordT, dims, PayloadT>::RStarTree(std::size_t init_slot_size) : m_root_slot(MemoryPool<TreeNode>::INVALID_SLOT),
 								   m_nodes(init_slot_size), m_entries(init_slot_size) { }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
+std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
 							   const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
   std::size_t entry_slot = m_entries.get_empty_slot_front();
   TreeEntry& entry = m_entries[entry_slot];
@@ -452,7 +452,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, const std::vector<std::size_t>& entry_slots) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, const std::vector<std::size_t>& entry_slots) {
 
   std::size_t node_slot = m_nodes.get_empty_slot_front();
   TreeNode& node = m_nodes[node_slot];
@@ -471,7 +471,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, con
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
+void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
 						  const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
 
   // Take ownership of the `elem` and store it as an entry in the memory pool
@@ -499,7 +499,7 @@ void RTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_add, std::size_t level_to_insert,
+std::size_t RStarTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_add, std::size_t level_to_insert,
 						       std::size_t start_node_slot, bool first_insert) {  
 
   // Start node: must be above the target level in the tree hierarchy!
@@ -545,7 +545,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_add, 
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::choose_subtree(std::size_t slot_to_add, std::size_t level_to_insert, std::size_t start_node_slot) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::choose_subtree(std::size_t slot_to_add, std::size_t level_to_insert, std::size_t start_node_slot) {
   
   TreeNode& start_node = m_nodes[start_node_slot];
   ElemBoundingBox& bbox_to_add = get_bbox(slot_to_add, level_to_insert);
@@ -570,7 +570,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::choose_subtree(std::size_t slot_to_ad
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::find_min_overlap_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::find_min_overlap_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add) {
 
   TreeNode& node = m_nodes[node_slot];
 
@@ -605,7 +605,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::find_min_overlap_enlargement_child(st
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::find_min_volume_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::find_min_volume_enlargement_child(std::size_t node_slot, const ElemBoundingBox& to_add) {
 
   TreeNode& node = m_nodes[node_slot];
   
@@ -637,7 +637,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::find_min_volume_enlargement_child(std
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::child_overlap_enlargement(std::size_t node_slot, std::size_t child_slot,
+std::size_t RStarTree<CoordT, dims, PayloadT>::child_overlap_enlargement(std::size_t node_slot, std::size_t child_slot,
 												 const ElemBoundingBox& to_add) {
   TreeNode& node = m_nodes[node_slot];
     
@@ -664,7 +664,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::child_overlap_enlargement(std::size_t
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::node_volume_enlargement(std::size_t node_slot, const ElemBoundingBox& to_add) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::node_volume_enlargement(std::size_t node_slot, const ElemBoundingBox& to_add) {
 
   ElemBoundingBox& node_bbox = m_nodes[node_slot];
   ElemBoundingBox extended_node_bbox(node_bbox);
@@ -674,13 +674,13 @@ std::size_t RTree<CoordT, dims, PayloadT>::node_volume_enlargement(std::size_t n
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::node_volume(std::size_t node_slot) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::node_volume(std::size_t node_slot) {
   return m_nodes[node_slot].volume();
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-RTree<CoordT, dims, PayloadT>::ElemBoundingBox&
-RTree<CoordT, dims, PayloadT>::get_bbox(std::size_t slot, std::size_t level) {
+RStarTree<CoordT, dims, PayloadT>::ElemBoundingBox&
+RStarTree<CoordT, dims, PayloadT>::get_bbox(std::size_t slot, std::size_t level) {
 
   if(level == 0) {
     return m_entries[slot];
@@ -691,7 +691,7 @@ RTree<CoordT, dims, PayloadT>::get_bbox(std::size_t slot, std::size_t level) {
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RTree<CoordT, dims, PayloadT>::recalculate_bbox(std::size_t node_slot) {
+void RStarTree<CoordT, dims, PayloadT>::recalculate_bbox(std::size_t node_slot) {
 
   TreeNode& node = m_nodes[node_slot];
   node.reset_bounding_box(); // reset everything ...
@@ -704,7 +704,7 @@ void RTree<CoordT, dims, PayloadT>::recalculate_bbox(std::size_t node_slot) {
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t node_slot, bool first_insert) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t node_slot, bool first_insert) {
 
   // This assumes we are given a node that is overfull and needs to be cleaned up
   assert(m_nodes[node_slot].num_children == MAX_NODESIZE + 1);
@@ -739,7 +739,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t node_s
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RTree<CoordT, dims, PayloadT>::reinsert(std::size_t node_slot) {
+void RStarTree<CoordT, dims, PayloadT>::reinsert(std::size_t node_slot) {
 
   TreeNode& node = m_nodes[node_slot];
   
@@ -779,7 +779,7 @@ void RTree<CoordT, dims, PayloadT>::reinsert(std::size_t node_slot) {
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 
   TreeNode& node = m_nodes[node_slot];
 
@@ -918,7 +918,7 @@ std::size_t RTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-const PayloadT& RTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
+const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
 
   std::cout << "searching for " << coords << std::endl;
   
@@ -962,7 +962,7 @@ const PayloadT& RTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>
 }
 
 // template <class IndexT, class PayloadT, std::size_t dims>
-// void RTree<IndexT, PayloadT, dims>::Rebuild() {
+// void RStarTree<IndexT, PayloadT, dims>::Rebuild() {
 
 //   // implement STL algorithm to rebuild tree
 

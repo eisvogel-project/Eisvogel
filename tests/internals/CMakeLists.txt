@@ -16,5 +16,5 @@ target_link_libraries(testGreensFunction eisvogel)
 add_executable(testDownsampling testDownsampling.cxx)
 target_link_libraries(testDownsampling eisvogel)
 
-add_executable(testRTree testRTree.cxx)
-target_link_libraries(testRTree eisvogel)
+add_executable(testRStarTree testRStarTree.cxx)
+target_link_libraries(testRStarTree eisvogel)

@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "RTree.hh"
+#include "RStarTree.hh"
 #include "Vector.hh"
 
 int main(void) {
@@ -58,7 +58,7 @@ int main(void) {
   constexpr int dims = 3;
   using PayloadT = float;
   
-  RTree<CoordT, dims, PayloadT> tree(100);
+  RStarTree<CoordT, dims, PayloadT> tree(100);
   tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
 
   PayloadT retrieved = tree.Search({5u, 5u, 5u});

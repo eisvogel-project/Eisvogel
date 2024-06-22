@@ -174,7 +174,7 @@ struct BoundingBox {
 // =======================
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-class RTree {
+class RStarTree {
 
   static constexpr float REINSERT_P_FRAC = 0.30;
   static constexpr std::size_t MAX_NODESIZE = 5;
@@ -215,7 +215,7 @@ private:
 public:
 
   // Constructs empty tree and reserves `init_slot_size` slots to hold elements
-  RTree(std::size_t init_slot_size);
+  RStarTree(std::size_t init_slot_size);
 
   // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
   void InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
@@ -300,4 +300,4 @@ private:
   EntryPool m_entries;
 };
 
-#include "RTree.hxx"
+#include "RStarTree.hxx"
