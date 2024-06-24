@@ -19,12 +19,11 @@ Eisvogel is still under development. If you want to help, or just learn more abo
 
 ```
 mkdir build && cd build
-cmake ..
+cmake -DBUILD_MEEP=ON -DBUILD_TESTS=ON ..
 make -j5
-source setup.sh
 ```
 
-To also build the components for the calculation of the Green's function do
+To build the components for the calculation of the Green's function do
 
 ```
 cmake -DBUILD_MEEP=ON ..
