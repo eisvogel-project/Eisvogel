@@ -9,7 +9,7 @@ It uses an electrodynamic Green's function to efficiently propagate radiation th
 
 - All electrodynamic effects are included: no ray-tracing or geometric optics are assumed
 - Supports arbitrary linear, inhomogeneous, anisotropic materials
-- Provides C++ and python APIs to interface to external code
+- Interfaces to CORSIKA 8 to simulate signals from microscopic showers
 
 ## Contact us
 
@@ -19,20 +19,14 @@ Eisvogel is still under development. If you want to help, or just learn more abo
 
 ```
 mkdir build && cd build
-cmake -DBUILD_MEEP=ON -DBUILD_TESTS=ON ..
+cmake -DBUILD_TESTS=ON -DBUILD_EXAMPLES=ON ..
 make -j5
 ```
 
-To build the components for the calculation of the Green's function do
+To also build the components for the calculation of the Green's function do (this requires MEEP to be installed and available)
 
 ```
 cmake -DBUILD_MEEP=ON ..
-```
-
-If you want to build the C++ unit tests, add
-
-```
-cmake -DBUILD_TESTS=ON ..
 ```
 
 ## More information
