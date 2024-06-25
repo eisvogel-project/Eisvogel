@@ -15,11 +15,12 @@ int main(void) {
   RStarTree<CoordT, dims, PayloadT> tree(100);
 
   Vector<CoordT, dims> canvas_start{0u, 0u};
-  Vector<CoordT, dims> canvas_end{20u, 30u};
+  Vector<CoordT, dims> canvas_end{100u, 100u};
   Vector<CoordT, dims> chunk_size{10u, 10u};
-
+  
   auto tree_adder = [&tree](const Vector<CoordT, dims>& chunk_start, const Vector<CoordT, dims>& chunk_end) -> void {
-    tree.InsertElement(3.14, chunk_start, chunk_end);
+    Vector<CoordT, dims> margin(1u);    
+    tree.InsertElement(3.14, chunk_start + margin, chunk_end - margin);
   };  
   IteratorUtils::index_loop_over_chunks(canvas_start, canvas_end, chunk_size, tree_adder);
   

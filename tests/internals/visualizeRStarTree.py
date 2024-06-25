@@ -28,7 +28,7 @@ def visualize_tree(treepath, vizpath):
 
         if entry_type == "Node":
             tree_level = entry["level"]
-            margin = tree_level + 1
+            margin = tree_level * 0.3
             edgecolor = colors[tree_level]
         else:            
             margin = 0
