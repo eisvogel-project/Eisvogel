@@ -6,19 +6,20 @@
 int main(void) {
   
   using CoordT = std::size_t;
-  constexpr int dims = 3;
+  constexpr int dims = 2;  // use a 2-dim tree so that visualizations become easier
   using PayloadT = float;
   
   RStarTree<CoordT, dims, PayloadT> tree(100);
-  tree.InsertElement(3.14, {0u, 0u, 0u}, {10u, 10u, 10u});
+  tree.InsertElement(3.14, {0u, 0u}, {10u, 10u});
+  tree.InsertElement(2 * 3.14, {10u, 0u}, {20u, 10u});
 
   // point query
-  PayloadT retrieved = tree.Search({5u, 5u, 5u});
+  PayloadT retrieved = tree.Search({5u, 5u});
 
   std::cout << "retrieved: " << retrieved << std::endl;
 
   // rectangle query
-  std::vector<std::reference_wrapper<const PayloadT>> res = tree.Search({0u, 0u, 0u}, {5u, 5u, 5u});
+  std::vector<std::reference_wrapper<const PayloadT>> res = tree.Search({0u, 0u}, {5u, 5u});
 
   std::cout << "rectangle query gave " << res.size() << " results" << std::endl;
   for(auto& cur_res: res) {

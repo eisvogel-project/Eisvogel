@@ -1084,6 +1084,7 @@ void RStarTree<CoordT, dims, PayloadT>::dump_node_JSON(TreeNode& node, std::ostr
   stream << "\"type\": \"Node\",\n";
   stream << "\"start_coords\": " << node.start_coords << ",\n";
   stream << "\"end_coords\": " << node.end_coords << ",\n";
+  stream << "\"shape\": " << node.shape << ",\n";
   stream << "\"level\": " << node.level << "\n";
   
   stream << "}";  // end object
@@ -1101,7 +1102,8 @@ void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::o
 
   stream << "\"type\": \"Entry\",\n";
   stream << "\"start_coords\": " << entry.start_coords << ",\n";
-  stream << "\"end_coords\": " << entry.end_coords << "\n";
+  stream << "\"end_coords\": " << entry.end_coords << ",\n";
+  stream << "\"shape\": " << entry.shape << "\n";
   
   stream << "}";  // end object
 }
