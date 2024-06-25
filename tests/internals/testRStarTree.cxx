@@ -2,6 +2,7 @@
 
 #include "RStarTree.hh"
 #include "Vector.hh"
+#include "IteratorUtils.hh"
 
 int main(void) {
   
@@ -10,9 +11,16 @@ int main(void) {
   using PayloadT = float;
   
   RStarTree<CoordT, dims, PayloadT> tree(100);
-  tree.InsertElement(3.14, {0u, 0u}, {10u, 10u});
-  tree.InsertElement(2 * 3.14, {10u, 0u}, {20u, 10u});
 
+  Vector<CoordT, dims> canvas_start{0u, 0u};
+  Vector<CoordT, dims> canvas_end{100u, 100u};
+  Vector<CoordT, dims> chunk_size{10u, 10u};
+
+  auto tree_adder = [&tree](const Vector<CoordT, dims>& chunk_start, const Vector<CoordT, dims>& chunk_end) -> void {
+    tree.InsertElement(3.14, chunk_start, chunk_end);
+  };  
+  IteratorUtils::index_loop_over_chunks(canvas_start, canvas_end, chunk_size, tree_adder);
+  
   // point query
   PayloadT retrieved = tree.Search({5u, 5u});
 

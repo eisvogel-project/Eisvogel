@@ -12,6 +12,9 @@ def visualize_tree(treepath, vizpath):
 
     plot_start_coords = None
     plot_end_coords = None
+
+    colormap = plt.cm.nipy_spectral
+    colors = colormap(np.linspace(0, 1, 10))
     
     for entry in tree:
 
@@ -26,8 +29,10 @@ def visualize_tree(treepath, vizpath):
         if entry_type == "Node":
             tree_level = entry["level"]
             margin = tree_level + 1
-        else:
+            edgecolor = colors[tree_level]
+        else:            
             margin = 0
+            edgecolor = "gray"
 
         start_coords_plot = start_coords - [margin, margin]
         end_coords_plot = end_coords + [margin, margin]
@@ -43,7 +48,7 @@ def visualize_tree(treepath, vizpath):
         plot_end_coords = np.maximum(plot_end_coords, end_coords_plot)
             
         rect = patches.Rectangle(start_coords_plot, shape_plot[0], shape_plot[1],
-                                 linewidth = 1, edgecolor = 'r', facecolor = 'none')
+                                 linewidth = 1, edgecolor = edgecolor, facecolor = 'none')
         ax.add_patch(rect)    
 
     plot_margin = 1
