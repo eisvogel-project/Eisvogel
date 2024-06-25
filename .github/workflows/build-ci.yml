@@ -14,6 +14,7 @@ jobs:
 
     - name: Run clang-format
       run: |
+        echo "Running `clang-format --version`"
         find . -iname '*.hxx' -o -iname '*.hh' -o -iname '*.cpp' -o -iname '*.h' | xargs clang-format --dry-run --Werror --style=file
 
   build_and_test:
