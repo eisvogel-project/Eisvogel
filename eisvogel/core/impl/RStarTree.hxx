@@ -477,12 +477,8 @@ void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
   // Take ownership of the `elem` and store it as an entry in the memory pool
   std::size_t entry_slot = build_new_entry(elem, start_coords, end_coords);
 
-  std::cout << "put new element into slot " << entry_slot << std::endl;
-
   // Insert the entry into the node structure of the tree
   if(m_root_slot == NodePool::INVALID_SLOT) {
-
-    std::cout << "new root node" << std::endl;
     
     // Empty tree: build new root node
     m_root_slot = build_new_node(0, {entry_slot});
@@ -493,9 +489,6 @@ void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
     // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location at level 0 (i.e. as a leaf node)
     insert_slot(entry_slot, 0, m_root_slot, true);
   }
-
-  std::cout << "at end of insert" << std::endl;
-  std::cout << m_nodes[m_root_slot] << std::endl;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -919,27 +912,18 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
-
-  std::cout << "searching for " << coords << std::endl;
   
   std::size_t cur_node_slot = m_root_slot;
   while(true) {
 
     TreeNode& cur_node = m_nodes[cur_node_slot];
-
-    std::cout << "cur _node = " << cur_node << std::endl;
     
     // Iterate over all children in this node
     for(std::size_t i = 0; i < cur_node.num_children; i++) {
       std::size_t cur_child_slot = cur_node.child_slots[i];
-      
-      std::cout << "on child at slot " << cur_child_slot << std::endl;
-      std::cout << "with bbox = " << get_bbox(cur_child_slot, cur_node.level) << std::endl;
-      
+            
       // This is the correct child to follow
       if(get_bbox(cur_child_slot, cur_node.level).contains(coords)) {
-
-	std::cout << "found match" << std::endl;
 	
 	if(cur_node.level == 0) {
 	  
