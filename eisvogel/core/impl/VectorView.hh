@@ -7,10 +7,11 @@
 #include "Common.hh"
 
 // forward declaration
-template<typename T>
+template <typename T>
 concept arithmetic = std::integral<T> or std::floating_point<T>;
 
-template <class T, std::size_t vec_dims> requires arithmetic<T>
+template <class T, std::size_t vec_dims>
+requires arithmetic<T>
 class Vector;
 
 template <typename T, std::size_t vec_dims>
@@ -18,30 +19,41 @@ struct VectorView : public std::span<T, vec_dims> {
 
   // create a view to a memory location described by the iterator `It`
   template <std::forward_iterator It>
-  constexpr VectorView(It first) : std::span<T, vec_dims>(first, vec_dims) { }
-  
+  constexpr VectorView(It first)
+      : std::span<T, vec_dims>(first, vec_dims)
+  {
+  }
+
   // create a view to a given vector
-  constexpr VectorView(Vector<T, vec_dims>& vec) : VectorView(vec.begin()) { }
-  
+  constexpr VectorView(Vector<T, vec_dims>& vec)
+      : VectorView(vec.begin())
+  {
+  }
+
   // copy constructor
-  constexpr VectorView(const VectorView& other) : std::span<T, vec_dims>(other) { }
-  
-  VectorView& operator=(const Vector<T, vec_dims>& other) {
-    std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this -> begin());
+  constexpr VectorView(const VectorView& other)
+      : std::span<T, vec_dims>(other)
+  {
+  }
+
+  VectorView& operator=(const Vector<T, vec_dims>& other)
+  {
+    std::copy_n(std::execution::unseq, other.cbegin(), vec_dims, this->begin());
     return *this;
   }
 
-  VectorView& operator=(const VectorView<T, vec_dims>& other) {
-    std::copy_n(std::execution::unseq, other.begin(), vec_dims, this -> begin());
+  VectorView& operator=(const VectorView<T, vec_dims>& other)
+  {
+    std::copy_n(std::execution::unseq, other.begin(), vec_dims, this->begin());
     return *this;
   }
 
   // printing
-  friend std::ostream& operator<<(std::ostream& stream, const VectorView<T, vec_dims>& view) {
+  friend std::ostream& operator<<(std::ostream& stream,
+                                  const VectorView<T, vec_dims>& view)
+  {
     std::cout << "[ ";
-    for(const T& cur: view) {
-      std::cout << cur << " ";
-    }
+    for (const T& cur : view) { std::cout << cur << " "; }
     std::cout << "]";
     return stream;
   }
@@ -61,7 +73,10 @@ using Vector4DView = VectorView<T, 4>;
 template <typename T>
 struct RZVectorView : public Vector2DView<T> {
   using Vector2DView<T>::Vector2DView;
-  RZVectorView(const Vector2DView<T>& other) : Vector2DView<T>(other) { }
+  RZVectorView(const Vector2DView<T>& other)
+      : Vector2DView<T>(other)
+  {
+  }
 
   static const T& r(const RZVectorView& vec) { return vec[0]; }
   static const T& z(const RZVectorView& vec) { return vec[1]; }
@@ -73,7 +88,10 @@ struct RZVectorView : public Vector2DView<T> {
 template <typename T>
 struct ZRVectorView : public Vector2DView<T> {
   using Vector2DView<T>::Vector2DView;
-  ZRVectorView(const Vector2DView<T>& other) : Vector2DView<T>(other) { }
+  ZRVectorView(const Vector2DView<T>& other)
+      : Vector2DView<T>(other)
+  {
+  }
 
   static const T& z(const ZRVectorView& vec) { return vec[0]; }
   static const T& r(const ZRVectorView& vec) { return vec[1]; }
@@ -85,11 +103,14 @@ struct ZRVectorView : public Vector2DView<T> {
 template <typename T>
 struct RZTVectorView : public Vector3DView<T> {
   using Vector3DView<T>::Vector3DView;
-  RZTVectorView(const Vector3DView<T>& other) : Vector3DView<T>(other) { }
+  RZTVectorView(const Vector3DView<T>& other)
+      : Vector3DView<T>(other)
+  {
+  }
 
-  T& r() { return this -> operator[](0); }
-  T& z() { return this -> operator[](1); }
-  T& t() { return this -> operator[](2); }
+  T& r() { return this->operator[](0); }
+  T& z() { return this->operator[](1); }
+  T& t() { return this->operator[](2); }
 };
 
 // More typedefs (can later turn them into their own types if needed)
