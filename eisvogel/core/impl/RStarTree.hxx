@@ -1023,55 +1023,87 @@ void RStarTree<CoordT, dims, PayloadT>::DumpJSONTreeStructure(std::filesystem::p
   std::ofstream outstream;
   outstream.open(outpath);  
 
+  // Beginning of enclosing list of objects
+  outstream << "[";
+
+  // Dump everything
   if(m_root_slot != NodePool::INVALID_SLOT) {
-    dump_JSON(m_root_slot, outstream);
+    dump_JSON(m_root_slot, outstream, true);
   }
+
+  // Close list with newline at the end of the file
+  outstream << "\n]\n";
   
   outstream.close();
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::dump_JSON(std::size_t node_slot, std::ostream& stream) {
+void RStarTree<CoordT, dims, PayloadT>::dump_JSON(std::size_t node_slot, std::ostream& stream, bool first_obj) {
 
   TreeNode& node = m_nodes[node_slot];
   
   if(node.level == 0) {
 
     // This is a leaf node; dump its own bounding box ...
-    dump_node_JSON(node, stream);
-
+    dump_node_JSON(node, stream, first_obj);
+    
     // ... and all of its entries
     for(std::size_t i = 0; i < node.num_children; i++) {      
       TreeEntry& entry = m_entries[node.child_slots[i]];
-      dump_entry_JSON(entry, stream);
+      dump_entry_JSON(entry, stream, false);
     }
   }
   else {
 
     // This is an internal node in the tree; dump its own bounding box ...
-    dump_node_JSON(node, stream);
+    dump_node_JSON(node, stream, first_obj);
 
     for(std::size_t i = 0; i < node.num_children; i++) {
 
       // ... the bounding boxes of its children ...
       std::size_t child_node_slot = node.child_slots[i];
       TreeNode& child_node = m_nodes[child_node_slot];
-      dump_node_JSON(child_node, stream);
+      dump_node_JSON(child_node, stream, false);
 
       // .. and continue
-      dump_JSON(child_node_slot, stream);
+      dump_JSON(child_node_slot, stream, false);
     }
   }  
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::dump_node_JSON(TreeNode& node, std::ostream& stream) {
+void RStarTree<CoordT, dims, PayloadT>::dump_node_JSON(TreeNode& node, std::ostream& stream, bool first_obj) {
 
+  if(first_obj) {
+    stream << "\n{\n";  // begin object
+  }
+  else {
+    stream << ",\n{\n"; // begin object
+  }
+
+  stream << "\"type\": \"Node\",\n";
+  stream << "\"start_coords\": " << node.start_coords << ",\n";
+  stream << "\"end_coords\": " << node.end_coords << ",\n";
+  stream << "\"level\": " << node.level << "\n";
+  
+  stream << "}";  // end object
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::ostream& stream) {
+void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::ostream& stream, bool first_obj) {
 
+  if(first_obj) {
+    stream << "\n{\n";  // begin object
+  }
+  else {
+    stream << ",\n{\n"; // begin object
+  }
+
+  stream << "\"type\": \"Entry\",\n";
+  stream << "\"start_coords\": " << entry.start_coords << ",\n";
+  stream << "\"end_coords\": " << entry.end_coords << "\n";
+  
+  stream << "}";  // end object
 }
 
 // template <class IndexT, class PayloadT, std::size_t dims>

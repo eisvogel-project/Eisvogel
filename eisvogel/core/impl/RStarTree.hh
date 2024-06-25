@@ -301,11 +301,11 @@ private:
 				       std::vector<std::reference_wrapper<const PayloadT>>& dest);
 
   // Recursively go through the tree starting at `node_slot` and dump nodes and entries
-  void dump_JSON(std::size_t node_slot, std::ostream& stream);
+  void dump_JSON(std::size_t node_slot, std::ostream& stream, bool first_obj);
 
   // Functions to serialize a tree node or tree entry
-  void dump_node_JSON(TreeNode& node, std::ostream& stream);
-  void dump_entry_JSON(TreeEntry& entry, std::ostream& stream);
+  void dump_node_JSON(TreeNode& node, std::ostream& stream, bool first_obj);
+  void dump_entry_JSON(TreeEntry& entry, std::ostream& stream, bool first_obj);
   
 private:
   
