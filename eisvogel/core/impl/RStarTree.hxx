@@ -329,7 +329,7 @@ bool BoundingBox<CoordT, dims>::contains(const Vector<CoordT, dims>& coords) req
 }
 
 template <class CoordT, std::size_t dims>
-bool BoundingBox<CoordT, dims>::overlaps(const BoundingBox<CoordT, dims>& bbox) {
+bool BoundingBox<CoordT, dims>::overlaps(const BoundingBox<CoordT, dims>& bbox) const {
 
   for(std::size_t i = 0; i < dims; i++) {
 
@@ -959,6 +959,55 @@ const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, d
       throw std::runtime_error("Element not found!");
     }
   } 
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+std::vector<std::reference_wrapper<const PayloadT>> RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+
+  // The bounding box within which we will search for leaf entries
+  ElemBoundingBox search_bbox(start_coords, end_coords);
+    
+  std::vector<std::reference_wrapper<const PayloadT>> found_entries;
+
+  if(m_root_slot != NodePool::INVALID_SLOT) {
+    search_overlapping_leaf_and_add(m_root_slot, search_bbox, found_entries);
+  }
+  
+  return found_entries;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
+									std::vector<std::reference_wrapper<const PayloadT>>& dest) {
+
+  TreeNode& node = m_nodes[node_slot];
+
+  if(node.level == 0) {
+
+    // This is a leaf node; check if the bounding boxes of its data entries overlap ...
+    for(std::size_t i = 0; i < node.num_children; i++) {      
+      TreeEntry& entry = m_entries[node.child_slots[i]];
+
+      // ... and, if they do, add them to `dest`
+      if(bbox.overlaps(entry)) {
+	dest.push_back(entry.payload);
+      }
+    }        
+  }
+  else {
+
+    // This is an internal node in the tree; check if the bounding boxes of its children
+    // overlap the search `bbox` ...
+    for(std::size_t i = 0; i < node.num_children; i++) {
+      std::size_t child_node_slot = node.child_slots[i];
+      TreeNode& child_node = m_nodes[child_node_slot];
+
+      // ... and, if they do, continue recursively
+      if(bbox.overlaps(child_node)) {
+	search_overlapping_leaf_and_add(child_node_slot, bbox, dest);
+      }
+    }
+  }
 }
 
 // template <class IndexT, class PayloadT, std::size_t dims>

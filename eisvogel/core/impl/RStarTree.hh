@@ -134,7 +134,7 @@ struct BoundingBox {
   bool contains(const Vector<CoordT, dims>& coords) requires(std::same_as<CoordT, std::size_t>);
 
   // Checks if this bounding box overlaps with the passed `bbox`
-  bool overlaps(const BoundingBox<CoordT, dims>& bbox);
+  bool overlaps(const BoundingBox<CoordT, dims>& bbox) const;
 
   // Volume of this bounding box
   CoordT volume();
@@ -222,8 +222,7 @@ public:
 
   const PayloadT& Search(const Vector<CoordT, dims>& coords);
 
-  // PayloadT& Search(const IndexT& ind);
-  // std::vector<std::reference_wrapper<const PayloadT&>> Search(const IndexT& start_ind, const IndexT& end_ind);
+  std::vector<std::reference_wrapper<const PayloadT>> Search(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
   
   // // Rebuild the tree and rebalance the nodes, if needed
   // void Rebuild();
@@ -286,6 +285,11 @@ private:
 
   // Gets the absolute volume of the node at `node_slot`
   std::size_t node_volume(std::size_t node_slot);
+
+  // Recursively go through the tree starting at `node_slot` and add references to all leaf nodes whose bounding boxes
+  // overlap with `bbox` to the vector at `dest`
+  void search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
+				       std::vector<std::reference_wrapper<const PayloadT>>& dest);
   
 private:
   
