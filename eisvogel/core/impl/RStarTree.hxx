@@ -699,19 +699,35 @@ void RStarTree<CoordT, dims, PayloadT>::recalculate_bbox(std::size_t node_slot) 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t node_slot, bool first_insert) {
 
+  std::cout << "-------" << std::endl;
+  std::cout << "in overflow_treatment" << std::endl;
+  
   // This assumes we are given a node that is overfull and needs to be cleaned up
   assert(m_nodes[node_slot].num_children == MAX_NODESIZE + 1);
   
   // OT1: If we are sitting at a node that is not the root _and_ this is the first call during an insertion, use reinsertion at this level to clean up the overfull node ...
   if((node_slot != m_root_slot) && first_insert) {
+
+    std::cout << "treat overflow by reinsertion" << std::endl;
     
     reinsert(node_slot);
     return NodePool::INVALID_SLOT;
   }
 
+  std::cout << "treat overflow by split" << std::endl;
+  
   // OT1: ... otherwise split the node to distribute its too many children
   std::size_t new_node_slot = split(node_slot);
 
+  std::cout << "split gave new node at slot = " << new_node_slot << std::endl;
+
+  std::cout << "situation after split:" << std::endl;
+  std::cout << "node_slot:" << std::endl;
+  std::cout << m_nodes[node_slot] << std::endl;
+
+  std::cout << "new_node_slot:" << std::endl;
+  std::cout << m_nodes[new_node_slot] << std::endl;
+  
   // If we actually split the root node, create a new root node whose children are `node_slot` and `new_node_slot`
   if(node_slot == m_root_slot) {
 
@@ -723,11 +739,16 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t no
 
     // Update the root node
     m_root_slot = new_root_slot;
+
+    std::cout << "new_root_slot:" << std::endl;
+    std::cout << m_nodes[new_root_slot] << std::endl;
     
     // Already updated the root node, nothing to propagate upwards
     return NodePool::INVALID_SLOT;
   }
 
+  std::cout << "-------" << std::endl;
+  
   return new_node_slot;
 }
 
@@ -1042,15 +1063,9 @@ void RStarTree<CoordT, dims, PayloadT>::dump_JSON(std::size_t node_slot, std::os
     // This is an internal node in the tree; dump its own bounding box ...
     dump_node_JSON(node, stream, first_obj);
 
+    // ... and continue with its children
     for(std::size_t i = 0; i < node.num_children; i++) {
-
-      // ... the bounding boxes of its children ...
-      std::size_t child_node_slot = node.child_slots[i];
-      TreeNode& child_node = m_nodes[child_node_slot];
-      dump_node_JSON(child_node, stream, false);
-
-      // .. and continue
-      dump_JSON(child_node_slot, stream, false);
+      dump_JSON(node.child_slots[i], stream, false);
     }
   }  
 }
@@ -1070,6 +1085,15 @@ void RStarTree<CoordT, dims, PayloadT>::dump_node_JSON(TreeNode& node, std::ostr
   stream << "\"end_coords\": " << node.end_coords << ",\n";
   stream << "\"shape\": " << node.shape << ",\n";
   stream << "\"level\": " << node.level << "\n";
+
+  // // --------------
+  // stream << "\"num_children\": " << node.num_children << ",\n";
+  // stream << "\"child_slots\": ";
+  // for(std::size_t cur_child_slot: node.child_slots) {
+  //   stream << cur_child_slot << ", ";
+  // }  
+  // stream << "\n";
+  // // --------------
   
   stream << "}";  // end object
 }

@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <format>
+
 #include "RStarTree.hh"
 #include "Vector.hh"
 #include "IteratorUtils.hh"
@@ -13,7 +15,7 @@ int main(void) {
   RStarTree<CoordT, dims, PayloadT> tree(100);
 
   Vector<CoordT, dims> canvas_start{0u, 0u};
-  Vector<CoordT, dims> canvas_end{100u, 100u};
+  Vector<CoordT, dims> canvas_end{20u, 30u};
   Vector<CoordT, dims> chunk_size{10u, 10u};
 
   auto tree_adder = [&tree](const Vector<CoordT, dims>& chunk_start, const Vector<CoordT, dims>& chunk_end) -> void {
@@ -34,7 +36,7 @@ int main(void) {
     std::cout << "retrieved: " << cur_res << std::endl;
   }
 
-  tree.DumpJSONTreeStructure("./testtree_structure.yaml");
+  tree.DumpJSONTreeStructure("./testtree_structure_final.yaml");
   
   std::cout << "done" << std::endl;
 }
