@@ -1010,6 +1010,70 @@ void RStarTree<CoordT, dims, PayloadT>::search_overlapping_leaf_and_add(std::siz
   }
 }
 
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::GetAllEntries(std::vector<PayloadT>& dest) {  
+  for(TreeEntry& cur_entry : m_entries) {
+    dest.push_back(cur_entry.payload);
+  }
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::DumpJSONTreeStructure(std::filesystem::path outpath) {
+    
+  std::ofstream outstream;
+  outstream.open(outpath);  
+
+  if(m_root_slot != NodePool::INVALID_SLOT) {
+    dump_JSON(m_root_slot, outstream);
+  }
+  
+  outstream.close();
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::dump_JSON(std::size_t node_slot, std::ostream& stream) {
+
+  TreeNode& node = m_nodes[node_slot];
+  
+  if(node.level == 0) {
+
+    // This is a leaf node; dump its own bounding box ...
+    dump_node_JSON(node, stream);
+
+    // ... and all of its entries
+    for(std::size_t i = 0; i < node.num_children; i++) {      
+      TreeEntry& entry = m_entries[node.child_slots[i]];
+      dump_entry_JSON(entry, stream);
+    }
+  }
+  else {
+
+    // This is an internal node in the tree; dump its own bounding box ...
+    dump_node_JSON(node, stream);
+
+    for(std::size_t i = 0; i < node.num_children; i++) {
+
+      // ... the bounding boxes of its children ...
+      std::size_t child_node_slot = node.child_slots[i];
+      TreeNode& child_node = m_nodes[child_node_slot];
+      dump_node_JSON(child_node, stream);
+
+      // .. and continue
+      dump_JSON(child_node_slot, stream);
+    }
+  }  
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::dump_node_JSON(TreeNode& node, std::ostream& stream) {
+
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::ostream& stream) {
+
+}
+
 // template <class IndexT, class PayloadT, std::size_t dims>
 // void RStarTree<IndexT, PayloadT, dims>::Rebuild() {
 

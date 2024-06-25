@@ -24,6 +24,8 @@ int main(void) {
   for(auto& cur_res: res) {
     std::cout << "retrieved: " << cur_res << std::endl;
   }
+
+  tree.DumpJSONTreeStructure("./testtree_structure.yaml");
   
   std::cout << "done" << std::endl;
 }

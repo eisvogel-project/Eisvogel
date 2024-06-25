@@ -4,6 +4,7 @@
 #include <cassert>
 #include <numeric>
 #include <fstream>
+#include <filesystem>
 #include "Vector.hh"
 
 // Contiguous storage
@@ -220,9 +221,17 @@ public:
   // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
   void InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
+  // Query the tree to find the entry that contains the coordinates `coords`
   const PayloadT& Search(const Vector<CoordT, dims>& coords);
 
+  // Query the tree to find all entries overlapping with the search rectangle bounded by `start_coords` and `end_coords`
   std::vector<std::reference_wrapper<const PayloadT>> Search(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
+
+  // Request all tree entries to be collected in `dest`
+  void GetAllEntries(std::vector<PayloadT>& dest);
+  
+  // Writes the tree structure in JSON format to a new file at `outpath`. Useful for visualization and debugging purposes.
+  void DumpJSONTreeStructure(std::filesystem::path outpath);
   
   // // Rebuild the tree and rebalance the nodes, if needed
   // void Rebuild();
@@ -290,6 +299,13 @@ private:
   // overlap with `bbox` to the vector at `dest`
   void search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
 				       std::vector<std::reference_wrapper<const PayloadT>>& dest);
+
+  // Recursively go through the tree starting at `node_slot` and dump nodes and entries
+  void dump_JSON(std::size_t node_slot, std::ostream& stream);
+
+  // Functions to serialize a tree node or tree entry
+  void dump_node_JSON(TreeNode& node, std::ostream& stream);
+  void dump_entry_JSON(TreeEntry& entry, std::ostream& stream);
   
 private:
   
