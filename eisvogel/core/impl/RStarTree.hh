@@ -27,7 +27,7 @@ public:
   std::size_t get_slot(const T& obj) const;
   
   // Fills copies of the stored elements into the vector at `dest`
-  // void fill_elements(std::vector<T> dest);
+  void fill_elements(std::vector<T>& dest);
   
   // Reset the memory pool
   void reset();
@@ -233,8 +233,8 @@ public:
   // Writes the tree structure in JSON format to a new file at `outpath`. Useful for visualization and debugging purposes.
   void DumpJSONTreeStructure(std::filesystem::path outpath);
   
-  // // Rebuild the tree and rebalance the nodes, if needed
-  // void Rebuild();
+  // Implements sort-tile-recurse (STR) to rebuild the tree once all data elements have been inserted
+  void RebuildSTR();
     
 private:
 

@@ -105,6 +105,15 @@ void MemoryPool<T>::grow() {
 }
 
 template <class T>
+void MemoryPool<T>::fill_elements(std::vector<T>& dest) {
+
+  auto filler = [this, &dest](const std::size_t& slot) -> void {
+    dest.push_back(m_data[slot]);
+  };
+  loop_over_elements_front_to_back(m_alloc_start, filler);  
+}
+
+template <class T>
 bool MemoryPool<T>::is_valid_slot(std::size_t& ind) {
   return (ind != Slot::INVALID) && (ind < m_slots.size());
 }
@@ -1116,17 +1125,34 @@ void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::o
   stream << "}";  // end object
 }
 
-// template <class IndexT, class PayloadT, std::size_t dims>
-// void RStarTree<IndexT, PayloadT, dims>::Rebuild() {
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
 
-//   // implement STL algorithm to rebuild tree
+  // Remove all tree nodes
+  m_root_slot = NodePool::INVALID_SLOT;
+  m_nodes.reset();
 
-//   // 1) get a list of all TreeEntries from the memory pool
-//   // 2) reset both memory pools
-//   // 3) sort the list into groups such that each group goes into one TreeEntry
-//   // 4) rebuild the new tree structure one group at a time:
-//   //    4.1) add the elements in one group to subsequent entries in the entry pool
-//   //    4.2) insert the corresponding nodes into the node pool
+  // Remove the entries from the memory pool
+  // (they will first be sorted and then added back to the pool in the best order;
+  // this optimizes their placement in memory)
+  std::vector<TreeEntry> entries;
+  m_entries.fill_elements(entries);
+  m_entries.reset();
+
+  std::cout << "starting to rebuild tree for " << entries.size() << " entries" << std::endl;
+
+  // Sort `entries` according to the STR criterion such that subsequent elements belong together in the
+  // same (leaf) node of the rebuilt tree
+
+  std::vector<std::size_t> node_slots;
   
-//   // -> also need to reorder the memory pools  
-// }
+  // Go through groups of subsequent entries, add them back to the memory pool and build the layer of
+  // leaf nodes; keep track of the slots for these nodes
+  
+  // Now, iteratively sort the list of node slots according to the STR criterion, build the nodes for the
+  // next layer in the tree, and add these new nodes; stop when only one node remains
+
+  // Set the last remaining node to be the root node of the rebuilt tree
+  
+  exit(1);
+}

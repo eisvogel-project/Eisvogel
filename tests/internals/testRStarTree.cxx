@@ -23,6 +23,8 @@ int main(void) {
     tree.InsertElement(3.14, chunk_start + margin, chunk_end - margin);
   };  
   IteratorUtils::index_loop_over_chunks(canvas_start, canvas_end, chunk_size, tree_adder);
+
+  tree.RebuildSTR();
   
   // point query
   PayloadT retrieved = tree.Search({5u, 5u});
