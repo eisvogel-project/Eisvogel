@@ -182,7 +182,7 @@ template <typename CoordT, std::size_t dims, class PayloadT>
 class RStarTree {
 
   static constexpr float REINSERT_P_FRAC = 0.30;
-  static constexpr std::size_t MAX_NODESIZE = 10;
+  static constexpr std::size_t MAX_NODESIZE = 20;
   static constexpr std::size_t MIN_NODESIZE = 2;
 
   static_assert(MAX_NODESIZE > 1);

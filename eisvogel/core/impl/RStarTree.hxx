@@ -90,6 +90,8 @@ void MemoryPool<T>::free_slot(std::size_t ind) {
 template <class T>
 void MemoryPool<T>::grow() {
 
+  // std::cout << "HHHH grow start" << std::endl;
+  
   // Double the size of the currently-allocated memory
   std::size_t current_size = m_data.size();
   std::size_t new_size = 2 * current_size;
@@ -102,7 +104,9 @@ void MemoryPool<T>::grow() {
   // Mark the new slots as free
   for(std::size_t i = current_size; i < new_size; i++) {
     add_to_slot_list_back(i, m_free_start, m_free_end);
-  }  
+  }
+
+  // std::cout << "HHHH grow end" << std::endl;
 }
 
 template <class T>
@@ -522,8 +526,12 @@ void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
   else {
 
     // Non-empty tree: traverse the tree starting from the root node and insert the new entry at the correct location at level 0 (i.e. as a leaf node)
+    // std::cout << "calling insert_slot" << std::endl;
+    
     insert_slot(entry_slot, 0, m_root_slot, true);
   }
+
+  // std::cout << "finish INsertElement" << std::endl;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -553,19 +561,29 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_a
 					    choose_subtree(slot_to_add, level_to_insert, start_node_slot),
 					    first_insert);
 
+    // std::cout << "JJJ after insert operation at level = " << m_nodes[start_node_slot].level << std::endl;
+    // std::cout << "got new_node_slot = " << new_node_slot << std::endl;
+    
     // Check if a new node was created during the insertion process
     if(new_node_slot == NodePool::INVALID_SLOT) {
 
+      // std::cout << "nothing to do" << std::endl;
+      
       // No new slot created; nothing needs to be done by the caller
       return NodePool::INVALID_SLOT;
     }
 
+    // std::cout << m_nodes[new_node_slot] << std::endl;
+    
     // The downstream insert resulted in a new node at `new_node_slot` that now needs to be added to our `start_node`
     m_nodes[start_node_slot].add_child(new_node_slot);
   }
 
+  // std::cout << "after insert operation at level = " << m_nodes[start_node_slot].level << std::endl;
+  
   // If the procedure above resulted in an overfull start_node, take care of it now
   if(m_nodes[start_node_slot].num_children > MAX_NODESIZE) {
+    // std::cout << "requesting overflow treatmenet" << std::endl;
     return overflow_treatment(start_node_slot, first_insert);
   }
   
@@ -734,8 +752,8 @@ void RStarTree<CoordT, dims, PayloadT>::recalculate_bbox(std::size_t node_slot) 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t node_slot, bool first_insert) {
 
-  std::cout << "-------" << std::endl;
-  std::cout << "in overflow_treatment" << std::endl;
+  // std::cout << "-------" << std::endl;
+  // std::cout << "in overflow_treatment" << std::endl;
   
   // This assumes we are given a node that is overfull and needs to be cleaned up
   assert(m_nodes[node_slot].num_children == MAX_NODESIZE + 1);
@@ -743,25 +761,25 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t no
   // OT1: If we are sitting at a node that is not the root _and_ this is the first call during an insertion, use reinsertion at this level to clean up the overfull node ...
   if((node_slot != m_root_slot) && first_insert) {
 
-    std::cout << "treat overflow by reinsertion" << std::endl;
+    // std::cout << "treat overflow by reinsertion" << std::endl;
     
     reinsert(node_slot);
     return NodePool::INVALID_SLOT;
   }
 
-  std::cout << "treat overflow by split" << std::endl;
+  // std::cout << "treat overflow by split" << std::endl;
   
   // OT1: ... otherwise split the node to distribute its too many children
   std::size_t new_node_slot = split(node_slot);
 
-  std::cout << "split gave new node at slot = " << new_node_slot << std::endl;
+  // std::cout << "split gave new node at slot = " << new_node_slot << std::endl;
 
-  std::cout << "situation after split:" << std::endl;
-  std::cout << "node_slot:" << std::endl;
-  std::cout << m_nodes[node_slot] << std::endl;
+  // std::cout << "situation after split:" << std::endl;
+  // std::cout << "node_slot:" << std::endl;
+  // std::cout << m_nodes[node_slot] << std::endl;
 
-  std::cout << "new_node_slot:" << std::endl;
-  std::cout << m_nodes[new_node_slot] << std::endl;
+  // std::cout << "new_node_slot:" << std::endl;
+  // std::cout << m_nodes[new_node_slot] << std::endl;
   
   // If we actually split the root node, create a new root node whose children are `node_slot` and `new_node_slot`
   if(node_slot == m_root_slot) {
@@ -775,14 +793,14 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::overflow_treatment(std::size_t no
     // Update the root node
     m_root_slot = new_root_slot;
 
-    std::cout << "new_root_slot:" << std::endl;
-    std::cout << m_nodes[new_root_slot] << std::endl;
+    // std::cout << "new_root_slot:" << std::endl;
+    // std::cout << m_nodes[new_root_slot] << std::endl;
     
     // Already updated the root node, nothing to propagate upwards
     return NodePool::INVALID_SLOT;
   }
 
-  std::cout << "-------" << std::endl;
+  // std::cout << "-------" << std::endl;
   
   return new_node_slot;
 }
@@ -822,8 +840,9 @@ void RStarTree<CoordT, dims, PayloadT>::reinsert(std::size_t node_slot) {
   recalculate_bbox(node_slot);
 
   // ... and reinsert them into the tree at the same level from which they were removed, starting at the root node
+  std::size_t insert_level = node.level;
   for(std::size_t entry_slot_to_insert: removed_entry_node_slots) {
-    insert_slot(entry_slot_to_insert, node.level, m_root_slot, false);
+    insert_slot(entry_slot_to_insert, insert_level, m_root_slot, false);
   }
 }
 
@@ -1179,7 +1198,7 @@ void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
   m_entries.fill_elements(entries);
   m_entries.reset();
 
-  std::cout << "starting to rebuild tree for " << entries.size() << " entries" << std::endl;
+  // std::cout << "starting to rebuild tree for " << entries.size() << " entries" << std::endl;
 
   std::vector<std::size_t> node_slots;
   
@@ -1221,17 +1240,17 @@ void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
     
     auto node_adder = [this, &next_node_slots, &cur_level](std::vector<std::size_t>::iterator start, std::vector<std::size_t>::iterator end) -> void {
 
-      std::cout << "adding node at level = " << cur_level << " with " << end - start << " children" << std::endl;
+      // std::cout << "adding node at level = " << cur_level << " with " << end - start << " children" << std::endl;
       
       // Build a new node whose children are the nodes in the passed range from `start` to `end`
       std::size_t node_slot = build_new_node(cur_level, start, end);
       recalculate_bbox(node_slot);
       next_node_slots.push_back(node_slot);
 
-      std::cout << "finished node has " << m_nodes[node_slot].num_children << " children" << std::endl;
+      // std::cout << "finished node has " << m_nodes[node_slot].num_children << " children" << std::endl;
     };
 
-    std::cout << "begin STR: cur_level = " << cur_level << ", num_nodes = " << node_slots.size() << std::endl;
+    // std::cout << "begin STR: cur_level = " << cur_level << ", num_nodes = " << node_slots.size() << std::endl;
     
     // Do the next STR recursion
     sort_STR_and_apply<std::size_t>(node_slots.begin(), node_slots.end(), get_bbox_for_node, node_adder);
@@ -1248,7 +1267,7 @@ void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
     cur_level++;
   }
 
-  std::cout << "FINISH STR RECURSIONS" << std::endl;
+  //  std::cout << "FINISH STR RECURSIONS" << std::endl;
   
   assert(node_slots.size() == 1);
 
@@ -1286,16 +1305,16 @@ constexpr void RStarTree<CoordT, dims, PayloadT>::sort_STR_and_apply_dimension(s
   constexpr std::size_t cur_dim = dims - axis;
   
   // The number of slabs these will be turned into along the current `axis`
-  std::size_t num_slabs = std::ceil(std::pow((float)(num_nodes), 1.0 / (float)(cur_dim)));
+  // std::size_t num_slabs = std::ceil(std::pow((float)(num_nodes), 1.0 / (float)(cur_dim)));
 
   // The number of elements in each slab
   std::size_t elements_per_slab = MAX_NODESIZE * std::ceil(std::pow((float)(num_nodes), (float)(cur_dim - 1) / (float)(cur_dim)));
   
-  std::cout << "now STR'ing along axis = " << axis << std::endl;
-  std::cout << "current dimensionality = " << cur_dim << std::endl;
-  std::cout << "have " << num_bboxes << " bounding boxes that will be grouped into " << num_nodes << " tree nodes" << std::endl;
-  std::cout << "num_slabs along this axis = " << num_slabs << std::endl;
-  std::cout << "elements_per_slab = " << elements_per_slab << std::endl;
+  // std::cout << "now STR'ing along axis = " << axis << std::endl;
+  // std::cout << "current dimensionality = " << cur_dim << std::endl;
+  // std::cout << "have " << num_bboxes << " bounding boxes that will be grouped into " << num_nodes << " tree nodes" << std::endl;
+  // std::cout << "num_slabs along this axis = " << num_slabs << std::endl;
+  // std::cout << "elements_per_slab = " << elements_per_slab << std::endl;
 
   std::size_t slab_begin = 0, slab_end = 0;
   while(slab_begin < num_bboxes) {
