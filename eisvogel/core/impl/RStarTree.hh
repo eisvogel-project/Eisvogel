@@ -302,10 +302,12 @@ private:
   // Gets the absolute volume of the node at `node_slot`
   std::size_t node_volume(std::size_t node_slot);
 
+  std::size_t search_entry(std::size_t node_slot, const Vector<CoordT, dims>& coords);
+  
   // Recursively go through the tree starting at `node_slot` and add references to all leaf nodes whose bounding boxes
   // overlap with `bbox` to the vector at `dest`
-  void search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
-				       std::vector<std::reference_wrapper<const PayloadT>>& dest);
+  void search_overlapping_entry_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
+					std::vector<std::reference_wrapper<const PayloadT>>& dest);
 
   template <typename TT, typename GetterT, typename WorkerT>
   constexpr void sort_STR_and_apply(std::vector<TT>::iterator begin, std::vector<TT>::iterator end, GetterT&& bbox_getter, WorkerT&& worker);

@@ -969,36 +969,50 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 template <typename CoordT, std::size_t dims, class PayloadT>
 const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
   
-  std::size_t cur_node_slot = m_root_slot;
-  while(true) {
+  std::size_t entry_slot = search_entry(m_root_slot, coords);
+  if(entry_slot != NodePool::INVALID_SLOT) {
+    return m_entries[entry_slot].payload;
+  }
 
-    TreeNode& cur_node = m_nodes[cur_node_slot];
+  throw std::runtime_error("Element not found!");
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+std::size_t RStarTree<CoordT, dims, PayloadT>::search_entry(std::size_t node_slot, const Vector<CoordT, dims>& coords) {
+
+  TreeNode& node = m_nodes[node_slot];
+
+  if(node.level == 0) {
+
+    // This is a leaf node; check if any of its entries contains the target
+    for(std::size_t i = 0; i < node.num_children; i++) {
+      std::size_t cur_child_slot = node.child_slots[i];
+      
+      if(m_entries[cur_child_slot].contains(coords)) {
+	return cur_child_slot;
+      }
+    }
+
+    // This leaf node does not contain the entry we're looking for
+    return NodePool::INVALID_SLOT;
+  }
+  else {
     
-    // Iterate over all children in this node
-    for(std::size_t i = 0; i < cur_node.num_children; i++) {
-      std::size_t cur_child_slot = cur_node.child_slots[i];
-            
-      // This is the correct child to follow
-      if(get_bbox(cur_child_slot, cur_node.level).contains(coords)) {
-	
-	if(cur_node.level == 0) {
-	  
-	  // Already at a leaf node, found the entry!
-	  return m_entries[cur_child_slot].payload;
-	}
-	else {
+    for(std::size_t i = 0; i < node.num_children; i++) {
+      std::size_t child_node_slot = node.child_slots[i];
 
-	  // Not yet at the leaf level; continue with the child
-	  cur_node_slot = cur_child_slot;
-	  break;
+      // ... and, if they do, continue recursively
+      if(m_nodes[child_node_slot].contains(coords)) {
+	std::size_t entry_slot = search_entry(child_node_slot, coords);
+	if(entry_slot != NodePool::INVALID_SLOT) {
+	  return entry_slot;
 	}
       }
     }
 
-    if(cur_node.level == 0) {
-      throw std::runtime_error("Element not found!");
-    }
-  } 
+    // None of the children of this node contain the entry we're looking for
+    return NodePool::INVALID_SLOT;
+  }
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -1010,15 +1024,15 @@ std::vector<std::reference_wrapper<const PayloadT>> RStarTree<CoordT, dims, Payl
   std::vector<std::reference_wrapper<const PayloadT>> found_entries;
 
   if(m_root_slot != NodePool::INVALID_SLOT) {
-    search_overlapping_leaf_and_add(m_root_slot, search_bbox, found_entries);
+    search_overlapping_entry_and_add(m_root_slot, search_bbox, found_entries);
   }
   
   return found_entries;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
-									std::vector<std::reference_wrapper<const PayloadT>>& dest) {
+void RStarTree<CoordT, dims, PayloadT>::search_overlapping_entry_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
+									 std::vector<std::reference_wrapper<const PayloadT>>& dest) {
 
   TreeNode& node = m_nodes[node_slot];
 
@@ -1044,7 +1058,7 @@ void RStarTree<CoordT, dims, PayloadT>::search_overlapping_leaf_and_add(std::siz
 
       // ... and, if they do, continue recursively
       if(bbox.overlaps(child_node)) {
-	search_overlapping_leaf_and_add(child_node_slot, bbox, dest);
+	search_overlapping_entry_and_add(child_node_slot, bbox, dest);
       }
     }
   }
