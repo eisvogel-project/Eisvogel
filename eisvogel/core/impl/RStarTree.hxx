@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "MathUtils.hh"
 
 template <class T>
 MemoryPool<T>::MemoryPool(std::size_t init_size) : m_init_size(init_size),
@@ -302,6 +303,15 @@ BoundingBox<CoordT, dims>::BoundingBox(const BoundingBox<CoordT, dims>& bbox_1, 
 }
 
 template <class CoordT, std::size_t dims>
+BoundingBox<CoordT, dims>& BoundingBox<CoordT, dims>::operator=(const BoundingBox<CoordT, dims>& other) {
+  this -> start_coords = other.start_coords;
+  this -> end_coords = other.end_coords;
+  this -> shape = other.shape;
+
+  return *this;
+}
+
+template <class CoordT, std::size_t dims>
 void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
 
   // To take the convex hull, take the elementwise minimum or -maximum of the two start- or end coordinates ...
@@ -448,7 +458,7 @@ RStarTree<CoordT, dims, PayloadT>::RStarTree(std::size_t init_slot_size) : m_roo
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
-							   const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+							       const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
   std::size_t entry_slot = m_entries.get_empty_slot_front();
   TreeEntry& entry = m_entries[entry_slot];
   
@@ -461,7 +471,18 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& e
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, const std::vector<std::size_t>& entry_slots) {
+std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_entry(const TreeEntry& entry) {
+  
+  std::size_t entry_slot = m_entries.get_empty_slot_front();
+  TreeEntry& tree_entry = m_entries[entry_slot];
+  tree_entry = entry;
+
+  return entry_slot;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, std::vector<std::size_t>::const_iterator child_node_slots_start,
+							      std::vector<std::size_t>::const_iterator child_node_slots_end) {
 
   std::size_t node_slot = m_nodes.get_empty_slot_front();
   TreeNode& node = m_nodes[node_slot];
@@ -472,11 +493,16 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level,
 
   // ... and add the children
   node.num_children = 0;
-  for(std::size_t entry_slot: entry_slots) {
-    node.add_child(entry_slot);
+  for(auto cur_it = child_node_slots_start; cur_it != child_node_slots_end; cur_it++) {
+    node.add_child(*cur_it);
   }
 
   return node_slot;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level, const std::vector<std::size_t>& entry_slots) {
+  return build_new_node(level, entry_slots.begin(), entry_slots.end());
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -535,11 +561,11 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::insert_slot(std::size_t slot_to_a
     }
 
     // The downstream insert resulted in a new node at `new_node_slot` that now needs to be added to our `start_node`
-    start_node.add_child(new_node_slot);
+    m_nodes[start_node_slot].add_child(new_node_slot);
   }
 
   // If the procedure above resulted in an overfull start_node, take care of it now
-  if(start_node.num_children > MAX_NODESIZE) {
+  if(m_nodes[start_node_slot].num_children > MAX_NODESIZE) {
     return overflow_treatment(start_node_slot, first_insert);
   }
   
@@ -1141,18 +1167,137 @@ void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
 
   std::cout << "starting to rebuild tree for " << entries.size() << " entries" << std::endl;
 
-  // Sort `entries` according to the STR criterion such that subsequent elements belong together in the
-  // same (leaf) node of the rebuilt tree
-
   std::vector<std::size_t> node_slots;
   
-  // Go through groups of subsequent entries, add them back to the memory pool and build the layer of
-  // leaf nodes; keep track of the slots for these nodes
+  // Build the layer of leaf nodes:
+  // Sort `entries` according to the STR criterion such that subsequent elements belong together in the
+  // same (leaf) node of the rebuilt tree
+  auto get_bbox_for_entry = [](const TreeEntry& entry) -> const ElemBoundingBox& {
+    return entry;
+  };
   
-  // Now, iteratively sort the list of node slots according to the STR criterion, build the nodes for the
-  // next layer in the tree, and add these new nodes; stop when only one node remains
+  auto leaf_node_adder = [this, &node_slots](std::vector<TreeEntry>::iterator start, std::vector<TreeEntry>::iterator end) -> void {
+    std::vector<std::size_t> entry_slots;
 
-  // Set the last remaining node to be the root node of the rebuilt tree
+    // Add the new group of data entries to the memory pool ...
+    for(auto cur = start; cur != end; cur++) {
+      TreeEntry& cur_entry = *cur;
+      std::size_t entry_slot = build_new_entry(cur_entry);
+      entry_slots.push_back(entry_slot);
+    }
+
+    // ... and construct their corresponding leaf node
+    std::size_t node_slot = build_new_node(0, entry_slots);
+    recalculate_bbox(node_slot);
+    node_slots.push_back(node_slot);
+  };
+
+  // Do the first STR recursion, during which we build the new leaf nodes
+  sort_STR_and_apply<TreeEntry>(entries.begin(), entries.end(), get_bbox_for_entry, leaf_node_adder);
+
+  // Now, prepare for the remaining STR recursions, during with the remaining tree nodes will be built  
+  std::vector<std::size_t> next_node_slots; // remaining node slots after the coming iteration
+  std::size_t cur_level = 1; // we are now at the first layer of internal nodes
   
-  exit(1);
+  while(node_slots.size() > 1) {
+
+    auto get_bbox_for_node = [this](std::size_t node_slot) -> const ElemBoundingBox& {
+      return m_nodes[node_slot];
+    };
+    
+    auto node_adder = [this, &next_node_slots, &cur_level](std::vector<std::size_t>::iterator start, std::vector<std::size_t>::iterator end) -> void {
+
+      std::cout << "adding node at level = " << cur_level << " with " << end - start << " children" << std::endl;
+      
+      // Build a new node whose children are the nodes in the passed range from `start` to `end`
+      std::size_t node_slot = build_new_node(cur_level, start, end);
+      recalculate_bbox(node_slot);
+      next_node_slots.push_back(node_slot);
+
+      std::cout << "finished node has " << m_nodes[node_slot].num_children << " children" << std::endl;
+    };
+
+    std::cout << "begin STR: cur_level = " << cur_level << ", num_nodes = " << node_slots.size() << std::endl;
+    
+    // Do the next STR recursion
+    sort_STR_and_apply<std::size_t>(node_slots.begin(), node_slots.end(), get_bbox_for_node, node_adder);
+
+    // The result of this iteration (`next_node_slots`) becomes the input for the next iteration
+    std::swap(node_slots, next_node_slots);
+    next_node_slots.clear();
+
+    // if(cur_level == 1) {
+    //   exit(1);
+    // }
+    
+    // Prepare the next tree layer
+    cur_level++;
+  }
+
+  std::cout << "FINISH STR RECURSIONS" << std::endl;
+  
+  assert(node_slots.size() == 1);
+
+  // Set the root node of the rebuilt tree
+  m_root_slot = node_slots[0];
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+template <typename TT, typename GetterT, typename WorkerT>
+constexpr void RStarTree<CoordT, dims, PayloadT>::sort_STR_and_apply(std::vector<TT>::iterator begin, std::vector<TT>::iterator end, GetterT&& bbox_getter, WorkerT&& worker) {
+  sort_STR_and_apply_dimension<TT, 0>(begin, end, bbox_getter, worker);
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+template <typename TT, std::size_t axis, typename GetterT, typename WorkerT>
+constexpr void RStarTree<CoordT, dims, PayloadT>::sort_STR_and_apply_dimension(std::vector<TT>::iterator begin, std::vector<TT>::iterator end,
+									       GetterT&& bbox_getter, WorkerT&& worker) {
+  static_assert(axis < dims);
+
+  // Sort the entries between `start` and `end` according to their center coordinate in the direction of `axis`
+  auto comp = [&bbox_getter](const TT& elem_a, const TT& elem_b) {
+    ElemBoundingBox bbox_a = bbox_getter(elem_a);
+    ElemBoundingBox bbox_b = bbox_getter(elem_b);    
+    return bbox_a.compute_center()[axis] < bbox_b.compute_center()[axis];
+  };
+  std::sort(begin, end, comp);
+
+  // The number of bounding boxes on which we are operating
+  std::size_t num_bboxes = std::distance(begin, end);
+
+  // The number of nodes (``pages'') these will be grouped into
+  std::size_t num_nodes = MathUtils::IntDivCeil(num_bboxes, MAX_NODESIZE);
+
+  // The current dimensionality of the remaining problem
+  constexpr std::size_t cur_dim = dims - axis;
+  
+  // The number of slabs these will be turned into along the current `axis`
+  std::size_t num_slabs = std::ceil(std::pow((float)(num_nodes), 1.0 / (float)(cur_dim)));
+
+  // The number of elements in each slab
+  std::size_t elements_per_slab = MAX_NODESIZE * std::ceil(std::pow((float)(num_nodes), (float)(cur_dim - 1) / (float)(cur_dim)));
+  
+  std::cout << "now STR'ing along axis = " << axis << std::endl;
+  std::cout << "current dimensionality = " << cur_dim << std::endl;
+  std::cout << "have " << num_bboxes << " bounding boxes that will be grouped into " << num_nodes << " tree nodes" << std::endl;
+  std::cout << "num_slabs along this axis = " << num_slabs << std::endl;
+  std::cout << "elements_per_slab = " << elements_per_slab << std::endl;
+
+  std::size_t slab_begin = 0, slab_end = 0;
+  while(slab_begin < num_bboxes) {
+    slab_end = std::min(slab_begin + elements_per_slab, num_bboxes);
+    
+    if constexpr(axis == dims - 1) {
+      assert(slab_end - slab_begin <= MAX_NODESIZE);
+      
+      // End of recursion, call the `worker` callback on the innermost slabs
+      worker(begin + slab_begin, begin + slab_end);
+    }
+    else {      
+      // Recursively treat each slab across the next axis
+      sort_STR_and_apply_dimension<TT, axis + 1>(begin + slab_begin, begin + slab_end, bbox_getter, worker);
+    }
+    
+    slab_begin = slab_end;
+  }
 }

@@ -16,15 +16,19 @@ int main(void) {
 
   Vector<CoordT, dims> canvas_start{0u, 0u};
   Vector<CoordT, dims> canvas_end{100u, 100u};
-  Vector<CoordT, dims> chunk_size{10u, 10u};
+  Vector<CoordT, dims> chunk_size{20u, 20u};
   
   auto tree_adder = [&tree](const Vector<CoordT, dims>& chunk_start, const Vector<CoordT, dims>& chunk_end) -> void {
-    Vector<CoordT, dims> margin(1u);    
+    Vector<CoordT, dims> margin(5u);    
     tree.InsertElement(3.14, chunk_start + margin, chunk_end - margin);
   };  
   IteratorUtils::index_loop_over_chunks(canvas_start, canvas_end, chunk_size, tree_adder);
 
   tree.RebuildSTR();
+
+  tree.DumpJSONTreeStructure("./testtree_structure_final.yaml");
+
+  std::cout << "finished dumping" << std::endl;
   
   // point query
   PayloadT retrieved = tree.Search({5u, 5u});

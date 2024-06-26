@@ -5,6 +5,7 @@
 #include <numeric>
 #include <fstream>
 #include <filesystem>
+#include <iterator>
 #include "Vector.hh"
 
 // Contiguous storage
@@ -129,6 +130,9 @@ struct BoundingBox {
   
   // Construct a new bounding box as the convex hull of two other bounding boxes `bbox_1` and `bbox_2`
   BoundingBox(const BoundingBox<CoordT, dims>& bbox_1, const BoundingBox<CoordT, dims>& bbox_2);
+
+  // Copy-assignment
+  BoundingBox<CoordT, dims>& operator=(const BoundingBox<CoordT, dims>& other);
   
   // Checks if this bounding box contains the point with `coords`
   bool contains(const Vector<CoordT, dims>& coords);
@@ -249,6 +253,9 @@ private:
   
   // Generators that build new leaves or entries
   std::size_t build_new_entry(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
+  std::size_t build_new_entry(const TreeEntry& entry);
+  std::size_t build_new_node(std::size_t level, std::vector<std::size_t>::const_iterator child_node_slots_start,
+			     std::vector<std::size_t>::const_iterator child_node_slots_end);
   std::size_t build_new_node(std::size_t level, const std::vector<std::size_t>& child_node_slots);
 
   // Insert the element at slot `to_add` (which is not currently in the tree) into the tree at `level`, starting at the node at `start_node_slot`.
@@ -300,6 +307,16 @@ private:
   void search_overlapping_leaf_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
 				       std::vector<std::reference_wrapper<const PayloadT>>& dest);
 
+  template <typename TT, typename GetterT, typename WorkerT>
+  constexpr void sort_STR_and_apply(std::vector<TT>::iterator begin, std::vector<TT>::iterator end, GetterT&& bbox_getter, WorkerT&& worker);
+  
+  // Sorts the range from `start` to `end` in the way prescribed by the STR algorithm along the direction of `axis`,
+  // then recursively calls itself to perform the sort along the next axis
+  // Uses the function `bbox_getter` to fetch the bounding box for each entry in the sort
+  // After the sort, the function `worker` gets applied to lists of at most MAX_NODESIZE elements that should be grouped together
+  template <typename TT, std::size_t axis, typename GetterT, typename WorkerT>
+  constexpr void sort_STR_and_apply_dimension(std::vector<TT>::iterator begin, std::vector<TT>::iterator end, GetterT&& bbox_getter, WorkerT&& worker);
+  
   // Recursively go through the tree starting at `node_slot` and dump nodes and entries
   void dump_JSON(std::size_t node_slot, std::ostream& stream, bool first_obj);
 
