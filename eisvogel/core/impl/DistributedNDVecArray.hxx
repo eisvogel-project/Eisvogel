@@ -491,12 +491,12 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
 }
 
 template <std::size_t dims>
-const ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) const {
+const ChunkIndex<dims>::metadata_t* ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) const {
   return find_chunk_by_index(ind);
 }
 
 template <std::size_t dims>
-ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
+ChunkIndex<dims>::metadata_t* ChunkIndex<dims>::GetChunk(const Vector<std::size_t, dims>& ind) {
 
   // since we are returning a non-const reference to the chunk metadata, assume that the caller indends to modify it and that we need to
   // recompute any cached quantities describing the full chunk index
@@ -691,7 +691,7 @@ id_t ChunkIndex<dims>::get_next_chunk_id() {
 }
 
 template <std::size_t dims>
-ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector<std::size_t, dims>& ind) {
+ChunkIndex<dims>::metadata_t* ChunkIndex<dims>::find_chunk_by_index(const Vector<std::size_t, dims>& ind) {
 
   assert(m_chunk_list.size() > 0);
   
@@ -699,7 +699,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector
   metadata_t& last_accessed_chunk = m_chunk_list[m_last_accessed_ind];
   if(is_in_chunk(last_accessed_chunk, ind)) {
     [[likely]];
-    return last_accessed_chunk;
+    return &last_accessed_chunk;
   }
   
   // If not, trigger full chunk lookup
@@ -708,11 +708,11 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector
     metadata_t& cur_chunk = m_chunk_list[chunk_ind];
     if(is_in_chunk(cur_chunk, ind)) {
       m_last_accessed_ind = chunk_ind;
-      return cur_chunk;
+      return &cur_chunk;
     }
   }
 
-  throw std::logic_error("Error: no chunk found!");
+  return nullptr;
 }
 
 template <std::size_t dims>
@@ -850,12 +850,12 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   ind_existing_chunk[axis] -= 1;
   
   // Get the metadata describing that chunk
-  metadata_t& meta = m_index.GetChunk(ind_existing_chunk);
+  metadata_t* meta = m_index.GetChunk(ind_existing_chunk);
 
   // std::cout << "BBBB before append: \n" << meta << std::endl;
   
   // Perform the appending operation
-  m_cache.template AppendSlice<axis>(meta, slice);
+  m_cache.template AppendSlice<axis>(*meta, slice);
 
   // std::cout << "BBBB after append: \n" << meta << std::endl;
 
@@ -871,13 +871,13 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 ChunkLibrary<ArrayT, T, dims, vec_dims>::view_t ChunkLibrary<ArrayT, T, dims, vec_dims>::operator[](const ind_t& ind) {
 
   // Find chunk that holds the element with the required index
-  const metadata_t& meta = m_index.GetChunk(ind);
+  const metadata_t* meta = m_index.GetChunk(ind);
   
   // Retrieve the chunk
-  const chunk_t& chunk = m_cache.RetrieveChunk(meta);
+  const chunk_t& chunk = m_cache.RetrieveChunk(*meta);
 
   // Convert to chunk-local index and fetch the element from the chunk
-  return chunk[ind - meta.loc_ind_offset];
+  return chunk[ind - meta -> loc_ind_offset];
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,

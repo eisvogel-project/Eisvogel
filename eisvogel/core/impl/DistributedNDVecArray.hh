@@ -94,8 +94,8 @@ public:
   metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape, std::size_t overlap);
   
   // get chunk that contains the element with index `ind`
-  const metadata_t& GetChunk(const Vector<std::size_t, dims>& ind) const;
-  metadata_t& GetChunk(const Vector<std::size_t, dims>& ind);
+  const metadata_t* GetChunk(const Vector<std::size_t, dims>& ind) const;
+  metadata_t* GetChunk(const Vector<std::size_t, dims>& ind);
 
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
   std::vector<std::reference_wrapper<const metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
@@ -137,7 +137,7 @@ private:
   Vector<std::size_t, dims> calculate_start_ind();
   Vector<std::size_t, dims> calculate_end_ind();
   
-  metadata_t& find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
+  metadata_t* find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
   id_t get_next_chunk_id();
   
   void load_and_rebuild_index();
