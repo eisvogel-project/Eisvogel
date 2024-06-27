@@ -17,7 +17,7 @@ namespace GreensFunctionCalculator::MEEP {
     
   public:
     
-    CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end);
+    CylindricalGreensFunctionCalculator(CylinderGeometry& geom, Antenna& antenna, scalar_t t_end);
     
     void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
 		   double courant_factor = 0.5, double resolution = 24, double pml_width = 1.0, std::size_t downsampling_on_disk = 2);
@@ -37,7 +37,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     scalar_t m_t_end;
     CylinderGeometry& m_geom;
-    const Antenna& m_antenna;
+    Antenna& m_antenna;
     
     std::shared_ptr<RZTCoordVector> m_start_coords;
     std::shared_ptr<RZTCoordVector> m_end_coords;

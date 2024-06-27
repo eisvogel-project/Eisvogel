@@ -357,6 +357,14 @@ namespace GreensFunctionCalculator::MEEP {
     std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
     std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
     std::shared_ptr<meep::fields> meep_f = std::make_shared<meep::fields>(meep_s.get());
+
+    // Get the absolute value of the Green's function correct
+    scalar_t magic_number = 0.11f;
+
+    // A "point source" in MEEP has a size of 1 voxel, i.e. 1 / resolution in MEEP units,
+    // but later in the integration code we assume ds = 1 as the size of the infinitesimal dipole
+    scalar_t feed_current_scale_factor = resolution * magic_number;
+    m_antenna.SetScaleFactor(feed_current_scale_factor);
     
     m_antenna.AddToGeometry(*meep_f, m_geom);
     
@@ -421,7 +429,7 @@ namespace GreensFunctionCalculator::MEEP {
     darr.Move(outdir);  
   }
   
-  CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, const Antenna& antenna, scalar_t t_end) :
+  CylindricalGreensFunctionCalculator::CylindricalGreensFunctionCalculator(CylinderGeometry& geom, Antenna& antenna, scalar_t t_end) :
     m_t_end(t_end), m_geom(geom), m_antenna(antenna) {
     
     m_start_coords = std::make_shared<RZTCoordVector>((scalar_t)0.0, geom.GetZMin(), (scalar_t)0.0);
