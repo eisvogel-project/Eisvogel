@@ -180,7 +180,7 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
 template <class KernelT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-						 std::vector<scalar_t>& signal) {
+						 std::vector<scalar_t>& signal, Green::OutOfBoundsBehavior oob_mode) {
 
   // std::cout << "HH in apply_accumulate HH" << std::endl;
   
@@ -312,7 +312,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	
 	auto block_result = signal.begin() + block_sample_ind_start;	
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
-					  quadrature_weights[i_pt] * itgr_step * (-1.0));  // negative sign from how Green's function is defined
+					  quadrature_weights[i_pt] * itgr_step * (-1.0), oob_mode);  // negative sign from how Green's function is defined
 
 	// std::cout << " . . . . . . . . " << std::endl;
       }
@@ -324,7 +324,8 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 
 template <class KernelT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight) {
+							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight,
+							 Green::OutOfBoundsBehavior oob_mode) {
 
   // Buffer to hold the interpolated values
   // TODO: check if this reallocation is slow
@@ -347,6 +348,12 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // Fetch the chunk that contains this current location ...
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
     const metadata_t* meta = m_index.GetChunk(cur_ind);
+
+    // (Silently) ignore (part of) this track if this is what we're asked to do
+    if((oob_mode == Green::OutOfBoundsBehavior::Ignore) && (meta == nullptr)) {
+      std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
+      return;
+    }
 
     // TODO; if meta.chunk_type == ChunkType.all_null, simply skip everything else and jump to the next chunk
     
