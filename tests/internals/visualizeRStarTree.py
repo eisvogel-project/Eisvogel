@@ -28,11 +28,20 @@ def visualize_tree(treepath, vizpath):
 
         if entry_type == "Node":
             tree_level = entry["level"]
-            margin = tree_level * 0.3
+            margin = (tree_level + 1) * 0.3
             edgecolor = colors[tree_level]
+
+            # if tree_level != 1 and tree_level != 0:
+            #     continue
+
+            # if tree_level != 2 and tree_level != 1 and tree_:
+            #     continue
+            
         else:            
             margin = 0
             edgecolor = "gray"
+
+            continue;
 
         start_coords_plot = start_coords - [margin, margin]
         end_coords_plot = end_coords + [margin, margin]
@@ -48,12 +57,17 @@ def visualize_tree(treepath, vizpath):
         plot_end_coords = np.maximum(plot_end_coords, end_coords_plot)
             
         rect = patches.Rectangle(start_coords_plot, shape_plot[0], shape_plot[1],
-                                 linewidth = 1, edgecolor = edgecolor, facecolor = 'none')
+                                 linewidth = tree_level / 2, edgecolor = edgecolor, facecolor = 'none',
+                                 zorder = tree_level)
         ax.add_patch(rect)    
 
     plot_margin = 1
     ax.set_xlim(plot_start_coords[0] - plot_margin, plot_end_coords[0] + plot_margin)
     ax.set_ylim(plot_start_coords[1] - plot_margin, plot_end_coords[1] + plot_margin)
+
+    # ax.set_xlim(2000, 3000)
+    # ax.set_ylim(2000, 3000)
+    
     fig.savefig(vizpath)
         
 if __name__ == "__main__":
