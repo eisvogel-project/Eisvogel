@@ -761,6 +761,9 @@ void ChunkIndex<dims>::calculate_and_cache_index_metadata() {
   // fetch start and end indices
   m_start_ind = m_chunk_tree.GetBoundingBox().start_coords;
   m_end_ind = m_chunk_tree.GetBoundingBox().end_coords;
+
+  std::cout << "start_ind = " << m_start_ind << std::endl;
+  std::cout << "end_ind = " << m_end_ind << std::endl;
   
   // check if the total inferred shape is consistent with the total number of elements contained in all chunks:
   // if so, then all chunks taken together define a contiguous region
@@ -772,10 +775,13 @@ void ChunkIndex<dims>::calculate_and_cache_index_metadata() {
   
   std::size_t elements_in_chunks = 0;
   auto chunk_volume_adder = [&](metadata_t& cur_chunk) -> void {
-    elements_in_chunks += number_elements(cur_chunk.end_ind - cur_chunk.start_ind);    
+    elements_in_chunks += number_elements(cur_chunk.end_ind - cur_chunk.start_ind);
   };
   m_chunk_tree.Apply(chunk_volume_adder);
 
+  std::cout << "elements_from_shape = " << elements_from_shape << std::endl;
+  std::cout << "elements_in_chunks = " << elements_in_chunks << std::endl;
+  
   // have a contiguous region that is worth assigning a certain shape
   if(elements_in_chunks == elements_from_shape) {
     m_shape = m_end_ind - m_start_ind;

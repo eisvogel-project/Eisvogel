@@ -1137,7 +1137,7 @@ BoundingBox<CoordT, dims> RStarTree<CoordT, dims, PayloadT>::GetBoundingBox() {
     return ElemBoundingBox(0u, 0u);
   }
 
-  return m_entries[m_root_slot];
+  return m_nodes[m_root_slot];
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>

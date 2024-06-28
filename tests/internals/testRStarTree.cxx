@@ -129,6 +129,10 @@ int main(void) {
   // Put some entries into the tree
   fill_tree(tree, start, end, chunk_shape, tree_payload_calculator);
 
+  // Make sure the bounding box is correct
+  assert(start == tree.GetBoundingBox().start_coords);
+  assert(end == tree.GetBoundingBox().end_coords);
+  
   // Retrieve the values and check them
   check_tree_element_query(tree, start, end, chunk_shape, tree_payload_calculator);
   check_tree_range_query(tree, start, end, chunk_shape, tree_payload_calculator);
