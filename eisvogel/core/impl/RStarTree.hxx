@@ -998,24 +998,25 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
+PayloadT* RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
 
   // First check if we're asked to search for the same entry again ...
   if(m_last_accessed_entry_slot != EntryPool::INVALID_SLOT) {
 
     // ... and if so, simply return it without running a full search
     if(m_entries[m_last_accessed_entry_slot].contains(coords)) {
-      return m_entries[m_last_accessed_entry_slot].payload;
+      return &m_entries[m_last_accessed_entry_slot].payload;
     }
   }
   
   std::size_t entry_slot = search_entry(m_root_slot, coords);
   if(entry_slot != NodePool::INVALID_SLOT) {
     m_last_accessed_entry_slot = entry_slot;
-    return m_entries[entry_slot].payload;
+    return &m_entries[entry_slot].payload;
   }
 
-  throw std::runtime_error("Element not found!");
+  // No entry found
+  return nullptr;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -1106,6 +1107,15 @@ void RStarTree<CoordT, dims, PayloadT>::search_overlapping_entry_and_add(std::si
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
+template <typename CallableT>
+void RStarTree<CoordT, dims, PayloadT>::Apply(CallableT&& worker) {
+  auto tree_worker = [&](TreeEntry& entry) -> void {
+    worker(entry.payload);
+  };
+  m_entries.apply(tree_worker);
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
 void RStarTree<CoordT, dims, PayloadT>::GetAllEntries(std::vector<PayloadT>& dest) {
 
   auto dest_filler = [&dest](TreeEntry& entry) -> void {
@@ -1117,6 +1127,17 @@ void RStarTree<CoordT, dims, PayloadT>::GetAllEntries(std::vector<PayloadT>& des
   // for(TreeEntry& cur_entry : m_entries) {
   //   dest.push_back(cur_entry.payload);
   // }
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+BoundingBox<CoordT, dims> RStarTree<CoordT, dims, PayloadT>::GetBoundingBox() {
+
+  if(m_root_slot == NodePool::INVALID_SLOT) {
+    [[unlikely]]
+    return ElemBoundingBox(0u, 0u);
+  }
+
+  return m_entries[m_root_slot];
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -1219,6 +1240,11 @@ void RStarTree<CoordT, dims, PayloadT>::Clear() {
   m_entries.reset();
   m_last_accessed_entry_slot = EntryPool::INVALID_SLOT;
   m_root_slot = NodePool::INVALID_SLOT;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+bool RStarTree<CoordT, dims, PayloadT>::Empty() {
+  return m_root_slot == NodePool::INVALID_SLOT;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>

@@ -68,7 +68,7 @@ void check_tree_element_query(TreeT& to_check, const Vector<std::size_t, dims>& 
 
     // Check that everything inside the chunk maps onto the correct value
     auto element_checker = [&](const Vector<std::size_t, dims>& cur_ind) -> void {      
-      PayloadT retrieved = to_check.Search(cur_ind);
+      PayloadT retrieved = *to_check.Search(cur_ind);
       assert(retrieved == truth_val);      
       num_queries++;
     };

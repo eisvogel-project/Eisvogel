@@ -230,18 +230,28 @@ public:
   PayloadT& InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
   // Query the tree to find the entry that contains the coordinates `coords`
-  const PayloadT& Search(const Vector<CoordT, dims>& coords);
+  PayloadT* Search(const Vector<CoordT, dims>& coords);
 
   // Query the tree to find all entries overlapping with the search rectangle bounded by `start_coords` and `end_coords`
   std::vector<std::reference_wrapper<const PayloadT>> Search(const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
   // Request all tree entries to be collected in `dest`
   void GetAllEntries(std::vector<PayloadT>& dest);
+
+  // Get the bounding box of the tree
+  BoundingBox<CoordT, dims> GetBoundingBox();
+  
+  template <typename CallableT>
+  void Apply(CallableT&& worker);
   
   // Writes the tree structure in JSON format to a new file at `outpath`. Useful for visualization and debugging purposes.
   void DumpJSONTreeStructure(std::filesystem::path outpath);
-
+  
+  // Clears everything
   void Clear();
+
+  // Checks if this is an empty tree
+  bool Empty();
   
   // Implements sort-tile-recurse (STR) to rebuild the tree once all data elements have been inserted
   void RebuildSTR();
