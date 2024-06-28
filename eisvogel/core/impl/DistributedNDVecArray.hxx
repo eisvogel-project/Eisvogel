@@ -531,6 +531,19 @@ void ChunkIndex<dims>::UpdateChunkInIndex(const Vector<std::size_t, dims>& previ
 }
 
 template <std::size_t dims>
+void ChunkIndex<dims>::UpdateChunkInIndex(const metadata_t& previous_meta, const metadata_t& updated_meta) {
+
+  // std::cout << "HHH ---------- HHH" << std::endl;
+  // std::cout << "previous_meta:" << std::endl;
+  // std::cout << previous_meta << std::endl;
+  // std::cout << "updated_meta:" << std::endl;
+  // std::cout << updated_meta << std::endl;
+  // std::cout << "HHH ---------- HHH" << std::endl;
+  
+  UpdateChunkInIndex(previous_meta.start_ind, updated_meta);
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
 
   // Fetch all tree entries for easy serialization
@@ -625,8 +638,27 @@ ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
 
 template <std::size_t dims>
 template <typename CallableT>
-void ChunkIndex<dims>::Apply(CallableT&& worker) {
-  return m_chunk_tree.Apply(worker);
+void ChunkIndex<dims>::Map(CallableT&& worker) {
+
+  // `worker` here is meant to modify the chunk metadata (including start and end indices)
+  // The R*-tree is however indexed by these and assumes no overlap between data rectangles.
+  // To prevent upsetting the tree, add the modified metadata descriptions to a new, temporary,
+  // tree that then gets swapped in and replaces the original one.
+  
+  tree_t updated_tree(1);
+
+  // Important: pass-by-value here so that we can let `worker` modify `chunk_meta`
+  // here without side effects on the original `m_chunk_tree`
+  auto mapper = [&](metadata_t chunk_meta) {
+    worker(chunk_meta);
+    updated_tree.InsertElement(chunk_meta, chunk_meta.start_ind, chunk_meta.end_ind);
+  };  
+  m_chunk_tree.Apply(mapper);
+
+  // Put the new tree in place
+  std::swap(updated_tree, m_chunk_tree);
+  
+  invalidate_cached_index_metadata();
 }
 
 template <std::size_t dims>
@@ -1085,10 +1117,13 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::map_over_chunks(CallableT&& worker
     // use the new chunk to replace the old one in the cache
     m_cache.ReplaceChunk(chunk_meta, new_chunk_meta, new_chunk_data);
 
+    // update the metadata information in the chunk index
+    m_index.UpdateChunkInIndex(chunk_meta, new_chunk_meta);
+    
     // record the modification also in the chunk index
     chunk_meta = new_chunk_meta;
   };
-  m_index.Apply(chunk_worker);
+  m_index.Map(chunk_worker);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,

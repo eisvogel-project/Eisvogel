@@ -167,6 +167,9 @@ struct BoundingBox {
   void extend(const BoundingBox<CoordT, dims>& bbox);
   void extend(const Vector<CoordT, dims>& start_coords_to_include, const Vector<CoordT, dims>& end_coords_to_include);
 
+  // Update this bounding box to have new `updated_start_coords` and `updated_end_coords`
+  void update(const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords);
+  
   // Resets this bounding box
   void reset_bounding_box();
 

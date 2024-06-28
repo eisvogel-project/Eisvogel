@@ -342,6 +342,13 @@ void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
 }
 
 template <class CoordT, std::size_t dims>
+void BoundingBox<CoordT, dims>::update(const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords) {
+  start_coords = updated_start_coords;
+  end_coords = updated_end_coords;
+  shape = end_coords - start_coords;
+}
+
+template <class CoordT, std::size_t dims>
 void BoundingBox<CoordT, dims>::reset_bounding_box() {
   start_coords = std::numeric_limits<CoordT>::max();
   end_coords = std::numeric_limits<CoordT>::min();
@@ -557,7 +564,7 @@ void RStarTree<CoordT, dims, PayloadT>::UpdateBoundingBox(const Vector<CoordT, d
 
   // Traverse the tree starting from the root node, updating the root node if required
   if(search_entry_update_bbox(m_root_slot, elem_coords, updated_start_coords, updated_end_coords)) {
-    m_nodes[m_root_slot].extend(updated_start_coords, updated_end_coords);
+    recalculate_bbox(m_root_slot);
   }
 }
 
@@ -575,8 +582,8 @@ bool RStarTree<CoordT, dims, PayloadT>::search_entry_update_bbox(std::size_t nod
 
       if(m_entries[cur_child_slot].contains(elem_coords)) {
 
-	// Found the entry! Extend its bounding box ...
-	m_entries[cur_child_slot].extend(updated_start_coords, updated_end_coords);
+	// Found the entry! Update its bounding box ...
+	m_entries[cur_child_slot].update(updated_start_coords, updated_end_coords);
 
 	// ... and signal upwards that the bounding box of its parent node also needs recalculating
 	return true;
@@ -595,8 +602,8 @@ bool RStarTree<CoordT, dims, PayloadT>::search_entry_update_bbox(std::size_t nod
       // This child node needs to have its bounding box extended
       if(search_entry_update_bbox(child_node_slot, elem_coords, updated_start_coords, updated_end_coords)) {
 
-	// Extend the bounding box ...
-	m_nodes[child_node_slot].extend(updated_start_coords, updated_end_coords);
+	// Update the bounding box ...
+	recalculate_bbox(child_node_slot);
 
 	// ... and signal upwards that the same needs to happen to this node
 	return true;

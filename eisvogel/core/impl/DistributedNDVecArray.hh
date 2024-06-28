@@ -104,11 +104,12 @@ public:
 
   // announces that the description of the chunk previously containing the index `previous_ind` has been updated
   void UpdateChunkInIndex(const Vector<std::size_t, dims>& previous_ind, const metadata_t& updated_meta);
+  void UpdateChunkInIndex(const metadata_t& previous_meta, const metadata_t& updated_meta);
   
   shape_t GetShape();
 
   template <typename CallableT>
-  void Apply(CallableT&& worker);
+  void Map(CallableT&& worker);
   
   // housekeeping and moving operations
   void FlushIndex();
@@ -162,7 +163,8 @@ private:
   ind_t m_end_ind;
   
   // std::vector<metadata_t> m_chunk_list;
-  RStarTree<std::size_t, dims, metadata_t> m_chunk_tree;
+  using tree_t = RStarTree<std::size_t, dims, metadata_t>;
+  tree_t m_chunk_tree;
   std::size_t m_last_accessed_ind;
 };
 
