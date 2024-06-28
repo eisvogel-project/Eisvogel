@@ -326,14 +326,19 @@ BoundingBox<CoordT, dims>& BoundingBox<CoordT, dims>::operator=(const BoundingBo
 }
 
 template <class CoordT, std::size_t dims>
-void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
-
+void BoundingBox<CoordT, dims>::extend(const Vector<CoordT, dims>& start_coords_to_include, const Vector<CoordT, dims>& end_coords_to_include) {
+  
   // To take the convex hull, take the elementwise minimum or -maximum of the two start- or end coordinates ...
-  start_coords = VectorUtils::min(start_coords, bbox.start_coords);
-  end_coords = VectorUtils::max(end_coords, bbox.end_coords);
+  start_coords = VectorUtils::min(start_coords, start_coords_to_include);
+  end_coords = VectorUtils::max(end_coords, end_coords_to_include);
 
   // ... and update the shape
-  shape = end_coords - start_coords;
+  shape = end_coords - start_coords;  
+}
+
+template <class CoordT, std::size_t dims>
+void BoundingBox<CoordT, dims>::extend(const BoundingBox<CoordT, dims>& bbox) {
+  extend(bbox.start_coords, bbox.end_coords);
 }
 
 template <class CoordT, std::size_t dims>
@@ -544,6 +549,63 @@ PayloadT& RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
 
   // std::cout << "finish INsertElement" << std::endl;
   return m_entries[entry_slot].payload;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::UpdateBoundingBox(const Vector<CoordT, dims>& elem_coords,
+							  const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords) {
+
+  // Traverse the tree starting from the root node, updating the root node if required
+  if(search_entry_update_bbox(m_root_slot, elem_coords, updated_start_coords, updated_end_coords)) {
+    m_nodes[m_root_slot].extend(updated_start_coords, updated_end_coords);
+  }
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
+bool RStarTree<CoordT, dims, PayloadT>::search_entry_update_bbox(std::size_t node_slot, const Vector<CoordT, dims>& elem_coords,
+								 const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords) {
+
+  TreeNode& node = m_nodes[node_slot];
+
+  if(node.level == 0) {
+
+    // This is a leaf node, check if any of its entries contain the target
+    for(std::size_t i = 0; i < node.num_children; i++) {
+      std::size_t cur_child_slot = node.child_slots[i];
+
+      if(m_entries[cur_child_slot].contains(elem_coords)) {
+
+	// Found the entry! Extend its bounding box ...
+	m_entries[cur_child_slot].extend(updated_start_coords, updated_end_coords);
+
+	// ... and signal upwards that the bounding box of its parent node also needs recalculating
+	return true;
+      }
+    }
+
+    // This leaf node does not actually contain the element that we want to update; nothing to be done here
+    return false;
+  }
+  else {
+
+    // This is an internal node; check if any of its children need to be updated
+    for(std::size_t i = 0; i < node.num_children; i++) {
+      std::size_t child_node_slot = node.child_slots[i];
+
+      // This child node needs to have its bounding box extended
+      if(search_entry_update_bbox(child_node_slot, elem_coords, updated_start_coords, updated_end_coords)) {
+
+	// Extend the bounding box ...
+	m_nodes[child_node_slot].extend(updated_start_coords, updated_end_coords);
+
+	// ... and signal upwards that the same needs to happen to this node
+	return true;
+      }
+    }
+
+    // This node does not contain the updated element, nothing to be done here
+    return false;
+  }
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>

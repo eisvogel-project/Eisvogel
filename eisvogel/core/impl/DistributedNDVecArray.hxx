@@ -524,6 +524,13 @@ std::vector<std::reference_wrapper<const ChunkMetadata<dims>>> ChunkIndex<dims>:
 }
 
 template <std::size_t dims>
+void ChunkIndex<dims>::UpdateChunkInIndex(const Vector<std::size_t, dims>& previous_ind, const metadata_t& updated_meta) {
+
+  // Simply mirror the new bounding box in the chunk tree
+  m_chunk_tree.UpdateBoundingBox(previous_ind, updated_meta.start_ind, updated_meta.end_ind);
+}
+
+template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
 
   // Fetch all tree entries for easy serialization
@@ -895,6 +902,9 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   // Perform the appending operation
   m_cache.template AppendSlice<axis>(*meta, slice);
 
+  // Make sure the index is also aware we changed the shape of this chunk
+  m_index.UpdateChunkInIndex(ind_existing_chunk, *meta);
+  
   // std::cout << "BBBB after append: \n" << meta << std::endl;
 
   // std::cout << "BBBB retrieved_shape = " << m_cache.RetrieveChunk(meta).GetShape() << ", meta.shape = " << meta.shape << std::endl;

@@ -165,6 +165,7 @@ struct BoundingBox {
   
   // Extends this bounding box (if needed) so that it also contains the passed bounding `bbox`
   void extend(const BoundingBox<CoordT, dims>& bbox);
+  void extend(const Vector<CoordT, dims>& start_coords_to_include, const Vector<CoordT, dims>& end_coords_to_include);
 
   // Resets this bounding box
   void reset_bounding_box();
@@ -229,6 +230,9 @@ public:
   // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
   PayloadT& InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
+  void UpdateBoundingBox(const Vector<CoordT, dims>& elem_coords,
+			 const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords);
+  
   // Query the tree to find the entry that contains the coordinates `coords`
   PayloadT* Search(const Vector<CoordT, dims>& coords);
 
@@ -325,6 +329,11 @@ private:
   void search_overlapping_entry_and_add(std::size_t node_slot, const ElemBoundingBox& bbox,
 					std::vector<std::reference_wrapper<const PayloadT>>& dest);
 
+  // Recursively go through the tree starting at `node_slot` to find the element with coordinates `elem_coords`
+  // Returns `true` if the bounding box of `node_slot` needs to be updated by the caller to contain the `updated_start_coords` and `updated_end_coords`
+  bool search_entry_update_bbox(std::size_t node_slot, const Vector<CoordT, dims>& elem_coords,
+				const Vector<CoordT, dims>& updated_start_coords, const Vector<CoordT, dims>& updated_end_coords);
+  
   template <typename TT, typename GetterT, typename WorkerT>
   constexpr void sort_STR_and_apply(std::vector<TT>::iterator begin, std::vector<TT>::iterator end, GetterT&& bbox_getter, WorkerT&& worker);
   

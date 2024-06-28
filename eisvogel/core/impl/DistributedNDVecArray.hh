@@ -101,6 +101,9 @@ public:
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
   std::vector<std::reference_wrapper<const metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
 								  const Vector<std::size_t, dims>& end_ind);  
+
+  // announces that the description of the chunk previously containing the index `previous_ind` has been updated
+  void UpdateChunkInIndex(const Vector<std::size_t, dims>& previous_ind, const metadata_t& updated_meta);
   
   shape_t GetShape();
 
