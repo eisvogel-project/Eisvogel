@@ -1,6 +1,7 @@
 #include <iostream>
 #include <format>
 #include <random>
+#include <chrono>
 
 #include "RStarTree.hh"
 #include "Vector.hh"
@@ -37,29 +38,50 @@ template <std::size_t dims, class CallableT>
 void fill_tree(TreeT& to_fill, const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind,
 	       const Vector<std::size_t, dims>& chunk_shape, CallableT&& filler) {
 
+  std::cout << "Filling tree ... " << std::endl;
+
+  std::size_t entries_added = 0;
+  
   auto tree_filler = [&](const Vector<std::size_t, dims>& chunk_start_ind, const Vector<std::size_t, dims>& chunk_end_ind) -> void {    
     PayloadT val = filler(chunk_start_ind);
     to_fill.InsertElement(val, chunk_start_ind, chunk_end_ind);
+    
+    entries_added++;
   };
   IteratorUtils::index_loop_over_chunks(start_ind, end_ind, chunk_shape, tree_filler);
+
+  std::cout << "Added " << entries_added << " entries to tree" << std::endl;
 }
 
 template <std::size_t dims, class CallableT>
 void check_tree(TreeT& to_check, const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind,
 		const Vector<std::size_t, dims>& chunk_shape, CallableT&& truth_value_calc) {
 
+  std::cout << "Checking tree entries ..." << std::endl;
+  
   std::size_t entries_checked = 0;
+  std::chrono::microseconds total_duration{0};
   
   auto tree_checker = [&](const Vector<std::size_t, dims>& chunk_start_ind, const Vector<std::size_t, dims>& chunk_end_ind) -> void {
     PayloadT truth_val = truth_value_calc(chunk_start_ind);
-    PayloadT retrieved = to_check.Search(chunk_start_ind);
-    assert(retrieved == truth_val);
 
-    entries_checked++;
+    // Check that everything inside the chunk maps onto the correct value
+    auto element_checker = [&](const Vector<std::size_t, dims>& cur_ind) -> void {      
+      PayloadT retrieved = to_check.Search(cur_ind);
+      assert(retrieved == truth_val);      
+      entries_checked++;
+    };
+
+    auto start = std::chrono::high_resolution_clock::now();
+    IteratorUtils::index_loop_over_elements(chunk_start_ind, chunk_end_ind, element_checker);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto cur_duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);    
+    total_duration += cur_duration;
   };
   IteratorUtils::index_loop_over_chunks(start_ind, end_ind, chunk_shape, tree_checker);
 
-  std::cout << "Visited " << entries_checked << " tree entries" << std::endl;
+  std::cout << "Checked " << entries_checked << " tree entries in " << total_duration
+	    << " -> " << (float)total_duration.count() / (float)entries_checked << " us per query" << std::endl;
 }
 
 int main(void) {
@@ -67,7 +89,7 @@ int main(void) {
   TreeT tree(100);
 
   Vector<CoordT, dims> start(0u);
-  Vector<CoordT, dims> end(100u);
+  Vector<CoordT, dims> end(200u);
   Vector<CoordT, dims> chunk_shape(2u);
 
   auto tree_payload_calculator = [](const Vector<CoordT, dims>& coords) -> PayloadT {
@@ -78,6 +100,14 @@ int main(void) {
   fill_tree(tree, start, end, chunk_shape, tree_payload_calculator);
 
   // Retrieve the values and check them
+  check_tree(tree, start, end, chunk_shape, tree_payload_calculator);
+  check_tree(tree, start, end, chunk_shape, tree_payload_calculator);
+
+  // Rebuild the tree
+  tree.RebuildSTR();
+
+  // Check again
+  check_tree(tree, start, end, chunk_shape, tree_payload_calculator);
   check_tree(tree, start, end, chunk_shape, tree_payload_calculator);
   
   // Vector<CoordT, dims> canvas_start{0u, 0u};
