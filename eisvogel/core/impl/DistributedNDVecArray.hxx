@@ -455,8 +455,9 @@ namespace stor{
 // -------------
 
 template <std::size_t dims>
-ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path) :
-  m_next_chunk_id(0), m_index_path(index_path), m_index_metadata_valid(false), m_shape(0), m_start_ind(0), m_end_ind(0), m_chunk_list(), m_last_accessed_ind(0) {
+ChunkIndex<dims>::ChunkIndex(std::filesystem::path index_path, std::size_t init_size) :
+  m_next_chunk_id(0), m_index_path(index_path), m_index_metadata_valid(false), m_shape(0), m_start_ind(0), m_end_ind(0), m_chunk_list(),
+  m_chunk_tree(init_size), m_last_accessed_ind(0) {
 
   // Already have an index file on disk, load it
   if(std::filesystem::exists(m_index_path)) {
@@ -486,8 +487,10 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
   id_t chunk_id = get_next_chunk_id();
   metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape, overlap);
   
-  m_chunk_list.push_back(chunk_meta);
-  return m_chunk_list.back();
+  // m_chunk_list.push_back(chunk_meta);
+  // return m_chunk_list.back();
+
+  return m_chunk_tree.InsertElement(chunk_meta, chunk_meta.start_ind, chunk_meta.end_ind);
 }
 
 template <std::size_t dims>
@@ -507,24 +510,29 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::GetChunk(const Vector<std::size_
 template <std::size_t dims>
 std::vector<std::reference_wrapper<const ChunkMetadata<dims>>> ChunkIndex<dims>::GetChunks(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& end_ind) {
 
-  std::vector<std::reference_wrapper<const metadata_t>> chunks_found;
+  return m_chunk_tree.Search(start_ind, end_ind);
   
-  // TODO: this will be significantly faster once we can do the lookup in the R-tree instead of through a linear search
-  for(const metadata_t& cur_chunk : m_chunk_list) {
-    if(chunk_overlaps_region(cur_chunk, start_ind, end_ind)) {
-      chunks_found.push_back(cur_chunk);
-    }
-  }
-  return chunks_found;
+  // std::vector<std::reference_wrapper<const metadata_t>> chunks_found;
+  
+  // // TODO: this will be significantly faster once we can do the lookup in the R-tree instead of through a linear search
+  // for(const metadata_t& cur_chunk : m_chunk_list) {
+  //   if(chunk_overlaps_region(cur_chunk, start_ind, end_ind)) {
+  //     chunks_found.push_back(cur_chunk);
+  //   }
+  // }
+  // return chunks_found;
 }
 
 template <std::size_t dims>
 void ChunkIndex<dims>::FlushIndex() {
-  
-  // TODO: requires modifications after switch to R-tree
+
+  // Fetch all tree entries for easy serialization
+  std::vector<metadata_t> chunk_list;
+  m_chunk_tree.GetAllEntries(chunk_list);
+
   std::fstream ofs;
   ofs.open(m_index_path, std::ios::out | std::ios::binary);
-  stor::Traits<std::vector<metadata_t>>::serialize(ofs, m_chunk_list);
+  stor::Traits<std::vector<metadata_t>>::serialize(ofs, chunk_list);
   ofs.close();
 }
 
@@ -554,7 +562,8 @@ void ChunkIndex<dims>::ClearIndex() {
   invalidate_cached_index_metadata();
   m_last_accessed_ind = 0;
   m_shape = 0;
-  m_chunk_list.clear();
+  m_chunk_tree.Clear();
+  //m_chunk_list.clear();
 }
 
 template <std::size_t dims>
@@ -569,11 +578,16 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
   for(metadata_t& cur_meta : index_entries) {
     cur_meta.chunk_id = get_next_chunk_id();
   }
+
+  // Add them to the tree
+  for(metadata_t& cur_meta : index_entries) {
+    m_chunk_tree.InsertElement(cur_meta, cur_meta.start_ind, cur_meta.end_ind);
+  }
   
-  m_chunk_list.insert(m_chunk_list.end(),
-		      std::make_move_iterator(index_entries.begin()),
-		      std::make_move_iterator(index_entries.end())
-		      );
+  // m_chunk_list.insert(m_chunk_list.end(),
+  // 		      std::make_move_iterator(index_entries.begin()),
+  // 		      std::make_move_iterator(index_entries.end())
+  // 		      );
 
   // TODO: rebuild the R-tree based on the new list of chunks
 }
@@ -620,9 +634,16 @@ std::vector<ChunkMetadata<dims>> ChunkIndex<dims>::load_index_entries(std::files
 template <std::size_t dims>
 void ChunkIndex<dims>::load_and_rebuild_index() {
 
-  m_chunk_list.clear();
-  m_chunk_list = load_index_entries(m_index_path);
+  // m_chunk_list.clear();
+  // m_chunk_list = load_index_entries(m_index_path);
 
+  m_chunk_tree.Clear();
+  std::vector<metadata_t> chunk_list = load_index_entries(m_index_path);
+
+  for(metadata_t& cur_meta : chunk_list) {
+    m_chunk_tree.InsertElement(cur_meta, cur_meta.start_ind, cur_meta.end_ind);
+  }
+  
   // TODO: rebuild the R-tree based on the new list of chunks
 }
 
@@ -693,6 +714,8 @@ id_t ChunkIndex<dims>::get_next_chunk_id() {
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::find_chunk_by_index(const Vector<std::size_t, dims>& ind) {
 
+  
+  
   assert(m_chunk_list.size() > 0);
   
   // First check if we're still in the most-recently read chunk  

@@ -44,7 +44,8 @@ void fill_tree(TreeT& to_fill, const Vector<std::size_t, dims>& start_ind, const
   
   auto tree_filler = [&](const Vector<std::size_t, dims>& chunk_start_ind, const Vector<std::size_t, dims>& chunk_end_ind) -> void {    
     PayloadT val = filler(chunk_start_ind);
-    to_fill.InsertElement(val, chunk_start_ind, chunk_end_ind);
+    PayloadT& inserted_val = to_fill.InsertElement(val, chunk_start_ind, chunk_end_ind);
+    assert(inserted_val == val);
     
     entries_added++;
   };

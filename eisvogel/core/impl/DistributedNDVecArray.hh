@@ -8,6 +8,7 @@
 
 #include "Cache.hh"
 #include "Vector.hh"
+#include "RStarTree.hh"
 #include "NDVecArrayStreamer.hh"
 
 enum class ChunkType : std::size_t {
@@ -88,7 +89,7 @@ public:
 public:
 
   // build from stored index file
-  ChunkIndex(std::filesystem::path index_path);
+  ChunkIndex(std::filesystem::path index_path, std::size_t init_size = 100);
   ~ChunkIndex();
 
   metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape, std::size_t overlap);
@@ -156,6 +157,7 @@ private:
   
   // TODO: use R-tree to quickly find the chunks in this list
   std::vector<metadata_t> m_chunk_list;
+  RStarTree<std::size_t, dims, metadata_t> m_chunk_tree;
   std::size_t m_last_accessed_ind;
 };
 

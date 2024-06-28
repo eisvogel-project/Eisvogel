@@ -110,6 +110,16 @@ void MemoryPool<T>::grow() {
 }
 
 template <class T>
+template <typename CallableT>
+void MemoryPool<T>::apply(CallableT&& worker) {
+
+  auto applicator = [&](const std::size_t& slot) -> void {
+    worker(m_data[slot]);
+  };
+  loop_over_elements_front_to_back(m_alloc_start, applicator);
+}
+
+template <class T>
 void MemoryPool<T>::fill_elements(std::vector<T>& dest) {
 
   auto filler = [this, &dest](const std::size_t& slot) -> void {
@@ -458,7 +468,8 @@ void RStarTree<CoordT, dims, PayloadT>::TreeNode::add_child(std::size_t child_sl
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 RStarTree<CoordT, dims, PayloadT>::RStarTree(std::size_t init_slot_size) : m_root_slot(MemoryPool<TreeNode>::INVALID_SLOT),
-								   m_nodes(init_slot_size), m_entries(init_slot_size) { }
+									   m_last_accessed_entry_slot(MemoryPool<TreeEntry>::INVALID_SLOT),
+									   m_nodes(init_slot_size), m_entries(init_slot_size) { }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_entry(const PayloadT& elem,
@@ -510,8 +521,8 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::build_new_node(std::size_t level,
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
-						  const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
+PayloadT& RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
+							   const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords) {
 
   // Take ownership of the `elem` and store it as an entry in the memory pool
   std::size_t entry_slot = build_new_entry(elem, start_coords, end_coords);
@@ -532,6 +543,7 @@ void RStarTree<CoordT, dims, PayloadT>::InsertElement(const PayloadT& elem,
   }
 
   // std::cout << "finish INsertElement" << std::endl;
+  return m_entries[entry_slot].payload;
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -987,9 +999,19 @@ std::size_t RStarTree<CoordT, dims, PayloadT>::split(std::size_t node_slot) {
 
 template <typename CoordT, std::size_t dims, class PayloadT>
 const PayloadT& RStarTree<CoordT, dims, PayloadT>::Search(const Vector<CoordT, dims>& coords) {
+
+  // First check if we're asked to search for the same entry again ...
+  if(m_last_accessed_entry_slot != EntryPool::INVALID_SLOT) {
+
+    // ... and if so, simply return it without running a full search
+    if(m_entries[m_last_accessed_entry_slot].contains(coords)) {
+      return m_entries[m_last_accessed_entry_slot].payload;
+    }
+  }
   
   std::size_t entry_slot = search_entry(m_root_slot, coords);
   if(entry_slot != NodePool::INVALID_SLOT) {
+    m_last_accessed_entry_slot = entry_slot;
     return m_entries[entry_slot].payload;
   }
 
@@ -1084,10 +1106,17 @@ void RStarTree<CoordT, dims, PayloadT>::search_overlapping_entry_and_add(std::si
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
-void RStarTree<CoordT, dims, PayloadT>::GetAllEntries(std::vector<PayloadT>& dest) {  
-  for(TreeEntry& cur_entry : m_entries) {
-    dest.push_back(cur_entry.payload);
-  }
+void RStarTree<CoordT, dims, PayloadT>::GetAllEntries(std::vector<PayloadT>& dest) {
+
+  auto dest_filler = [&dest](TreeEntry& entry) -> void {
+    dest.push_back(entry.payload);
+  };
+  m_entries.apply(dest_filler);
+  
+  // m_entries.fill_elements(dest);
+  // for(TreeEntry& cur_entry : m_entries) {
+  //   dest.push_back(cur_entry.payload);
+  // }
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
@@ -1185,6 +1214,14 @@ void RStarTree<CoordT, dims, PayloadT>::dump_entry_JSON(TreeEntry& entry, std::o
 }
 
 template <typename CoordT, std::size_t dims, class PayloadT>
+void RStarTree<CoordT, dims, PayloadT>::Clear() {
+  m_nodes.reset();
+  m_entries.reset();
+  m_last_accessed_entry_slot = EntryPool::INVALID_SLOT;
+  m_root_slot = NodePool::INVALID_SLOT;
+}
+
+template <typename CoordT, std::size_t dims, class PayloadT>
 void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
 
   // Remove all tree nodes
@@ -1197,6 +1234,7 @@ void RStarTree<CoordT, dims, PayloadT>::RebuildSTR() {
   std::vector<TreeEntry> entries;
   m_entries.fill_elements(entries);
   m_entries.reset();
+  m_last_accessed_entry_slot = EntryPool::INVALID_SLOT;
 
   // std::cout << "starting to rebuild tree for " << entries.size() << " entries" << std::endl;
 

@@ -29,6 +29,10 @@ public:
   
   // Fills copies of the stored elements into the vector at `dest`
   void fill_elements(std::vector<T>& dest);
+
+  // Applies `worker` on all stored elements
+  template <typename CallableT>
+  void apply(CallableT&& worker);
   
   // Reset the memory pool
   void reset();
@@ -223,7 +227,7 @@ public:
   RStarTree(std::size_t init_slot_size);
 
   // Insert a new element into the tree, given the element and the start- and end coordinates of its bounding box
-  void InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
+  PayloadT& InsertElement(const PayloadT& elem, const Vector<CoordT, dims>& start_coords, const Vector<CoordT, dims>& end_coords);
 
   // Query the tree to find the entry that contains the coordinates `coords`
   const PayloadT& Search(const Vector<CoordT, dims>& coords);
@@ -236,6 +240,8 @@ public:
   
   // Writes the tree structure in JSON format to a new file at `outpath`. Useful for visualization and debugging purposes.
   void DumpJSONTreeStructure(std::filesystem::path outpath);
+
+  void Clear();
   
   // Implements sort-tile-recurse (STR) to rebuild the tree once all data elements have been inserted
   void RebuildSTR();
@@ -329,6 +335,7 @@ private:
 private:
   
   std::size_t m_root_slot;
+  std::size_t m_last_accessed_entry_slot;
   
   // Contiguous storage for all internal tree nodes (that define the structure of the tree)
   // and tree leaves (where the data lives)
