@@ -142,8 +142,6 @@ private:
 
   void invalidate_cached_index_metadata();
   void calculate_and_cache_index_metadata();
-  // Vector<std::size_t, dims> calculate_start_ind();
-  // Vector<std::size_t, dims> calculate_end_ind();
   
   metadata_t* find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
   id_t get_next_chunk_id();
@@ -162,7 +160,6 @@ private:
   ind_t m_start_ind;
   ind_t m_end_ind;
   
-  // std::vector<metadata_t> m_chunk_list;
   using tree_t = RStarTree<std::size_t, dims, metadata_t>;
   tree_t m_chunk_tree;
   std::size_t m_last_accessed_ind;
