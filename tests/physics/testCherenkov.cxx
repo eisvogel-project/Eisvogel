@@ -19,7 +19,7 @@ void create_greens_function_analytic(std::filesystem::path outdir, scalar_t filt
   scalar_t ior = 1.0;
     
   // Sampling parameters
-  scalar_t os_factor = 20;
+  scalar_t os_factor = 50;
   scalar_t r_min = 0.1;
   
   GreensFunctionCalculator::Analytic::ElectricDipole(outdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
@@ -44,9 +44,9 @@ void create_greens_function_meep(std::filesystem::path outdir, scalar_t filter_t
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
 
-  CylinderGeometry geom(100, -10, 100, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
   scalar_t t_end = 100;
+  CylinderGeometry geom(100, -10, 100, eps);
+  InfEDipoleAntenna dipole(0.0, 5 * filter_t_peak, 0.0, impulse_response);
 
   std::filesystem::create_directories(scratchdir);
   
@@ -72,15 +72,16 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
   calc.AccumulateSignal(track, t_sig_start, t_sig_samp, num_samples, signal_values);  
 }
 
-void run_test(std::filesystem::path gf_path_analytic, std::filesystem::path gf_path_meep, float rel_th = 8e-5) {
+// Note: very loose tolerance (3e-3) at the moment due to MEEP calculation doing zero-suppression, but analytical calculation not!
+void run_test(std::filesystem::path gf_path_analytic, std::filesystem::path gf_path_meep, float rel_th = 3e-3) {
 
   scalar_t t_start = -5.0;
   scalar_t t_end = 5.0;
-  scalar_t b = 50.0;
+  scalar_t b = 70.0;
   scalar_t beta = 1.2;
 
-  scalar_t t_sig_start = 30.0;
-  scalar_t t_sig_end = 70.0;
+  scalar_t t_sig_start = 60.0;
+  scalar_t t_sig_end = 95.0;
   scalar_t t_sig_samp = 1.0;
   std::size_t num_samples = (t_sig_end - t_sig_start) / t_sig_samp;
 
@@ -95,7 +96,7 @@ void run_test(std::filesystem::path gf_path_analytic, std::filesystem::path gf_p
 
 int main(int argc, char* argv[]) {
 
-  // meep::initialize mpi(argc, argv);
+  meep::initialize mpi(argc, argv);
 
   scalar_t filter_t_peak = 5.0;
   unsigned int filter_order = 4;
