@@ -13,6 +13,7 @@ option(BUILD_MEEP "Also build weighting field creator." OFF)
 option(BUILD_EXTERN "Build external tools." OFF)
 
 add_subdirectory(eisvogel)
+add_subdirectory(applications)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
