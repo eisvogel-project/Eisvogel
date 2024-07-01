@@ -231,11 +231,14 @@ public:
 
   // printing
   friend std::ostream& operator<<(std::ostream& stream, const Vector<T, vec_dims>& vec) {
-    std::cout << "[ ";
-    for(const T& cur: vec) {
-      std::cout << cur << " ";
+    stream << "[";
+    for(std::size_t i = 0; i < vec_dims; i++) {
+      stream << vec.m_data[i];
+      if(i < vec_dims - 1) {
+	stream << ", ";
+      }
     }
-    std::cout << "]";
+    stream << "]";
     return stream;
   }
   
