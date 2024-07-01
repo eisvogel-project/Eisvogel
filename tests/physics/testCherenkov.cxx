@@ -108,8 +108,8 @@ int main(int argc, char* argv[]) {
   std::cout << "Using scratch_dir = " << scratch_dir << std::endl;
   
   // Prepare Green's functions
-  // create_greens_function_analytic(gf_path_analytic, filter_t_peak, filter_order);
-  // create_greens_function_meep(gf_path_meep, filter_t_peak, filter_order, scratch_dir);
+  create_greens_function_analytic(gf_path_analytic, filter_t_peak, filter_order);
+  create_greens_function_meep(gf_path_meep, filter_t_peak, filter_order, scratch_dir);
 
   // Run test
   run_test(gf_path_analytic, gf_path_meep);
