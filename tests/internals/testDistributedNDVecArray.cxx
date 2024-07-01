@@ -234,7 +234,7 @@ int main(int argc, char* argv[]) {
   test_darr_correctness_subscription_op(darr, filler);
 
   std::cout << darr.GetShape() << std::endl;
-  
+
   darr.SwapAxes<0, 2>();
 
   std::cout << darr.GetShape() << std::endl;
