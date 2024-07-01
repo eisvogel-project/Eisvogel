@@ -8,6 +8,7 @@
 
 #include "Cache.hh"
 #include "Vector.hh"
+#include "RStarTree.hh"
 #include "NDVecArrayStreamer.hh"
 
 enum class ChunkType : std::size_t {
@@ -88,21 +89,28 @@ public:
 public:
 
   // build from stored index file
-  ChunkIndex(std::filesystem::path index_path);
+  ChunkIndex(std::filesystem::path index_path, std::size_t init_size = 100);
   ~ChunkIndex();
 
   metadata_t& RegisterChunk(const Vector<std::size_t, dims>& start_ind, const Vector<std::size_t, dims>& shape, std::size_t overlap);
   
   // get chunk that contains the element with index `ind`
-  const metadata_t& GetChunk(const Vector<std::size_t, dims>& ind) const;
-  metadata_t& GetChunk(const Vector<std::size_t, dims>& ind);
+  const metadata_t* GetChunk(const Vector<std::size_t, dims>& ind) const;
+  metadata_t* GetChunk(const Vector<std::size_t, dims>& ind);
 
   // get chunks that, taken together, cover the rectangular region between `start_ind` and `end_ind`
   std::vector<std::reference_wrapper<const metadata_t>> GetChunks(const Vector<std::size_t, dims>& start_ind,
 								  const Vector<std::size_t, dims>& end_ind);  
+
+  // announces that the description of the chunk previously containing the index `previous_ind` has been updated
+  void UpdateChunkInIndex(const Vector<std::size_t, dims>& previous_ind, const metadata_t& updated_meta);
+  void UpdateChunkInIndex(const metadata_t& previous_meta, const metadata_t& updated_meta);
   
   shape_t GetShape();
 
+  template <typename CallableT>
+  void Map(CallableT&& worker);
+  
   // housekeeping and moving operations
   void FlushIndex();
   void MoveIndex(std::filesystem::path new_index_path);
@@ -110,8 +118,8 @@ public:
   void ImportIndex(std::filesystem::path index_path);
   
   // iterators over chunk metadata sets
-  auto begin();
-  auto end();
+  // auto begin();
+  // auto end();
 
 public:
   
@@ -134,10 +142,8 @@ private:
 
   void invalidate_cached_index_metadata();
   void calculate_and_cache_index_metadata();
-  Vector<std::size_t, dims> calculate_start_ind();
-  Vector<std::size_t, dims> calculate_end_ind();
   
-  metadata_t& find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
+  metadata_t* find_chunk_by_index(const Vector<std::size_t, dims>& ind);   
   id_t get_next_chunk_id();
   
   void load_and_rebuild_index();
@@ -154,8 +160,8 @@ private:
   ind_t m_start_ind;
   ind_t m_end_ind;
   
-  // TODO: use R-tree to quickly find the chunks in this list
-  std::vector<metadata_t> m_chunk_list;
+  using tree_t = RStarTree<std::size_t, dims, metadata_t>;
+  tree_t m_chunk_tree;
   std::size_t m_last_accessed_ind;
 };
 

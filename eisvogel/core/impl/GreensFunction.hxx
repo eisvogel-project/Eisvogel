@@ -333,17 +333,17 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     
     // Fetch the chunk that contains this current location ...
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
-    const metadata_t& meta = m_index.GetChunk(cur_ind);
+    const metadata_t* meta = m_index.GetChunk(cur_ind);
 
     // TODO; if meta.chunk_type == ChunkType.all_null, simply skip everything else and jump to the next chunk
     
-    const chunk_t& chunk = m_cache.RetrieveChunk(meta);
+    const chunk_t& chunk = m_cache.RetrieveChunk(*meta);
 
     // Ensure that the overlap on the loaded chunk is large enough for the kernel that we use
-    assert(meta.overlap >= KernelT::support);
+    assert(meta -> overlap >= KernelT::support);
     
     // Check how many of the next samples are determined by the currently-loaded chunk
-    std::size_t chunk_num_samples = (std::size_t)((RZTIndexVector::t(meta.end_ind) - cur_f_ind.t()) / t_samp_f_ind) + 1;
+    std::size_t chunk_num_samples = (std::size_t)((RZTIndexVector::t(meta -> end_ind) - cur_f_ind.t()) / t_samp_f_ind) + 1;
 
     // std::cout << "chunk_num_samples = " << chunk_num_samples << std::endl;
     
@@ -352,7 +352,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 
     // Ensure that we're not going too far (interpolation end point `cur_t_end_f_ind` is exclusive,
     // i.e. can reach up to and including the `end_ind` of the chunk)
-    assert(cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <= RZTIndexVector::t(meta.end_ind));
+    assert(cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <= RZTIndexVector::t(meta -> end_ind));
     
     // std::cout << "HHHHHHHHH" << std::endl;
     // std::cout << meta << std::endl;
@@ -361,7 +361,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // std::cout << "HHHHHHHHH" << std::endl;
        
     // Convert to chunk-local coordinates
-    RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, meta);
+    RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, *meta);
     
     // Perform interpolation
     // TODO: check if computing the inner product right during the interpolation is faster (gets rid of the `interp_buffer`, but computes many more inner products)
