@@ -98,6 +98,9 @@ public:
   // fills this array with the value `other`; also works if this array actually is only a view and doesn't own its data
   NDVecArray<T, dims, vec_dims>& operator=(const T& other);
 
+  // fill the region from `start` to `end` in this array with `value`
+  void fill(const ind_t& start, const ind_t& end, const T& value);
+  
   // copy and fill part of the full array from `other` without changing the shape
   void fill_from(const NDVecArray<T, dims, vec_dims>& other,
 		 const ind_t& input_start, const ind_t& input_end,

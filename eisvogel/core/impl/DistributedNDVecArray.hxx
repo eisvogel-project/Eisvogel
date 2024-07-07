@@ -472,7 +472,8 @@ ChunkIndex<dims>::~ChunkIndex() {
 
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::size_t, dims>& start_ind,
-							      const Vector<std::size_t, dims>& shape, std::size_t overlap) {
+							      const Vector<std::size_t, dims>& shape, std::size_t overlap,
+							      const ChunkType& chunk_type) {
 
   uuid_t uuid_binary;
   uuid_generate_random(uuid_binary);
@@ -485,7 +486,7 @@ ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::
   
   // build metadata object for this chunk
   id_t chunk_id = get_next_chunk_id();
-  metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape, overlap);
+  metadata_t chunk_meta(chunk_type, filename, chunk_id, start_ind, shape, overlap);
 
   return m_chunk_tree.InsertElement(chunk_meta, chunk_meta.start_ind, chunk_meta.end_ind);
 }
@@ -765,7 +766,8 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libd
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap,
+							    const ChunkHints& hints) {
 
   assert(chunk.GetShape() == end_ind - start_ind + 2 * overlap);
   
@@ -1008,16 +1010,17 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::fil
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind) {
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ChunkHints& hints) {
   std::size_t overlap = 0;
   ind_t end_ind = start_ind + chunk.GetShape();
-  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
-  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap,
+								     const ChunkHints& hints) {
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1057,14 +1060,14 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::SwapAxes() {
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
-									    const ind_t& requested_chunk_shape, std::filesystem::path outdir) {
+									    const ind_t& requested_chunk_shape, std::filesystem::path outdir, const ChunkHints& hints) {
 
   // no overlap requested here
   auto error_on_evaluation = []() {
     throw std::logic_error("This should never be encountered!");
   };
   std::size_t overlap = 0;
-  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation);
+  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1072,7 +1075,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
 									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
-									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator) {
+									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
+									    const ChunkHints& hints) {
 
   // prepare the output library containing the rebuilt chunks
   ind_t streamer_chunk_size(stor::INFTY);
@@ -1185,7 +1189,7 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir, std::size_t overlap,
-								     BoundaryCallableT&& boundary_evaluator) {
+								     BoundaryCallableT&& boundary_evaluator, const ChunkHints& hints) {
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
   
@@ -1205,7 +1209,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
-								     std::filesystem::path tmpdir) {
+								     std::filesystem::path tmpdir, const ChunkHints& hints) {
   // no overlap requested here
   auto error_on_evaluation = []() {
     throw std::logic_error("This should never be encountered!");
