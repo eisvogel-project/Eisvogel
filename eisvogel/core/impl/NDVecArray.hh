@@ -98,6 +98,9 @@ public:
   // fills this array with the value `other`; also works if this array actually is only a view and doesn't own its data
   NDVecArray<T, dims, vec_dims>& operator=(const T& other);
 
+  // fill the region from `start` to `end` in this array with `value`
+  void fill(const ind_t& start, const ind_t& end, const T& value);
+  
   // copy and fill part of the full array from `other` without changing the shape
   void fill_from(const NDVecArray<T, dims, vec_dims>& other,
 		 const ind_t& input_start, const ind_t& input_end,
@@ -178,14 +181,8 @@ public:
 					 m_strides, view_offset, m_data);
   }
   
-  bool IsNull(const ind_t& ind) const {
-    for(T& cur : this -> operator[](ind)) {
-      if(cur != 0) {
-	return false;
-      }
-    }
-    return true;
-  }
+  bool IsNull(const ind_t& ind) const;
+  bool IsAllNull() const;
   
   const shape_t& GetShape() const {return m_shape;}
   std::size_t GetVolume() const {return m_volume;}
@@ -287,7 +284,7 @@ private:
 template <typename T, std::size_t dims, std::size_t vec_dims>
 class NDVecArrayNullAware : public NDVecArray<T, dims, vec_dims> {
 
-  // with faster IsNull overload / bookkeeping of fraction of null'ed elements -> to be used in compression step
+  // with faster IsNull and IsAllNull overload / bookkeeping of fraction of null'ed elements -> to be used in compression step
   
 };
 

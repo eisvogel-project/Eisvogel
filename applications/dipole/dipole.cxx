@@ -48,15 +48,16 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/project/avieregg/eisvogel/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice.csv";
+  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
+  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
+  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
 
-  scalar_t geom_r_max = 1000;  // Radial extent of the simulation domain
-  scalar_t geom_z_min = -300;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 300;  // Upper z-coordinate of the simulation domain
-  scalar_t antenna_z = -100;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 1500;  // Last timestep in the simulation
+  scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
+  scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
+  scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  scalar_t t_end = 300;  // Last timestep in the simulation
 
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);
@@ -82,23 +83,31 @@ int main(int argc, char* argv[]) {
     (void)r; // The ice model does (for now) not depend on the radial distance from the antenna
         
     scalar_t ior = lin_interp(z_data, ior_data, z);
-    double eps = std::pow(ior, 2.0);
-    
+    double eps = std::pow(ior, 2.0);    
     return eps;
   };
+
+  // Read impulse response from csv file
+  CSVReader<float> imp_res_file(impulse_response_path);
+  std::vector<float> t_data;
+  std::vector<float> imp_res_data;
+  imp_res_file.read_column(0, t_data);
+  imp_res_file.read_column(1, imp_res_data);
+
+  float imp_res_t_end = t_data.back();
   
-  // A simple `N`-th order low-pass filter with a peaking time of `tp`
-  auto impulse_response = [](scalar_t t) {
-    unsigned int N = 4; // order of filter
-    double tp = 2.0; // peaking time of filter
-    if(t <= 0) {
+  auto impulse_response = [&](scalar_t t) -> scalar_t {
+
+    if((t <= 0) || (t >= imp_res_t_end)) {
       return 0.0;
     }
-    return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
+
+    scalar_t response = lin_interp(t_data, imp_res_data, t);    
+    return response;
   };
   
   CylinderGeometry geom(geom_r_max, geom_z_min, geom_z_max, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, antenna_z, impulse_response);
+  InfEDipoleAntenna dipole(0.0, imp_res_t_end, antenna_z, impulse_response);
 
   GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
   gfc.Calculate(gf_path, scratch_dir, scratch_dir);
