@@ -63,7 +63,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::RemoveChunk(const chunk_meta_t& chun
     m_cache.evict(index);
   }
 
-  // Also remove the chunk from disk
+  // Also remove the chunk from disk, if it exists there
   if(std::filesystem::exists(chunk_meta.filepath)) {
     std::filesystem::remove(chunk_meta.filepath);
   }
@@ -265,17 +265,29 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   insert_location.chunk_meta = chunk_meta;
   insert_location.op_to_perform = CacheStatus::Nothing();  // this chunk is freshly read into the cache, nothing left to be done when it goes out of scope
 
-  // TODO: add check here whether ChunkType is specified or all_null
+  if(chunk_meta.chunk_type == ChunkType::specified) { 
   
-  // Directly deserialize into the cache element
-  std::filesystem::path chunk_path = get_abs_path(chunk_meta.filepath);
-  assert(std::filesystem::exists(chunk_path));
-  
-  std::fstream ifs;
-  ifs.open(chunk_path, std::ios::in | std::ios::binary);
-  ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
-  m_streamer.deserialize(ifs, insert_location.chunk_data);
-  ifs.close();
+    // Directly deserialize into the cache element
+    std::filesystem::path chunk_path = get_abs_path(chunk_meta.filepath);
+    assert(std::filesystem::exists(chunk_path));
+    
+    std::fstream ifs;
+    ifs.open(chunk_path, std::ios::in | std::ios::binary);
+    ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
+    m_streamer.deserialize(ifs, insert_location.chunk_data);
+    ifs.close();
+  }
+  else if(chunk_meta.chunk_type == ChunkType::all_null) {
+
+    // Make sure the cache element has the correct shape ...
+    insert_location.chunk_data.resize(chunk_meta.shape);
+
+    // ... and fill it with zeroes
+    insert_location.chunk_data = (T)(0.0);
+  }
+  else {
+    throw std::logic_error("Unknown `chunk_type` encountered!");
+  }
   
   return insert_location;
 }
@@ -304,6 +316,16 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_with_disk(cache_entry_t& cache_entry) {
 
+  // Nothing needs to be done if this cache entry is marked as containing all zeroes
+  if(cache_entry.chunk_meta.chunk_type == ChunkType::all_null) {
+
+    // Check if everything is consistent
+    assert(cache_entry.chunk_meta.filepath.empty()); // Must not have a path specified
+    assert(std::holds_alternative<CacheStatus::Nothing>(cache_entry.op_to_perform)); // Must nost contain anything on the todo-list for descoping
+    
+    return;
+  }
+  
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   assert(std::filesystem::exists(chunk_path));
   
@@ -337,7 +359,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t&
   // This cache entry does not have a file path attached to it ...
   if(cache_entry.chunk_meta.filepath.empty()) {
 
-    // ... in which case the entries must not be `specified`
+    // ... in which case the entries must not be of `specified` type (otherwise this is an inconsistency)
     assert(cache_entry.chunk_meta.chunk_type != ChunkType::specified);
 
     // Nothing is to be done in this case
@@ -480,17 +502,25 @@ ChunkIndex<dims>::~ChunkIndex() {
   FlushIndex();
 }
 
+namespace {
+
+  std::filesystem::path get_chunkfile_path() {
+    uuid_t uuid_binary;
+    uuid_generate_random(uuid_binary);
+    char uuid_string[36];
+    uuid_unparse(uuid_binary, uuid_string);
+    return std::string(uuid_string);    
+  }  
+};
+
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::size_t, dims>& start_ind,
 							      const Vector<std::size_t, dims>& shape, std::size_t overlap,
 							      const ChunkType& chunk_type) {
 
-  uuid_t uuid_binary;
-  uuid_generate_random(uuid_binary);
-  char uuid_string[36];
-  uuid_unparse(uuid_binary, uuid_string);
-  std::filesystem::path filename = std::string(uuid_string);
-
+  // Request the path to the file that will hold this chunk, if needed
+  std::filesystem::path filename = (chunk_type == ChunkType::specified) ? get_chunkfile_path() : "";
+    
   // adding a new chunk invalidates the previous shape
   invalidate_cached_index_metadata();
   
@@ -821,11 +851,22 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   if(meta -> chunk_type != ChunkType::specified) {
 
     // This is not yet a fully-specified chunk; depending on `hints`, might need to promote it to a fully-specified chunk here
+    
+    // Cases to consider:
+    // 1) If `slice` contains all null, and `hints` has `ENABLE_OPT` set, extend the metadata of this chunk. In this case, no disk activity is actually needed.
+    // 2) If `slice` is not all null, and `hints` has `ENABLE_OPT` set, promote the chunk to `specified`
+    // 3) If `hints` does not have `ENABLE_OPT` set, promote the chunk to `specified` irrespective of its content
+
+    // Promotion of a chunk from `all_null` to `specified` consists of the following steps:
+    // 1) Update of the `chunk_type` in its metadata from `all_null` to `specified`
+    // 2) Generation of a new chunkfile name in the chunk metadata (using `get_chunkfile_path`)
+    // 3) Register the new chunk (containing all zeroes) in the chunk cache (using `RegisterNewChunk` or `RegisterAllNullChunk`)
+    
     throw std::logic_error("Appending to non-fully-specified chunks (`ChunkType::specified`) not implemented yet!");
   }
 
   // For now, restrict slice-appending to chunks that are fully specified on disk
-  // TODO: to be implemented when the need arises
+  // TODO: to be implemented when the need arises (see above), this assertion to be removed once done
   assert(meta -> chunk_type == ChunkType::specified);
   
   // std::cout << "BBBB before append: \n" << meta << std::endl;
