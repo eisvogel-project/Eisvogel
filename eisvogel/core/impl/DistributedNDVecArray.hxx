@@ -783,9 +783,9 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
 
   // Determine which type should be given to this chunk
   ChunkType chunk_type = ChunkType::specified;
-  if(hints & ChunkHints::ENABLE_OPT) {
 
-    // Can run some additional checks and (time-intensive) optimizations for `final` chunks
+  // Can run some additional checks and (time-intensive) optimizations for `final` chunks
+  if(hints & ChunkHints::ENABLE_OPT) {
 
     // Check if this chunk contains only zeroes, in which case we should note that down in the metadata
     if(chunk.IsAllNull()) {
@@ -1180,7 +1180,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
     
     // ... and finally register the thus constructed chunk in the new library under the original start index, and pass on the information about the overlap
-    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap);
+    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap, hints);
   };
   IteratorUtils::index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
@@ -1243,7 +1243,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
   
-  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator);
+  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator, hints);
 
   // Clear the contents of the original library ...
   m_library.ClearLibrary();
@@ -1265,5 +1265,5 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
     throw std::logic_error("This should never be encountered!");
   };
   std::size_t overlap = 0;
-  RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation);
+  RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation, hints);
 }
