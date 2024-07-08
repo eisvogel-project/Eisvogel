@@ -13,7 +13,7 @@
 
 enum ChunkHints : std::size_t {
   NONE = 0x00,
-  FINAL = (0x01 << 0)
+  ENABLE_OPT = (0x01 << 0)  // Enable more extensive (and more expensive!) optimizations of on-disk format
 };
 
 enum class ChunkType : std::size_t {

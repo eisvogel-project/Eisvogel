@@ -783,7 +783,7 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
 
   // Determine which type should be given to this chunk
   ChunkType chunk_type = ChunkType::specified;
-  if(hints & ChunkHints::FINAL) {
+  if(hints & ChunkHints::ENABLE_OPT) {
 
     // Can run some additional checks and (time-intensive) optimizations for `final` chunks
 
