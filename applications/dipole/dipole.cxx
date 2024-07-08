@@ -50,6 +50,7 @@ int main(int argc, char* argv[]) {
 
   std::filesystem::path gf_path = "/project/avieregg/eisvogel/";
   std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice.csv";
+  std::filesystem::path impulse_response_path = "";
   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
 
   scalar_t geom_r_max = 1000;  // Radial extent of the simulation domain
@@ -82,19 +83,25 @@ int main(int argc, char* argv[]) {
     (void)r; // The ice model does (for now) not depend on the radial distance from the antenna
         
     scalar_t ior = lin_interp(z_data, ior_data, z);
-    double eps = std::pow(ior, 2.0);
-    
+    double eps = std::pow(ior, 2.0);    
     return eps;
   };
+
+  // Read impulse response from csv file
+  CSVReader<float> imp_res_file(impulse_response_path);
+  std::vector<float> t_data;
+  std::vector<float> imp_res_data;
+  imp_res_file.read_column(0, t_data);
+  imp_res_file.read_column(1, imp_res_data);
   
-  // A simple `N`-th order low-pass filter with a peaking time of `tp`
-  auto impulse_response = [](scalar_t t) {
-    unsigned int N = 4; // order of filter
-    double tp = 2.0; // peaking time of filter
+  auto impulse_response = [&](scalar_t t) -> scalar_t {
+
     if(t <= 0) {
       return 0.0;
     }
-    return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
+
+    scalar_t response = lin_interp(t_data, imp_res_data, t);
+    return response;
   };
   
   CylinderGeometry geom(geom_r_max, geom_z_min, geom_z_max, eps);
