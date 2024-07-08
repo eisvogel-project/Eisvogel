@@ -117,6 +117,26 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T&
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
+void NDVecArray<T, dims, vec_dims>::fill(const ind_t& start, const ind_t& end, const T& value) {
+
+  // make sure the full range to be filled is available in this array
+  assert(has_index(start));
+  assert(has_index(end));
+
+  // fill the range from `start` to `end` in chunks that are guaranteed to be contiguous in memory
+  Vector<std::size_t, dims> chunk_size(1);
+  chunk_size[dims - 1] = end[dims - 1] - start[dims - 1];
+
+  auto fill_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
+    auto dest = m_data -> begin() + ComputeFlatInd(chunk_begin);
+    std::fill_n(std::execution::unseq, dest, chunk_size[dims - 1] * vec_dims, value);
+  };
+
+  // iterate over all such contiguous chunks
+  IteratorUtils::index_loop_over_chunks(start, end, chunk_size, fill_chunk_contiguous);
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
 void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims>& other,
 					      const ind_t& input_start, const ind_t& input_end, const ind_t& output_start) {
 

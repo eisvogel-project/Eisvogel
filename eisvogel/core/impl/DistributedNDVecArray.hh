@@ -316,7 +316,7 @@ public:
   
   // Append a slice to an existing chunk along a certain axis
   template <std::size_t axis>
-  void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
+  void AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints = ChunkHints::NONE);
   
   // Single-element retrieval
   view_t operator[](const ind_t& ind);
@@ -400,7 +400,7 @@ public:
 		     const ChunkHints& hints = ChunkHints::NONE);
  
   template <std::size_t axis>
-  void AppendSlice(const ind_t& start_ind, const chunk_t& slice);
+  void AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints = ChunkHints::NONE);
 
   shape_t GetShape(){ return m_library.GetShape(); };
 

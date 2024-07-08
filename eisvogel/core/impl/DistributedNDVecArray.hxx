@@ -334,6 +334,16 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t& cache_entry) {
 
+  // This cache entry does not have a file path attached to it ...
+  if(cache_entry.chunk_meta.filepath.empty()) {
+
+    // ... in which case the entries must not be `specified`
+    assert(cache_entry.chunk_meta.chunk_type != ChunkType::specified);
+
+    // Nothing is to be done in this case
+    return;
+  }
+    
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   
   // Handle any outstanding operations before this cache element goes out of scope and may be overwritten
@@ -770,9 +780,19 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
 							    const ChunkHints& hints) {
 
   assert(chunk.GetShape() == end_ind - start_ind + 2 * overlap);
+
+  // Determine which type should be given to this chunk
+  ChunkType chunk_type = ChunkType::specified;
+  if(hints & ChunkHints::FINAL) {
+
+    // Can run some additional checks and (time-intensive) optimizations for `final` chunks
+
+    // Check if this chunk contains only zeroes, in which case we should note that down in the metadata
+    // chunk_type = ChunkType::all_null;
+  }
   
   // Insert new metadata entry into chunk index
-  metadata_t& meta = m_index.RegisterChunk(start_ind, end_ind - start_ind, overlap);
+  metadata_t& meta = m_index.RegisterChunk(start_ind, end_ind - start_ind, overlap, chunk_type);
 
   // Insert new chunk into the cache
   m_cache.RegisterNewChunk(meta, chunk);  
@@ -781,8 +801,12 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints) {
 
+  if(hints != ChunkHints::NONE) {
+    throw std::logic_error("ChunkHints for AppendSlice not implemented yet!");
+  }
+  
   // std::cout << "BBBB appending, start_ind = " << start_ind << ", slice_shape = " << slice.GetShape() << std::endl;
   
   // This is the index of an element in the (existing) chunk the slice should be appended to
@@ -792,6 +816,16 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   // Get the metadata describing that chunk
   metadata_t* meta = m_index.GetChunk(ind_existing_chunk);
 
+  if(meta -> chunk_type != ChunkType::specified) {
+
+    // This is not yet a fully-specified chunk; depending on `hints`, might need to promote it to a fully-specified chunk here
+    throw std::logic_error("Appending to non-fully-specified chunks (`ChunkType::specified`) not implemented yet!");
+  }
+
+  // For now, restrict slice-appending to chunks that are fully specified on disk
+  // TODO: to be implemented when the need arises
+  assert(meta -> chunk_type == ChunkType::specified);
+  
   // std::cout << "BBBB before append: \n" << meta << std::endl;
   
   // Perform the appending operation
@@ -837,23 +871,37 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
   std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(input_start, input_end);
   for(const metadata_t& chunk_meta : required_chunks) {
 
-    const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
-
     // These are the indices where the current `chunk` overlaps with the specified range
     ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, input_start);
     ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, input_end);
 
-    // std::cout << chunk_meta << std::endl;
-    // std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
-    // std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
-    // std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
-    // std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
+    if(chunk_meta.chunk_type == ChunkType::all_null) {
+
+      // directly fill the overlapping range spanned by this chunk, no need to retrieve from cache first
+      array.fill(chunk_overlap_start_ind - input_start + output_start, // `start` in output-array-local indices
+		 (chunk_overlap_end_ind - input_start + output_start), // `end` in output-array-local indices
+		 (T)(0.0)); // value to be filled
+    }
+    else if(chunk_meta.chunk_type == ChunkType::specified) {
+
+      // Have a chunk to read, get it from the cache
+      const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
     
-    // copy the overlapping range from the `chunk` into the destination `array`
-    array.fill_from(chunk,
-		    chunk_overlap_start_ind - chunk_meta.loc_ind_offset, // `input_start` in chunk-local indices
-		    chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // `input_end` in chunk-local indices
-		    chunk_overlap_start_ind - input_start + output_start); // `output_start` in output-array-local indices
+      // std::cout << chunk_meta << std::endl;
+      // std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
+      // std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
+      // std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+      // std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
+      
+      // copy the overlapping range from the `chunk` into the destination `array`
+      array.fill_from(chunk,
+		      chunk_overlap_start_ind - chunk_meta.loc_ind_offset, // `input_start` in chunk-local indices
+		      chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // `input_end` in chunk-local indices
+		      chunk_overlap_start_ind - input_start + output_start); // `output_start` in output-array-local indices
+    }
+    else {
+      throw std::logic_error("Unknown `chunk_type` encountered!");
+    }
   }
 }
 
@@ -1032,8 +1080,8 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::view_t DistributedNDVecArray<A
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
-  m_library.template AppendSlice<axis>(start_ind, slice);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints) {
+  m_library.template AppendSlice<axis>(start_ind, slice, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
