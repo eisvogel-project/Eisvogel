@@ -16,7 +16,16 @@ int main(void) {
   std::cout << vec1[0] << ", " << vec1[1] << ", " << vec1[2] << std::endl;
   
   // ----
-    
+
+  NDVecArray<float, 3, 2> arr0({2u, 2u, 2u}, 0.0f);
+  assert(arr0.IsAllNull());
+
+  arr0[{0u, 0u, 1u}] = 1.0f;
+  assert(!arr0.IsAllNull());
+
+  arr0[{0u, 0u, 1u}] = 0.0f;
+  assert(arr0.IsAllNull());
+  
   NDVecArray<float, 3, 2> arr1({2u, 2u, 2u}, 1.0f);
 
   arr1[{0u, 0u, 0u}] = {0.0f, 0.0f};

@@ -788,7 +788,9 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
     // Can run some additional checks and (time-intensive) optimizations for `final` chunks
 
     // Check if this chunk contains only zeroes, in which case we should note that down in the metadata
-    // chunk_type = ChunkType::all_null;
+    if(chunk.IsAllNull()) {
+      chunk_type = ChunkType::all_null;
+    }
   }
   
   // Insert new metadata entry into chunk index

@@ -378,6 +378,45 @@ bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_
   return true;
 }
 
+template <typename T, std::size_t dims, std::size_t vec_dims>
+bool NDVecArray<T, dims, vec_dims>::IsNull(const ind_t& ind) const {
+  
+  for(T& cur : this -> operator[](ind)) {
+    if(cur != (T)(0.0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T, std::size_t dims, std::size_t vec_dims>
+bool NDVecArray<T, dims, vec_dims>::IsAllNull() const {
+
+  // Note: this is slow; if you need to check the is-all-null status of an array often, use `NDVecArrayNullAware` instead
+  
+  // check the array entries in contiguous chunks
+  Vector<std::size_t, dims> chunk_size(1);
+  chunk_size[dims - 1] = m_shape[dims - 1];
+  
+  bool is_all_null = true;
+  auto contiguous_range_checker = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
+
+    // If the flag has already collapsed to `false`, take a shortcut and end here
+    if(is_all_null == false) {
+      return;
+    }
+
+    auto range_start = m_data -> begin() + ComputeFlatInd(chunk_begin);
+    auto range_end = range_start + chunk_size[dims - 1] * vec_dims;
+    
+    bool range_all_zeros = std::all_of(std::execution::unseq, range_start, range_end, [](T& val) { return val == (T)(0.0); });
+    is_all_null = range_all_zeros;
+  };
+  IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, contiguous_range_checker);
+
+  return is_all_null;
+}
+
 // Serialization to numpy binary file
 namespace stor {
 
