@@ -5,11 +5,11 @@
 #SBATCH --account=pi-avieregg
 #SBATCH --time=24:00:00
 #SBATCH --partition=avieregg
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --exclusive
 #SBATCH --ntasks-per-node=64
 #SBATCH --mem=257660
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=None
 
-sh /home/windischhofer/Eisvogel/examples/dipole_ice/run_dipole.sh
+sh /home/windischhofer/Eisvogel/applications/dipole/run_dipole.sh
