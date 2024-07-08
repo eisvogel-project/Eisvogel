@@ -90,7 +90,7 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
     std::copy_n(std::execution::unseq, src, m_shape[dims - 1] * vec_dims, dest);
   };
 
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = m_shape[dims - 1];
   IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, copy_chunk_contiguous);
   
@@ -100,19 +100,10 @@ NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const ND
 template <typename T, std::size_t dims, std::size_t vec_dims>
 NDVecArray<T, dims, vec_dims>& NDVecArray<T, dims, vec_dims>::operator=(const T& other) {
 
-  // fill a contiguous chunk of memory with the target value
-  auto fill_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
-    
-    std::size_t offset = ComputeFlatInd(chunk_begin);
-    auto dest = m_data -> begin() + offset;
-    
-    std::fill_n(std::execution::unseq, dest, m_shape[dims - 1] * vec_dims, other);
-  };
-
-  Vector<std::size_t, dims> chunk_size(1u);
-  chunk_size[dims - 1] = m_shape[dims - 1];
-  IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, fill_chunk_contiguous);
-
+  Vector<std::size_t, dims> begin(0u);
+  Vector<std::size_t, dims> end = m_shape;
+  fill(begin, end, other);
+  
   return *this;
 }
 
@@ -124,7 +115,7 @@ void NDVecArray<T, dims, vec_dims>::fill(const ind_t& start, const ind_t& end, c
   assert(has_index(end));
 
   // fill the range from `start` to `end` in chunks that are guaranteed to be contiguous in memory
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = end[dims - 1] - start[dims - 1];
 
   auto fill_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
@@ -147,7 +138,7 @@ void NDVecArray<T, dims, vec_dims>::fill_from(const NDVecArray<T, dims, vec_dims
   assert(has_index(output_start + (input_end - input_start) - 1));  // the end index is always exclusive
 
   // copy a region of memory that is guaranteed to be contiguous in both `other` and `this`
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = input_end[dims - 1] - input_start[dims - 1];
 
   auto copy_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
@@ -300,7 +291,7 @@ constexpr void NDVecArray<T, dims, vec_dims>::loop_over_elements(CallableT&& wor
   };
 
   // iterate over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = m_shape[dims - 1];
   IteratorUtils::index_loop_over_array_chunks(*this, chunk_size, loop_over_chunk_contiguous);    
 }
@@ -313,7 +304,7 @@ constexpr void NDVecArray<T, dims, vec_dims>::index_loop_over_elements(const ind
   Vector<std::size_t, dims> ind;
 
   // manual handling of the iteration over chunks that are contiguous in memory, i.e. one stride of the fastest-varying index
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = end_ind[dims - 1] - start_ind[dims - 1];
   
   auto loop_over_chunk_contiguous = [&](const Vector<std::size_t, dims>& chunk_begin, const Vector<std::size_t, dims>&) {
@@ -395,7 +386,7 @@ bool NDVecArray<T, dims, vec_dims>::IsAllNull() const {
   // Note: this is slow; if you need to check the is-all-null status of an array often, use `NDVecArrayNullAware` instead
   
   // check the array entries in contiguous chunks
-  Vector<std::size_t, dims> chunk_size(1);
+  Vector<std::size_t, dims> chunk_size(1u);
   chunk_size[dims - 1] = m_shape[dims - 1];
   
   bool is_all_null = true;
