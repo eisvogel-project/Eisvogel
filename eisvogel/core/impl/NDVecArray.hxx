@@ -112,7 +112,7 @@ void NDVecArray<T, dims, vec_dims>::fill(const ind_t& start, const ind_t& end, c
 
   // make sure the full range to be filled is available in this array
   assert(has_index(start));
-  assert(has_index(end));
+  assert(has_index(end - 1));  // the end index is always exclusive
 
   // fill the range from `start` to `end` in chunks that are guaranteed to be contiguous in memory
   Vector<std::size_t, dims> chunk_size(1u);
