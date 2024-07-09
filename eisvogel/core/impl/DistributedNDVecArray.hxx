@@ -63,7 +63,7 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::RemoveChunk(const chunk_meta_t& chun
     m_cache.evict(index);
   }
 
-  // Also remove the chunk from disk
+  // Also remove the chunk from disk, if it exists there
   if(std::filesystem::exists(chunk_meta.filepath)) {
     std::filesystem::remove(chunk_meta.filepath);
   }
@@ -265,17 +265,29 @@ ChunkCache<ArrayT, T, dims, vec_dims>::cache_entry_t& ChunkCache<ArrayT, T, dims
   insert_location.chunk_meta = chunk_meta;
   insert_location.op_to_perform = CacheStatus::Nothing();  // this chunk is freshly read into the cache, nothing left to be done when it goes out of scope
 
-  // TODO: add check here whether ChunkType is specified or all_null
+  if(chunk_meta.chunk_type == ChunkType::specified) { 
   
-  // Directly deserialize into the cache element
-  std::filesystem::path chunk_path = get_abs_path(chunk_meta.filepath);
-  assert(std::filesystem::exists(chunk_path));
-  
-  std::fstream ifs;
-  ifs.open(chunk_path, std::ios::in | std::ios::binary);
-  ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
-  m_streamer.deserialize(ifs, insert_location.chunk_data);
-  ifs.close();
+    // Directly deserialize into the cache element
+    std::filesystem::path chunk_path = get_abs_path(chunk_meta.filepath);
+    assert(std::filesystem::exists(chunk_path));
+    
+    std::fstream ifs;
+    ifs.open(chunk_path, std::ios::in | std::ios::binary);
+    ifs.seekg(chunk_meta.start_pos, std::ios_base::beg);
+    m_streamer.deserialize(ifs, insert_location.chunk_data);
+    ifs.close();
+  }
+  else if(chunk_meta.chunk_type == ChunkType::all_null) {
+
+    // Make sure the cache element has the correct shape ...
+    insert_location.chunk_data.resize(chunk_meta.shape);
+
+    // ... and fill it with zeroes
+    insert_location.chunk_data = (T)(0.0);
+  }
+  else {
+    throw std::logic_error("Unknown `chunk_type` encountered!");
+  }
   
   return insert_location;
 }
@@ -304,6 +316,16 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::sync_cache_element_with_disk(cache_entry_t& cache_entry) {
 
+  // Nothing needs to be done if this cache entry is marked as containing all zeroes
+  if(cache_entry.chunk_meta.chunk_type == ChunkType::all_null) {
+
+    // Check if everything is consistent
+    assert(cache_entry.chunk_meta.filepath.empty()); // Must not have a path specified
+    assert(std::holds_alternative<CacheStatus::Nothing>(cache_entry.op_to_perform)); // Must nost contain anything on the todo-list for descoping
+    
+    return;
+  }
+  
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   assert(std::filesystem::exists(chunk_path));
   
@@ -334,6 +356,16 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void ChunkCache<ArrayT, T, dims, vec_dims>::descope_cache_element(cache_entry_t& cache_entry) {
 
+  // This cache entry does not have a file path attached to it ...
+  if(cache_entry.chunk_meta.filepath.empty()) {
+
+    // ... in which case the entries must not be of `specified` type (otherwise this is an inconsistency)
+    assert(cache_entry.chunk_meta.chunk_type != ChunkType::specified);
+
+    // Nothing is to be done in this case
+    return;
+  }
+    
   std::filesystem::path chunk_path = get_abs_path(cache_entry.chunk_meta.filepath);
   
   // Handle any outstanding operations before this cache element goes out of scope and may be overwritten
@@ -470,22 +502,31 @@ ChunkIndex<dims>::~ChunkIndex() {
   FlushIndex();
 }
 
+namespace {
+
+  std::filesystem::path get_chunkfile_path() {
+    uuid_t uuid_binary;
+    uuid_generate_random(uuid_binary);
+    char uuid_string[36];
+    uuid_unparse(uuid_binary, uuid_string);
+    return std::string(uuid_string);    
+  }  
+};
+
 template <std::size_t dims>
 ChunkIndex<dims>::metadata_t& ChunkIndex<dims>::RegisterChunk(const Vector<std::size_t, dims>& start_ind,
-							      const Vector<std::size_t, dims>& shape, std::size_t overlap) {
+							      const Vector<std::size_t, dims>& shape, std::size_t overlap,
+							      const ChunkType& chunk_type) {
 
-  uuid_t uuid_binary;
-  uuid_generate_random(uuid_binary);
-  char uuid_string[36];
-  uuid_unparse(uuid_binary, uuid_string);
-  std::filesystem::path filename = std::string(uuid_string);
-
+  // Request the path to the file that will hold this chunk, if needed
+  std::filesystem::path filename = (chunk_type == ChunkType::specified) ? get_chunkfile_path() : "";
+    
   // adding a new chunk invalidates the previous shape
   invalidate_cached_index_metadata();
   
   // build metadata object for this chunk
   id_t chunk_id = get_next_chunk_id();
-  metadata_t chunk_meta(ChunkType::specified, filename, chunk_id, start_ind, shape, overlap);
+  metadata_t chunk_meta(chunk_type, filename, chunk_id, start_ind, shape, overlap);
 
   return m_chunk_tree.InsertElement(chunk_meta, chunk_meta.start_ind, chunk_meta.end_ind);
 }
@@ -765,12 +806,25 @@ ChunkLibrary<ArrayT, T, dims, vec_dims>::ChunkLibrary(std::filesystem::path libd
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap,
+							    const ChunkHints& hints) {
 
   assert(chunk.GetShape() == end_ind - start_ind + 2 * overlap);
+
+  // Determine which type should be given to this chunk
+  ChunkType chunk_type = ChunkType::specified;
+
+  // Can run some additional checks and (time-intensive) optimizations for `final` chunks
+  if(hints & ChunkHints::ENABLE_OPT) {
+
+    // Check if this chunk contains only zeroes, in which case we should note that down in the metadata
+    if(chunk.IsAllNull()) {
+      chunk_type = ChunkType::all_null;
+    }
+  }
   
   // Insert new metadata entry into chunk index
-  metadata_t& meta = m_index.RegisterChunk(start_ind, end_ind - start_ind, overlap);
+  metadata_t& meta = m_index.RegisterChunk(start_ind, end_ind - start_ind, overlap, chunk_type);
 
   // Insert new chunk into the cache
   m_cache.RegisterNewChunk(meta, chunk);  
@@ -779,8 +833,12 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints) {
 
+  if(hints != ChunkHints::NONE) {
+    throw std::logic_error("ChunkHints for AppendSlice not implemented yet!");
+  }
+  
   // std::cout << "BBBB appending, start_ind = " << start_ind << ", slice_shape = " << slice.GetShape() << std::endl;
   
   // This is the index of an element in the (existing) chunk the slice should be appended to
@@ -790,6 +848,27 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind
   // Get the metadata describing that chunk
   metadata_t* meta = m_index.GetChunk(ind_existing_chunk);
 
+  if(meta -> chunk_type != ChunkType::specified) {
+
+    // This is not yet a fully-specified chunk; depending on `hints`, might need to promote it to a fully-specified chunk here
+    
+    // Cases to consider:
+    // 1) If `slice` contains all null, and `hints` has `ENABLE_OPT` set, extend the metadata of this chunk. In this case, no disk activity is actually needed.
+    // 2) If `slice` is not all null, and `hints` has `ENABLE_OPT` set, promote the chunk to `specified`
+    // 3) If `hints` does not have `ENABLE_OPT` set, promote the chunk to `specified` irrespective of its content
+
+    // Promotion of a chunk from `all_null` to `specified` consists of the following steps:
+    // 1) Update of the `chunk_type` in its metadata from `all_null` to `specified`
+    // 2) Generation of a new chunkfile name in the chunk metadata (using `get_chunkfile_path`)
+    // 3) Register the new chunk (containing all zeroes) in the chunk cache (using `RegisterNewChunk` or `RegisterAllNullChunk`)
+    
+    throw std::logic_error("Appending to non-fully-specified chunks (`ChunkType::specified`) not implemented yet!");
+  }
+
+  // For now, restrict slice-appending to chunks that are fully specified on disk
+  // TODO: to be implemented when the need arises (see above), this assertion to be removed once done
+  assert(meta -> chunk_type == ChunkType::specified);
+  
   // std::cout << "BBBB before append: \n" << meta << std::endl;
   
   // Perform the appending operation
@@ -835,23 +914,37 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FillArray(chunk_t& array, const in
   std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(input_start, input_end);
   for(const metadata_t& chunk_meta : required_chunks) {
 
-    const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
-
     // These are the indices where the current `chunk` overlaps with the specified range
     ind_t chunk_overlap_start_ind = ChunkIndex<dims>::get_overlap_start_ind(chunk_meta, input_start);
     ind_t chunk_overlap_end_ind = ChunkIndex<dims>::get_overlap_end_ind(chunk_meta, input_end);
 
-    // std::cout << chunk_meta << std::endl;
-    // std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
-    // std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
-    // std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
-    // std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
+    if(chunk_meta.chunk_type == ChunkType::all_null) {
+
+      // directly fill the overlapping range spanned by this chunk, no need to retrieve from cache first
+      array.fill(chunk_overlap_start_ind - input_start + output_start, // `start` in output-array-local indices
+		 (chunk_overlap_end_ind - input_start + output_start), // `end` in output-array-local indices
+		 (T)(0.0)); // value to be filled
+    }
+    else if(chunk_meta.chunk_type == ChunkType::specified) {
+
+      // Have a chunk to read, get it from the cache
+      const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
     
-    // copy the overlapping range from the `chunk` into the destination `array`
-    array.fill_from(chunk,
-		    chunk_overlap_start_ind - chunk_meta.loc_ind_offset, // `input_start` in chunk-local indices
-		    chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // `input_end` in chunk-local indices
-		    chunk_overlap_start_ind - input_start + output_start); // `output_start` in output-array-local indices
+      // std::cout << chunk_meta << std::endl;
+      // std::cout << "chunk.shape = " << chunk.GetShape() << std::endl;
+      // std::cout << "chunk_overlap_start_ind = " << chunk_overlap_start_ind << std::endl;
+      // std::cout << "chunk_overlap_end_ind = " << chunk_overlap_end_ind << std::endl;
+      // std::cout << "input_start_chunk_local = " << chunk_overlap_start_ind - chunk_meta.loc_ind_offset << std::endl;
+      
+      // copy the overlapping range from the `chunk` into the destination `array`
+      array.fill_from(chunk,
+		      chunk_overlap_start_ind - chunk_meta.loc_ind_offset, // `input_start` in chunk-local indices
+		      chunk_overlap_end_ind - chunk_meta.loc_ind_offset, // `input_end` in chunk-local indices
+		      chunk_overlap_start_ind - input_start + output_start); // `output_start` in output-array-local indices
+    }
+    else {
+      throw std::logic_error("Unknown `chunk_type` encountered!");
+    }
   }
 }
 
@@ -1008,16 +1101,17 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::DistributedNDVecArray(std::fil
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind) {
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ChunkHints& hints) {
   std::size_t overlap = 0;
   ind_t end_ind = start_ind + chunk.GetShape();
-  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap) {
-  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RegisterChunk(const chunk_t& chunk, const ind_t& start_ind, const ind_t& end_ind, std::size_t overlap,
+								     const ChunkHints& hints) {
+  m_library.RegisterChunk(chunk, start_ind, end_ind, overlap, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1029,8 +1123,8 @@ DistributedNDVecArray<ArrayT, T, dims, vec_dims>::view_t DistributedNDVecArray<A
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <std::size_t axis>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice) {
-  m_library.template AppendSlice<axis>(start_ind, slice);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::AppendSlice(const ind_t& start_ind, const chunk_t& slice, const ChunkHints& hints) {
+  m_library.template AppendSlice<axis>(start_ind, slice, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1057,14 +1151,14 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::SwapAxes() {
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
-									    const ind_t& requested_chunk_shape, std::filesystem::path outdir) {
+									    const ind_t& requested_chunk_shape, std::filesystem::path outdir, const ChunkHints& hints) {
 
   // no overlap requested here
   auto error_on_evaluation = []() {
     throw std::logic_error("This should never be encountered!");
   };
   std::size_t overlap = 0;
-  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation);
+  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1072,7 +1166,8 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
 									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
-									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator) {
+									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
+									    const ChunkHints& hints) {
 
   // prepare the output library containing the rebuilt chunks
   ind_t streamer_chunk_size(stor::INFTY);
@@ -1126,7 +1221,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
     
     // ... and finally register the thus constructed chunk in the new library under the original start index, and pass on the information about the overlap
-    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap);
+    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap, hints);
   };
   IteratorUtils::index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 
@@ -1185,11 +1280,11 @@ template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir, std::size_t overlap,
-								     BoundaryCallableT&& boundary_evaluator) {
+								     BoundaryCallableT&& boundary_evaluator, const ChunkHints& hints) {
   ind_t global_start_ind(0);
   shape_t global_shape = m_library.GetShape();
   
-  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator);
+  RebuildChunksPartial(global_start_ind, global_shape, requested_chunk_shape, tmpdir, overlap, boundary_evaluator, hints);
 
   // Clear the contents of the original library ...
   m_library.ClearLibrary();
@@ -1205,11 +1300,11 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t& requested_chunk_shape,
-								     std::filesystem::path tmpdir) {
+								     std::filesystem::path tmpdir, const ChunkHints& hints) {
   // no overlap requested here
   auto error_on_evaluation = []() {
     throw std::logic_error("This should never be encountered!");
   };
   std::size_t overlap = 0;
-  RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation);
+  RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation, hints);
 }

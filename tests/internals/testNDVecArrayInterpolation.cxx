@@ -49,7 +49,7 @@ void test_closure_linear_data(const Vector<std::size_t, dims>& data_shape, const
   std::size_t num_inner_inds = (std::size_t)((inner_ind_end - inner_ind_start) / inner_ind_delta) + 1;
   
   Vector<std::size_t, 1> shape_result(num_inner_inds);
-  NDVecArray<T, 1, vec_dims> interp_vals(shape_result, 0.0);
+  NDVecArray<T, 1, vec_dims> interp_vals(shape_result, 0.0f);
 
   // perform interpolation
   auto start = std::chrono::high_resolution_clock::now();

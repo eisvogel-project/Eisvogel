@@ -120,6 +120,10 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
   // Iterate over all participating chunks
   for(const metadata_t& chunk_meta : required_chunks) {
 
+    if(chunk_meta.chunk_type == ChunkType::all_null) {
+      continue;
+    }
+    
     const chunk_t& chunk = m_cache.RetrieveChunk(chunk_meta);
     
     RZTVector<scalar_t> chunk_start_f_ind = chunk_meta.start_ind.template as_type<scalar_t>();
@@ -355,10 +359,6 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
       return;
     }
 
-    // TODO; if meta.chunk_type == ChunkType.all_null, simply skip everything else and jump to the next chunk
-    
-    const chunk_t& chunk = m_cache.RetrieveChunk(*meta);
-
     // Ensure that the overlap on the loaded chunk is large enough for the kernel that we use
     assert(meta -> overlap >= KernelT::support);
     
@@ -379,27 +379,35 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     // std::cout << "requesting interpolation from start = " << cur_f_ind.t() << " to end = " << cur_f_ind.t() + (samples_to_request - 1) * t_samp_f_ind <<
     //   "; " << samples_to_request << " samples" << std::endl;
     // std::cout << "HHHHHHHHH" << std::endl;
-       
-    // Convert to chunk-local coordinates
-    RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, *meta);
-    
-    // Perform interpolation
-    // TODO: check if computing the inner product right during the interpolation is faster (gets rid of the `interp_buffer`, but computes many more inner products)
-    interp_buffer.clear();
-    Interpolation::interpolate<KernelT>(chunk, interp_buffer,
-					chunk_local_ind.rz_view(), chunk_local_ind.t(),
-					t_samp_f_ind, samples_to_request);
 
-    // Compute inner products and accumulate in output range
-    for(std::size_t i = 0; i < samples_to_request; i++) {
-      *result += inner_product(interp_buffer[i], source) * weight;
-      // std::cout << "rz_start = " << chunk_local_ind.rz_view() << std::endl;
-      // std::cout << "t_start = " << chunk_local_ind.t() << std::endl;
-      // std::cout << "G: " << interp_buffer[i] << std::endl;
-      // std::cout << "accum: " << inner_product(interp_buffer[i], source) * weight << std::endl;
-      std::advance(result, 1);
-    }
+    // Perform the calculations only if the chunk is actually specified on disk
+    if(meta -> chunk_type == ChunkType::specified) {
     
+      // Retrieve chunk
+      const chunk_t& chunk = m_cache.RetrieveChunk(*meta);
+      
+      // Convert to chunk-local coordinates
+      RZTVector chunk_local_ind = to_chunk_local_ind(cur_f_ind, *meta);
+      
+      // Perform interpolation
+      // TODO: check if computing the inner product right during the interpolation is faster (gets rid of the `interp_buffer`, but computes many more inner products)
+      interp_buffer.clear();
+      
+      Interpolation::interpolate<KernelT>(chunk, interp_buffer,
+					  chunk_local_ind.rz_view(), chunk_local_ind.t(),
+					  t_samp_f_ind, samples_to_request);
+      
+      // Compute inner products and accumulate in output range
+      for(std::size_t i = 0; i < samples_to_request; i++) {
+	*result += inner_product(interp_buffer[i], source) * weight;
+	// std::cout << "rz_start = " << chunk_local_ind.rz_view() << std::endl;
+	// std::cout << "t_start = " << chunk_local_ind.t() << std::endl;
+	// std::cout << "G: " << interp_buffer[i] << std::endl;
+	// std::cout << "accum: " << inner_product(interp_buffer[i], source) * weight << std::endl;
+	std::advance(result, 1);
+      }
+    }
+      
     cur_sample_ind += samples_to_request;
   }
 }

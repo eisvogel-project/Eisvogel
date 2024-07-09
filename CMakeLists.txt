@@ -14,6 +14,7 @@ option(BUILD_CORSIKA "Build with C8 support." OFF)
 option(BUILD_EXTERN "Build external tools." OFF)
 
 add_subdirectory(eisvogel)
+add_subdirectory(applications)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
