@@ -39,7 +39,7 @@ def greens_function_absmax_annotated(exported_green_path, outpath, config_path, 
     annotations = config["annotations"]
     number_annotations = len(annotations)
 
-    data = np.load(exported_green_path) # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
+    data = np.load(exported_green_path, mmap_mode = 'r') # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
     data *= float(config["field_scale_fact"])
     E_r_data = data[:,:,:,0]
     E_z_data = data[:,:,:,1]

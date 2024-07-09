@@ -70,7 +70,7 @@ def animate_greens_function(exported_green_path, outdir, config_path):
     with open(config_path) as configfile:
         config = yaml.safe_load(configfile)
     
-    data = np.load(exported_green_path)
+    data = np.load(exported_green_path, mmap_mode = 'r')
     
     E_r_data = data[:,:,:,0]
     E_z_data = data[:,:,:,1]

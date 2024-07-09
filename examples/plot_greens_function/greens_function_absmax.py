@@ -10,7 +10,7 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, n
     with open(config_path) as configfile:
         config = yaml.safe_load(configfile)
     
-    data = np.load(exported_green_path) # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
+    data = np.load(exported_green_path, mmap_mode = 'r') # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
     E_abs_data = np.linalg.norm(data, axis = 3)
     E_abs_max_data = np.max(E_abs_data, axis = -1)
 
