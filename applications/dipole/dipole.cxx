@@ -48,16 +48,30 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
-  std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
+// <<<<<<< Updated upstream
+//   std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
+//   std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
+//   std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
+//   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
 
-  scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
+//   scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
+//   scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
+//   scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
+//   scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+//   scalar_t t_end = 300;  // Last timestep in the simulation
+// =======
+  std::filesystem::path gf_path = "/project/avieregg/weipow/complicated_ice"; // output directory
+  std::filesystem::path ior_path = "/home/weipow/generated_ice_data/19.csv"; // ice data path
+  std::filesystem::path impulse_response_path = "/project/avieregg/eisvogel/filters/butterworth_bandpass_50MHz_250MHz_order4.csv";
+  std::filesystem::path scratch_dir = "/scratch/midway3/weipow/"; // temporary file directory
+
+  // dimension in NU
+  scalar_t geom_r_max = 2000;  // Radial extent of the simulation domain
   scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
   scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
   scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 300;  // Last timestep in the simulation
+  scalar_t t_end = 2500;  // Last timestep in the simulation
+// >>>>>>> Stashed changes
 
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);
@@ -65,6 +79,11 @@ int main(int argc, char* argv[]) {
   std::vector<float> ior_data;
   ior_file.read_column(0, z_data);
   ior_file.read_column(1, ior_data);
+
+  // make the length unit from SI to NU
+  for (auto& entry : z_data) {
+        entry /= 0.3;
+  }
 
   // Ensure increasing z-ordering of the ior data: find the permutation that sorts both arrays
   std::vector<std::size_t> sorter(z_data.size());

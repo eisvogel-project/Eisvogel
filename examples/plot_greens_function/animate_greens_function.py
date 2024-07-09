@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.colors as colors
+import imageio_ffmpeg as ffmpeg
 
 def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]", ylabel = "z [m]", zlabel = "", epilog = None, fs = 13, downsample_t = 1):
     num_frames = data.shape[2]
@@ -12,8 +13,9 @@ def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]
 
     vals_mesh_x, vals_mesh_y = np.meshgrid(vals_x, vals_y)
 
+    fig_scale = 0.4
     figsize_y = 5
-    figsize_x = (range_x[1] - range_x[0]) / (range_y[1] - range_y[0]) * figsize_y * 1.35
+    figsize_x = (range_x[1] - range_x[0]) / (range_y[1] - range_y[0]) * figsize_y * fig_scale
     
     fig = plt.figure(figsize = (figsize_x, figsize_y), dpi = 400)
     ax = fig.add_subplot(111)
@@ -53,14 +55,17 @@ def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]
         print(f"Rendered frame {ind_t} / {num_frames}")
         return fieldplot
     
+    plt.rcParams['animation.ffmpeg_path'] = ffmpeg.get_ffmpeg_exe()        
+
     anim = animation.FuncAnimation(fig, animate, frames = int(num_frames / downsample_t), interval = 5, repeat = False)
 
-    writer = animation.PillowWriter(fps = 15,
+    writer = animation.FFMpegWriter(fps = 15,
                                     metadata = dict(artist='Me'),
                                     bitrate = 3000)
     anim.save(outpath, writer = writer)
 
     plt.close()
+
 
 def animate_greens_function(exported_green_path, outdir, config_path):
 
@@ -79,11 +84,11 @@ def animate_greens_function(exported_green_path, outdir, config_path):
     def show_interface(ax):
         ax.axhline(0.0, color = "gray", ls = "dashed")
 
-    outpath = os.path.join(outdir, "E_z.gif")
+    outpath = os.path.join(outdir, "E_z.mp4")
     generate_animation(outpath, E_z_data, range_x = config["range_x"], range_y = config["range_y"], range_t = config["range_t"],
                        zlabel = r"$E_z$ [a.u.]", epilog = show_interface)
 
-    outpath = os.path.join(outdir, "E_r.gif")
+    outpath = os.path.join(outdir, "E_r.mp4")
     generate_animation(outpath, E_r_data, range_x = config["range_x"], range_y = config["range_y"], range_t = config["range_t"],
                        zlabel = r"$E_r$ [a.u.]", epilog = show_interface)
     
