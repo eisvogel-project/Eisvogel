@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   Vector<std::size_t, 3> init_shape(10);
   CylindricalGreensFunction::chunk_t array(init_shape);
 
-  RZTVector<std::size_t> num_samples{2000u, 200u, 2500u};
+  RZTVector<std::size_t> num_samples{1000u, 500u, 500u};
   gf.fill_array<Interpolation::Kernel::Keys>(gf.start_coords(), gf.end_coords(), num_samples, array);
   
   std::fstream iofs;  
