@@ -48,16 +48,23 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
-  std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
+// <<<<<<< Updated upstream
+//   std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
+//   std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
+//   std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
+//   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
+// =======
+  std::filesystem::path gf_path = "/project/avieregg/weipow/air_reflection_PML20/";
+  std::filesystem::path ior_path = "/project/avieregg/eisvogel/ice_models/summit_ice_pert19.csv"; // the z position in csv file has to be in NU
+  std::filesystem::path impulse_response_path = "/project/avieregg/eisvogel/filters/butterworth_bandpass_50MHz_250MHz_order4.csv";
+  std::filesystem::path scratch_dir = "/home/weipow/Eisvogel/applications/dipole/scratch";
+// >>>>>>> Stashed changes
 
-  scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
-  scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
+  scalar_t geom_r_max = 700;  // Radial extent of the simulation domain
+  scalar_t geom_z_min = -140;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = 140;  // Upper z-coordinate of the simulation domain
   scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 300;  // Last timestep in the simulation
+  scalar_t t_end = 1000;  // Last timestep in the simulation
 
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);

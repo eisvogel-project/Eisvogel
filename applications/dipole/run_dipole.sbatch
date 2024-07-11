@@ -12,4 +12,4 @@
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=None
 
-sh /home/windischhofer/Eisvogel/applications/dipole/run_dipole.sh
+sh /home/weipow/Eisvogel/applications/dipole/run_dipole.sh
