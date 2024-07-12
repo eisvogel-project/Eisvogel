@@ -34,7 +34,7 @@ def greens_function_still(exported_green_path, tval, outdir, config_path):
     with open(config_path) as configfile:
         config = yaml.safe_load(configfile)
     
-    data = np.load(exported_green_path) # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
+    data = np.load(exported_green_path, mmap_mode = 'r') # data comes in [r, z, t, field_dim], where field_dim = {E_r, E_z}
     E_r_data = data[:,:,:,0]
     E_z_data = data[:,:,:,1]
 
