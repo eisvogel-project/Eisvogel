@@ -11,16 +11,19 @@ public:
 	  std::function<scalar_t(scalar_t)> impulse_response_func);
   virtual ~Antenna() { };
   
-  virtual void AddToGeometry(meep::fields& f, CylinderGeometry& geom) const = 0;
+  virtual void AddToGeometry(meep::fields& f, CylinderGeometry& geom) = 0;
+
+  void SetScaleFactor(scalar_t scale_factor);
 
 public:
   virtual std::complex<double> current(double time, double dt) const;
   virtual std::complex<double> dipole(double time) const;
   
   virtual double last_time() const {return m_end_time;}
-
+  
 protected:
   scalar_t m_start_time, m_end_time, m_z_pos;
+  scalar_t m_scale_factor;
   
 private:
   std::function<scalar_t(scalar_t)> m_impulse_response_func;
@@ -34,7 +37,7 @@ public:
 		    std::function<scalar_t(scalar_t)> impulse_response_func);
   virtual ~InfEDipoleAntenna() { };
   
-  virtual void AddToGeometry(meep::fields& f, CylinderGeometry& geom) const;
+  virtual void AddToGeometry(meep::fields& f, CylinderGeometry& geom);
 
   virtual meep::src_time* clone() const {
     return new InfEDipoleAntenna(*this);

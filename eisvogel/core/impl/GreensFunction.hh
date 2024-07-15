@@ -41,6 +41,10 @@ namespace Green {
     using lib_t = ChunkLibrary<NDVecArray, scalar_t, dims, vec_dims>;
     using chunk_t = typename ChunkLibrary<NDVecArray, scalar_t, dims, vec_dims>::chunk_t;
   };
+
+  enum OutOfBoundsBehavior {
+    RaiseError, Ignore
+  };  
 }
 
 // Green's function for a cylindrically-symmetric geometry. It abstracts away the discreteness of the underlying data and presents itself
@@ -69,7 +73,7 @@ public:
   // The signal is calculated starting from time `t_sig_start` with `num_samples` samples using `t_sig_samp` as sampling interval.
   template <class KernelT, class QuadratureT = Quadrature::TrapezoidalRule>
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-			std::vector<scalar_t>& signal);
+			std::vector<scalar_t>& signal, Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError);
 
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
@@ -82,7 +86,8 @@ public: // TODO: make this private, called by unit test at the moment
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
   template <class KernelT>
   void accumulate_inner_product(const RZCoordVectorView coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-				const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f);
+				const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f,
+				Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError);
     
 private:
 

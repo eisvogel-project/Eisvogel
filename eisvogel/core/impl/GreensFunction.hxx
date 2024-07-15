@@ -110,12 +110,12 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
   RZTIndexVector end_ind = end_f_ind.template as_type<std::size_t>();
   std::vector<std::reference_wrapper<const metadata_t>> required_chunks = m_index.GetChunks(start_ind, end_ind);  
 
-  std::cout << "start_ind = " << start_ind << std::endl;
-  std::cout << "end_ind = " << end_ind << std::endl;
-  std::cout << "start_f_ind = " << start_f_ind << std::endl;
-  std::cout << "end_f_ind = " << end_f_ind << std::endl;
+  // std::cout << "start_ind = " << start_ind << std::endl;
+  // std::cout << "end_ind = " << end_ind << std::endl;
+  // std::cout << "start_f_ind = " << start_f_ind << std::endl;
+  // std::cout << "end_f_ind = " << end_f_ind << std::endl;
   
-  std::cout << "stepsize_f_ind = " << stepsize_f_ind << std::endl;
+  // std::cout << "stepsize_f_ind = " << stepsize_f_ind << std::endl;
   
   // Iterate over all participating chunks
   for(const metadata_t& chunk_meta : required_chunks) {
@@ -136,20 +136,20 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
     RZTIndexVector output_start_ind = VectorUtils::ceil_nonneg(VectorUtils::max(output_start_f_ind, 0.0f));
     RZTIndexVector output_end_ind = VectorUtils::floor_nonneg(VectorUtils::min(output_end_f_ind + 1, num_samples.template as_type<scalar_t>()));
 
-    std::cout << chunk_meta << std::endl;
+    // std::cout << chunk_meta << std::endl;
 
-    std::cout << "provides output_start_f_ind = " << output_start_f_ind << std::endl;
-    std::cout << "provides output_end_f_ind = " << output_end_f_ind << std::endl;
+    // std::cout << "provides output_start_f_ind = " << output_start_f_ind << std::endl;
+    // std::cout << "provides output_end_f_ind = " << output_end_f_ind << std::endl;
     
-    std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
-    std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
+    // std::cout << "provides output_start_ind = " << output_start_ind << std::endl;
+    // std::cout << "provides output_end_ind = " << output_end_ind << std::endl;
 
     // Iterate over the outer output indices available in this chunk
     RZIndexVector output_start_outer_ind = output_start_ind.rz_view();
     RZIndexVector output_end_outer_ind = output_end_ind.rz_view();
 
-    std::cout << "provides output_start_outer_ind = " << output_start_outer_ind << std::endl;
-    std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
+    // std::cout << "provides output_start_outer_ind = " << output_start_outer_ind << std::endl;
+    // std::cout << "provides output_end_outer_ind = " << output_end_outer_ind << std::endl;    
 
     // Range of inner indices at that location in this chunk
     std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t();
@@ -184,8 +184,10 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
 template <class KernelT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-						 std::vector<scalar_t>& signal) {
+						 std::vector<scalar_t>& signal, Green::OutOfBoundsBehavior oob_mode) {
 
+  // std::cout << "HH in apply_accumulate HH" << std::endl;
+  
   // TODO: take this from the chunk sample rate / max frequency content of this Greens function
   // Max. integration step size delta_t_p
   scalar_t max_itgr_step = 1.0f;
@@ -203,8 +205,13 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / (seg.end_time - seg.start_time);
   XYZCoordVector seg_step = seg_vel * itgr_step;
 
+  // std::cout << "seg_vel = " << seg_vel << std::endl;
+  // std::cout << "seg_step = " << seg_step << std::endl;
+  
   // the current represented by this segment
   XYZFieldVector source_xyz = seg_vel * seg.charge;
+
+  // std::cout << "source_xyz = " << source_xyz << std::endl;
   
   // Guess a good integration block size: this is purely for reasons of efficiency and will not change the result
 
@@ -219,7 +226,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   NDVecArray<scalar_t, 1, vec_dims> coords_rz(max_itgr_block_size);
   NDVecArray<scalar_t, 1, vec_dims> source_rz(max_itgr_block_size);  
   std::vector<scalar_t, no_init_alloc<scalar_t>> quadrature_weights(max_itgr_block_size);
-
+  
   // std::cout << "HHHHH" << std::endl;
   // std::cout << "calculating with num_samples = " << num_samples << std::endl;
   // std::cout << "using num_itgr_steps = " << num_itgr_steps << std::endl;
@@ -229,12 +236,18 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   for(std::size_t itgr_block_start = 0; itgr_block_start < num_itgr_steps; itgr_block_start += max_itgr_block_size) {
     std::size_t itgr_block_size = std::min(max_itgr_block_size, num_itgr_steps - itgr_block_start);  // actual size of this integration block
     
+    // std::cout << "itgr_block_size = " << itgr_block_size << std::endl;
+    
     // Precompute a few things that we can then reuse for all sample blocks
     for(std::size_t i_pt = 0; i_pt < itgr_block_size; i_pt++) {
 
+      // std::cout << "i_pt = " << i_pt << std::endl;
+      
       // Current position along the segment
       std::size_t itgr_pt = i_pt + itgr_block_start;
       XYZCoordVector seg_pos = seg.start_pos + itgr_pt * seg_step;
+
+      // std::cout << seg_pos << std::endl;
       
       // precalculate (r, z) coordinates of the segment evaluation points in this integration block
       coord_cart_to_cyl(seg_pos, coords_rz[i_pt]);
@@ -242,7 +255,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
       // precalculate (r, z) field components of the current source in this integration block
       field_cart_to_cyl(source_xyz, seg_pos, source_rz[i_pt]);
     }
-
+    
     // Precompute quadrature weights for the evaluation points in this integration block
     quadrature_weights.resize(itgr_block_size);
     QuadratureT::fill_weights(itgr_block_start, itgr_block_start + itgr_block_size, num_itgr_steps, quadrature_weights.begin(), quadrature_weights.end());
@@ -303,19 +316,20 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	
 	auto block_result = signal.begin() + block_sample_ind_start;	
 	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
-					  quadrature_weights[i_pt] * itgr_step * (-1.0));  // negative sign from how Green's function is defined
+					  quadrature_weights[i_pt] * itgr_step * (-1.0), oob_mode);  // negative sign from how Green's function is defined
 
-	//std::cout << " . . . . . . . . " << std::endl;
+	// std::cout << " . . . . . . . . " << std::endl;
       }
 
-      //std::cout << "-----------" << std::endl;
+      // std::cout << "-----------" << std::endl;
     }         
   }  
 }
 
 template <class KernelT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight) {
+							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight,
+							 Green::OutOfBoundsBehavior oob_mode) {
 
   // Buffer to hold the interpolated values
   // TODO: check if this reallocation is slow
@@ -339,7 +353,11 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
     const metadata_t* meta = m_index.GetChunk(cur_ind);
 
-    // TODO; if meta.chunk_type == ChunkType.all_null, simply skip everything else and jump to the next chunk   
+    // (Silently) ignore (part of) this track if this is what we're asked to do
+    if((oob_mode == Green::OutOfBoundsBehavior::Ignore) && (meta == nullptr)) {
+      std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
+      return;
+    }
 
     // Ensure that the overlap on the loaded chunk is large enough for the kernel that we use
     assert(meta -> overlap >= KernelT::support);

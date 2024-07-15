@@ -33,7 +33,7 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake -DBUILD_EXAMPLES=ON -DBUILD_MEEP=ON -DBUILD_TESTS=ON ../ &&
+        cmake -DBUILD_EXAMPLES=ON -DBUILD_MEEP=ON -DBUILD_TESTS=ON -DBUILD_CORSIKA=ON ../ &&
         VERBOSE=1 make &&
         popd
 
