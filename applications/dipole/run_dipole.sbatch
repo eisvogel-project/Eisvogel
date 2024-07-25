@@ -3,7 +3,7 @@
 #SBATCH --output=dipole.out
 #SBATCH --error=dipole.err
 #SBATCH --account=pi-avieregg
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --partition=avieregg
 #SBATCH --nodes=2
 #SBATCH --exclusive

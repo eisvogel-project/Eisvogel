@@ -20,6 +20,8 @@ int main(int argc, char* argv[]) {
 
   RZTVector<std::size_t> num_samples{1000u, 500u, 500u};
   gf.fill_array<Interpolation::Kernel::Keys>(gf.start_coords(), gf.end_coords(), num_samples, array);
+
+  std::cout << "(start, end) = " << gf.start_coords() << gf.end_coords() << std::endl;
   
   std::fstream iofs;  
   iofs.open(outpath, std::ios::out | std::ios::binary);  
