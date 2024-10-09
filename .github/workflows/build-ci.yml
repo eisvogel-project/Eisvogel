@@ -9,8 +9,15 @@ jobs:
     env:
       CC: gcc-13
       CXX: g++-13
-    steps:
 
+    strategy:
+      fail-fast: False
+      matrix:
+        cmake_args: ["-DBUILD_EXAMPLES=ON -DBUILD_TESTS=ON",
+                     "-DBUILD_EXAMPLES=ON -DBUILD_TESTS=ON -DBUILD_CORSIKA=ON",
+                     "-DBUILD_EXAMPLES=ON -DBUILD_TESTS=ON -DBUILD_CORSIKA=ON -DBUILD_MEEP=ON"]
+
+    steps:
     - name: Install compiler
       run: |
         sudo add-apt-repository ppa:ubuntu-toolchain-r/test
@@ -33,7 +40,7 @@ jobs:
       run: |
         mkdir -p build &&
         pushd build &&
-        cmake -DBUILD_EXAMPLES=ON -DBUILD_MEEP=ON -DBUILD_TESTS=ON -DBUILD_CORSIKA=ON ../ &&
+        cmake ${{ matrix.cmake_args }} ../ &&
         VERBOSE=1 make &&
         popd
 
