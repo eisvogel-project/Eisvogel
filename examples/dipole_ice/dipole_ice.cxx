@@ -9,11 +9,13 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  if(argc < 2) {
-    throw std::runtime_error("Error: need to pass path to output directory!");
+  if(argc != 3) {
+    std::cout << "Usage: dipole_ice OUTPUT_PATH SCRATCH_PATH" << std::endl;
+    return 0;
   }
 
-  std::string gf_path = argv[1];
+  std::filesystem::path gf_path = argv[1];
+  std::filesystem::path scratch_path = argv[2];
   
   auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
@@ -43,21 +45,13 @@ int main(int argc, char* argv[]) {
     }
     return std::pow(t / tp * N, N) * std::exp(-t / tp * N) / (tp * std::exp(std::lgamma(N)));
   };
-
-  // CylinderGeometry geom(20.0, -15.0, 15.0, eps);
-  // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  // scalar_t t_end = 25.0;
-
-  // CylinderGeometry geom(100.0, -100.0, 100.0, eps);
-  // InfEDipoleAntenna dipole(0.0, 10.0, 0.0, impulse_response);
-  // scalar_t t_end = 25.0;
   
-  CylinderGeometry geom(400, -400, 200, eps);
-  InfEDipoleAntenna dipole(0.0, 10.0, -100.0, impulse_response);
-  scalar_t t_end = 500;
+  CylinderGeometry geom(300, -300, 200, eps);
+  InfEDipoleAntenna dipole(0.0, 50.0, -100.0, impulse_response);
+  scalar_t t_end = 300;
   
   GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
-  gfc.Calculate(gf_path, "/scratch/midway3/windischhofer/", "/scratch/midway3/windischhofer/");
+  gfc.Calculate(gf_path, scratch_path, scratch_path);
     
   std::cout << "done" << std::endl;
   
