@@ -14,4 +14,7 @@ sbatch --nodes 2 --ntasks-per-node 64 --exclusive \
 
 where `ENV_SETUP.sh` sets up the runtime environment, loads required modules etc.; `BUILD_DIR` is the directory containing the example binaries, `OUTPUT_DIR` is the directory where the final Green's function will show up, and `SCRATCH_DIR` points to a location where temporary files can be placed. It must be accessible from all worker nodes and ideally be fast.
 
-The example above will produce of the order of 30GB of data in `OUTPUT_DIR`, and require about twice that in `SCRATCH_DIR`. Runtimes vary depending on system, but should be of the order of 10 minutes.
+The example will produce of the order of 30GB of data in `OUTPUT_DIR`, and require about twice that in `SCRATCH_DIR`. Runtimes vary depending on system, but should be of the order of 10 minutes.
+Below is a plot of the radiation intensity produced by the antenna (at a depth of 30m) in this geometry.
+
+![intensity plot](dipole_ice_abs_field.png)
