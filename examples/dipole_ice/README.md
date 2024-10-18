@@ -17,4 +17,6 @@ where `ENV_SETUP.sh` sets up the runtime environment, loads required modules etc
 The example will produce of the order of 30GB of data in `OUTPUT_DIR`, and require about twice that in `SCRATCH_DIR`. Runtimes vary depending on system, but should be of the order of 10 minutes.
 Below is a plot of the radiation intensity produced by the antenna (at a depth of 30m) in this geometry.
 
-<img src="dipole_ice_abs_field.png" width="350" class="center">
+<p align="center">
+  <img src="dipole_ice_abs_field.png" width="350">
+</p>
