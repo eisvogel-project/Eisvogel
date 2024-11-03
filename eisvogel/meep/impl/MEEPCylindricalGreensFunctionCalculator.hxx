@@ -352,7 +352,8 @@ namespace meep {
 namespace GreensFunctionCalculator::MEEP {
 
   void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
-								double courant_factor, double resolution, double pml_width, std::size_t downsampling_on_disk) {
+								double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
+								scalar_t dynamic_range, scalar_t abs_min_field) {
     
     std::shared_ptr<meep::grid_volume> meep_gv = std::make_shared<meep::grid_volume>(meep::volcyl(m_geom.GetRMax(), m_geom.GetZMax() - m_geom.GetZMin(), resolution));
     std::shared_ptr<meep::structure> meep_s = std::make_shared<meep::structure>(*meep_gv, m_geom, meep::pml(pml_width), meep::identity(), 0, courant_factor);
@@ -388,10 +389,7 @@ namespace GreensFunctionCalculator::MEEP {
     // that is stored)
     std::size_t fstats_downsampling = 2;  
     FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_downsampling);
-    
-    scalar_t dynamic_range = 50;     // max. dynamic range of field strength to keep in the stored output
-    scalar_t abs_min_field = 1e-20;  // absolute minimum of field to retain in the stored output
-    
+        
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
     TZRVector<std::size_t> init_field_buffer_shape(1);
@@ -406,7 +404,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Main simulation loop
     std::size_t stepcnt = 0;
-    for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += 0.1) {
+    for(double cur_t = 0.0; cur_t <= m_t_end; cur_t += timestep) {
       
       // Time-step the fields
       while (meep_f -> time() < cur_t) {
@@ -487,11 +485,11 @@ namespace GreensFunctionCalculator::MEEP {
   }
   
   void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
-							int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap) {
+							int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap,
+							std::size_t cache_depth) {
     
     using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
     
-    std::size_t cache_depth = 5;
     RZTVector<std::size_t> init_cache_el_shape(1);
     RZTVector<std::size_t> streamer_chunk_shape(stor::INFTY); streamer_chunk_shape[0] = 1; // serialize one radial slice at a time
     darr_t darr(indir, cache_depth, init_cache_el_shape, streamer_chunk_shape);
@@ -541,13 +539,15 @@ namespace GreensFunctionCalculator::MEEP {
   }
   
   void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-						      double courant_factor, double resolution, double pml_width, std::size_t downsampling_on_disk) {
+						      double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
+						      scalar_t dynamic_range, scalar_t abs_min_field, std::size_t chunk_overlap, std::size_t chunk_size_linear,
+						      std::size_t rechunk_cache_depth) {
     
     int number_mpi_jobs = meep::count_processors();
     int job_mpi_rank = meep::my_rank();
     
     // Prepare an empty working directory in global scratch area
-    std::filesystem::path global_workdir = global_scratchdir / "eisvogel";
+    std::filesystem::path global_workdir = global_scratchdir / "eisvogel.global";
     if(meep::am_master()) {
       if(std::filesystem::exists(global_workdir)) {
 	std::filesystem::remove_all(global_workdir);
@@ -557,7 +557,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Output directory
     if(meep::am_master()) {
-      if(std::filesystem::exists(outdir)) {
+      if(std::filesystem::exists(outdir) && !std::filesystem::is_empty(outdir)) {
 	throw std::runtime_error("Error: cowardly refusing to overwrite an already-existing Green's function!");
       }
       std::filesystem::create_directory(outdir);
@@ -573,7 +573,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
     std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
-    calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, pml_width, downsampling_on_disk);
+    calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution, timestep, pml_width, downsampling_on_disk, dynamic_range, abs_min_field);
     
     meep::all_wait();   // Wait for all processes to have finished providing their output
     
@@ -595,9 +595,8 @@ namespace GreensFunctionCalculator::MEEP {
     meep::all_wait();
     
     // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
-    RZTVector<std::size_t> requested_chunk_size(400);
-    std::size_t overlap = 2;
-    rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, overlap);
+    RZTVector<std::size_t> requested_chunk_size(chunk_size_linear);
+    rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, chunk_overlap, rechunk_cache_depth);
     
     meep::all_wait();
     
