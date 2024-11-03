@@ -5,11 +5,15 @@
 #SBATCH --account=pi-avieregg
 #SBATCH --time=24:00:00
 #SBATCH --partition=avieregg
-#SBATCH --nodes=2
+#SBATCH --nodes=5
 #SBATCH --exclusive
-#SBATCH --ntasks-per-node=64
+#SBATCH --ntasks-per-node=32
 #SBATCH --mem=257660
 #SBATCH --mail-type=NONE
 #SBATCH --mail-user=None
 
-sh /home/windischhofer/Eisvogel/applications/dipole/run_dipole.sh
+export EISVOGELDIR=/home/windischhofer/Eisvogel/
+source ${EISVOGELDIR}/setup_mdwy.sh
+
+cd ${EISVOGELDIR}/build/
+mpirun --mca orte_base_help_aggregate 0 -np 160 applications/dipole/dipole

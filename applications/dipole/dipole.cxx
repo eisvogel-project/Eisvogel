@@ -48,16 +48,23 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
+  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_southpole_exp1_smooth_r1000_z800_antz580_PAimpulse/";
+  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/southpole_exp1_smooth.csv";
+  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_impulse_response.csv";
   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
 
-  scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
-  scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
-  scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 300;  // Last timestep in the simulation
+  scalar_t geom_r_max = 1000;  // Radial extent of the simulation domain
+  
+  // scalar_t geom_z_min = -800;  // Lower z-coordinate of the simulation domain
+  // scalar_t geom_z_max = 300;  // Upper z-coordinate of the simulation domain
+
+  // -------
+  scalar_t geom_z_min = -800;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = -400;  // Upper z-coordinate of the simulation domain
+  // -------
+  
+  scalar_t antenna_z = -580;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  scalar_t t_end = 2200;  // Last timestep in the simulation
 
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);
