@@ -3,6 +3,7 @@
 #include <utility>
 #include "DistributedNDVecArray.hh"
 #include "IteratorUtils.hh"
+#include "TypeUtils.hh"
 
 // --------------
 
@@ -1204,21 +1205,48 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     // fill rebuilt chunk into local buffer ...    
     chunk_buffer.resize(extended_chunk_shape);    
     FillArray(chunk_buffer, fill_start_ind, fill_end_ind, output_start);
-    
-    // ... if introducing the overlap takes us beyond the global shape of the array, manually iterate over the boundary faces and ask the boundary evaluator
-    // to fill in the field values there
-    auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
-      ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
-      boundary_evaluator(*this, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
 
-      // std::cout << "set to ";
-      // for(auto cur: chunk_buffer[local_ind]) {
-      // 	std::cout << cur << " ";
-      // }
-      // std::cout << std::endl;
-      
+    auto is_boundary_element = [&](Vector<int, dims>& boundary_ind) {
+      for(std::size_t dim = 0; dim < dims; dim++) {
+	if(std::cmp_greater_equal(boundary_ind[dim], global_end_ind[dim]) || std::cmp_less(boundary_ind[dim], global_start_ind[dim])) {
+	  return true;
+	}
+      }
+
+      // All coordinates are inside the array, hence not a boundary element!
+      return false;
     };
-    index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
+    
+    // Pick the correct kind of boundary resolver, depending on the assumptions the evaluator makes
+    if constexpr(std::invocable<BoundaryCallableT, darr_t&, const Vector<int, dims>&, darr_t::view_t>) {
+
+      // Boundary evaluator asks for a reference to the full distributed array; it probably has good reasons to!
+      // (This may be slow, since a full-array lookup is potentially triggered for every element.)     
+      
+      // ... if introducing the overlap takes us beyond the global shape of the array, manually iterate over the boundary faces and ask the boundary evaluator
+      // to fill in the field values there
+      auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
+	assert(is_boundary_element(boundary_ind));
+	ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
+	boundary_evaluator(*this, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
+      };
+      index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
+    }
+    else if constexpr(std::invocable<BoundaryCallableT, chunk_t&, const Vector<int, dims>&, const Vector<int, dims>&, const Vector<int, dims>&, darr_t::view_t>) {
+
+      // Boundary evaluator only asks for a reference to the chunk in which the boundary element sits.
+      // This means that local information alone is sufficient to fill in the boundary values.
+
+      auto boundary_filler = [&](Vector<int, dims>& boundary_ind) {
+	assert(is_boundary_element(boundary_ind));
+	ind_t local_ind = (boundary_ind - extended_chunk_start_ind).template as_type<std::size_t>();
+	boundary_evaluator(chunk_buffer, extended_chunk_start_ind, extended_chunk_end_ind, std::forward<Vector<int, dims>>(boundary_ind), chunk_buffer[local_ind]);
+      };
+      index_loop_over_penetrating_chunk_elements(global_start_ind, global_end_ind, extended_chunk_start_ind, extended_chunk_end_ind, boundary_filler);
+    }
+    else {
+      static_assert(dependent_false<T>::value, "Unsupported boundary evaluator!");
+    }
     
     // ... and finally register the thus constructed chunk in the new library under the original start index, and pass on the information about the overlap
     rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap, hints);
