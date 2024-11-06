@@ -53,14 +53,15 @@ int main(int argc, char* argv[]) {
   std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_impulse_response.csv";
   std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
 
-  scalar_t geom_r_max = 1000;  // Radial extent of the simulation domain
-  
-  // scalar_t geom_z_min = -800;  // Lower z-coordinate of the simulation domain
-  // scalar_t geom_z_max = 300;  // Upper z-coordinate of the simulation domain
+  scalar_t geom_r_max = 1000;  // Radial extent of the simulation domain  
+  scalar_t geom_z_min = -700;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = 300;  // Upper z-coordinate of the simulation domain
 
   // -------
-  scalar_t geom_z_min = -800;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = -400;  // Upper z-coordinate of the simulation domain
+  // scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
+  // scalar_t geom_z_min = -750;  // Lower z-coordinate of the simulation domain
+  // scalar_t geom_z_max = -450;  // Upper z-coordinate of the simulation domain
+  // scalar_t t_end = 300;  // Last timestep in the simulation
   // -------
   
   scalar_t antenna_z = -580;  // z-coordinate of the antenna position (antenna is at r=0 by default)
