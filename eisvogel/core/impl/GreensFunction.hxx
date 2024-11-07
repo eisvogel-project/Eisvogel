@@ -355,7 +355,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 
     // (Silently) ignore (part of) this track if this is what we're asked to do
     if((oob_mode == Green::OutOfBoundsBehavior::Ignore) && (meta == nullptr)) {
-      std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
+      // std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
       return;
     }
 
