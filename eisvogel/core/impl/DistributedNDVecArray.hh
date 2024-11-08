@@ -382,6 +382,7 @@ class DistributedNDVecArray {
 
 public:
 
+  using darr_t = DistributedNDVecArray<ArrayT, T, dims, vec_dims>;
   using chunk_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_t;
   using chunk_shape_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::chunk_shape_t;
   using shape_t = typename ChunkLibrary<ArrayT, T, dims, vec_dims>::shape_t;

@@ -1,35 +1,26 @@
 namespace SpatialSymmetry {
 
   template <typename T>
-  void Cylindrical<T>::boundary_evaluator(darr_t& darr, const RZTSignedIndexVector& ind, view_t elem) {
-    
-    RZTIndexVector darr_shape = darr.GetShape();   
+  void Cylindrical<T>::boundary_evaluator(chunk_t& chunk, const RZTSignedIndexVector& chunk_start_ind, const RZTSignedIndexVector& chunk_end_ind,
+					  const RZTSignedIndexVector& elem_ind, view_t elem) {
+
+    (void)chunk_end_ind;
     
     const Vector<T, vec_dims> zero_val(0.0);
 
-    // Put zero field values everywhere outside the positive array boundary
-    if(std::cmp_greater_equal(ind.t(), darr_shape.t()) ||
-       std::cmp_greater_equal(ind.r(), darr_shape.r()) ||
-       std::cmp_greater_equal(ind.z(), darr_shape.z())) {
-      elem = zero_val;
+    // For r < 0, take the value at the corresponding |r| > 0 coordinate
+    if(elem_ind.r() < 0) {
+
+      RZTSignedIndexVector ind_wrapped = elem_ind;
+      ind_wrapped.r() = std::abs(ind_wrapped.r());
+      RZTIndexVector chunk_ind_wrapped = (ind_wrapped - chunk_start_ind).template as_type<std::size_t>();
+
+      assert(chunk.index_within_bounds(chunk_ind_wrapped));  // Make sure we're not accessing out-of-bounds
+      elem = chunk[chunk_ind_wrapped];
       return;
     }
 
-    // There is no field also outside the negative array boundary in the t and z directions
-    if((ind.t() < 0) ||
-       (ind.z() < 0)) {
-      elem = zero_val;
-      return;
-    }
-
-    // for r < 0, take the value at the corresponding |r| > 0 coordinate
-    if((ind.r() < 0)) {
-      RZTSignedIndexVector ind_wrapped = ind;
-      ind_wrapped.r() = std::abs(ind_wrapped.r());      
-      RZTIndexVector ind_to_fetch = ind_wrapped.template as_type<std::size_t>();      
-      elem = darr[ind_to_fetch];
-      return;
-    }    
-    throw std::logic_error("Control flow should never reach here.");
-  }  
+    // If this is not an element at the r = 0 boundary, handling it is simpler: there is no field in this direction
+    elem = zero_val;
+  }
 }
