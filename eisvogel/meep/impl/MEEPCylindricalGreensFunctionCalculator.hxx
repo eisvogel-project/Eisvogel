@@ -5,6 +5,12 @@
 #include "GreensFunction.hh"
 #include <unordered_map>
 
+// TODO: general strategy to suport partial saving
+// -> Still keep track of all MEEP chunks (not only those that are being saved)
+//    (This is useful to verify that e.g. MEEP doesn't rebalance any chunks and in general provides more flexibility)
+// -> For each MEEP chunk, also keep track of which portion of it is to be recorded and saved
+//    (This means that the field output buffers may be smaller than the actual simulation chunk)
+
 template <typename RegionKeyT, std::size_t dims>
 class FieldStatisticsTracker {
 
@@ -79,7 +85,10 @@ struct SimulationChunkMetadata {
     chunk_shape(chunk_shape), chunk_start_ind(chunk_start_ind) { }
   
   shape_t chunk_shape;  // Shape of this simulation chunk as it is used by MEEP
-  ind_t chunk_start_ind;  // Start index of this simulation chunk 
+  ind_t chunk_start_ind;  // Start index of this simulation chunk
+
+  // TODO: to support partial saving
+  // -> Add `storage_chunk_shape` and `storage_chunk_start_ind` that define the to-be-saved region
 };
 
 // Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
@@ -212,6 +221,10 @@ namespace meep {
     }
 
     // Build and record the chunk metadata
+    // TODO: to support saving of parts of the MEEP simulation volume:
+    // -> get the correct `storage_chunk_shape` and `storage_chunk_start_ind` here
+    // -> pass it to the constructor
+    
     ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
     CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, chunk_start_ind);
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
@@ -231,7 +244,10 @@ namespace meep {
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 200;
 
-    // Make sure the buffers are of the correct size for this simulation chunk
+    // TODO: to support partial saving
+    // -> Make sure to use the `storage_chunk_shape` here
+    
+    // Make sure the buffers are of the correct size for this simulation chunk    
     ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);    
     TZRVector<std::size_t> field_slice_shape(1, spatial_chunk_shape);
 
@@ -281,6 +297,11 @@ namespace meep {
       double E_r_val = data.values[1].real();      
       double E_abs_val = std::sqrt(E_z_val * E_z_val + E_r_val * E_r_val);
 
+      // TODO: to support partial saving
+      // -> Check here if `cur_ind` is to be included in the output
+      // -> `continue` if it is not
+      // -> Make sure to index the `field_buffer` correctly: `field_buffer[cur_ind - storage_chunk_start_ind]` etc.
+      
       // ... and store them
       CylindricalChunkloopData::view_t field_elem = chunkloop_data -> field_buffer[cur_ind - chunk_start_ind];
       field_elem[0] = (scalar_t)E_r_val;
