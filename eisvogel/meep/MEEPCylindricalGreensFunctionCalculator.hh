@@ -20,7 +20,7 @@ namespace GreensFunctionCalculator::MEEP {
     CylindricalGreensFunctionCalculator(CylinderGeometry& geom, Antenna& antenna, scalar_t t_end);
     
     void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-		   double courant_factor = 0.5, double resolution = 24, double pml_width = 1.0, std::size_t downsampling_on_disk = 2);
+		   double courant_factor = 0.5, double resolution = 12, double pml_width = 5.0, std::size_t downsampling_on_disk = 1);
     
   private:
 
