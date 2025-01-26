@@ -42,7 +42,7 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
     total_duration = std::chrono::microseconds::zero();
     
     signal_values.resize(num_samples);
-    std::fill(signal_values.begin(), signal_values.end(), (scalar_t)0.0f);
+    std::fill(signal_values.begin(), signal_values.end(), (scalar_t)1.0f);
     
     // Build trajectory and integrate
     constexpr scalar_t delta_t = 1.0f;
@@ -83,16 +83,20 @@ void run_test(std::filesystem::path result_path, std::filesystem::path gf_path, 
   assert(TestUtils::signals_close_match(eisvogel_signal_buffer, signal_result, rel_th, true));
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
 
-  std::filesystem::path tmpdir = "./testAskaryan/";
+  if(argc != 2) {
+    std::cout << "Usage: testCoulomb VALIDATION_DIR" << std::endl;
+    return 0;
+  }
+
+  std::filesystem::path validation_dir = argv[1];  
+  std::filesystem::path tmpdir = "./workdir_testAskaryan/";
 
   // Prepare Green's function
   scalar_t filter_t_peak = 5.0;
   unsigned int filter_order = 4;  
   create_greens_function(tmpdir, filter_t_peak, filter_order);
-
-  std::filesystem::path validation_dir = std::filesystem::path(std::getenv("PHYSICS_TEST_DATA_DIR")) / "testAskaryan";
 
   {
     scalar_t b = 10;

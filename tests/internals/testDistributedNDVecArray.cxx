@@ -272,6 +272,8 @@ int main(int argc, char* argv[]) {
     std::cout << darr_read.GetShape() << std::endl;
     test_darr_correctness(darr_read, swapped_filler);
     test_darr_correctness_subscription_op(darr_read, swapped_filler);
+
+    std::filesystem::remove_all(workdir_tmp);
   }
   
   Vector<std::size_t, dims> requested_chunk_size(40);
@@ -307,6 +309,13 @@ int main(int argc, char* argv[]) {
   std::cout << darr_final.GetShape() << std::endl;
   test_darr_correctness(darr_final, swapped_filler);
   test_darr_correctness_subscription_op(darr_final, swapped_filler);
+
+  // Clean up
+  std::filesystem::remove_all(workdir);  
+  std::filesystem::remove_all(workdir_final);
+  for(std::size_t i = 0; i < job_id; i++) {
+    std::filesystem::remove_all("./rechunk_" + std::to_string(i));
+  }  
   
   std::cout << "done" << std::endl;
 }
