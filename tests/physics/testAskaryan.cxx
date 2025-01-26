@@ -42,7 +42,7 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
     total_duration = std::chrono::microseconds::zero();
     
     signal_values.resize(num_samples);
-    std::fill(signal_values.begin(), signal_values.end(), (scalar_t)1.0f);
+    std::fill(signal_values.begin(), signal_values.end(), (scalar_t)0.0f);
     
     // Build trajectory and integrate
     constexpr scalar_t delta_t = 1.0f;
