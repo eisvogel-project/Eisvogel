@@ -153,14 +153,14 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
     // Range of inner indices at that location in this chunk
     std::size_t num_inner_samples = output_end_ind.t() - output_start_ind.t();
-    scalar_t output_start_inner_f_ind = output_start_ind.t() * stepsize_f_ind.t();
+    scalar_t output_start_inner_f_ind = output_start_ind.t() * stepsize_f_ind.t() + start_f_ind.t();
 
     // Interplation buffer with enough space
     NDVecArray<scalar_t, 1, vec_dims> interp_buffer(num_inner_samples);
     
     auto interpolate_and_fill = [&](const RZIndexVector& cur_output_outer_ind){
 
-      RZTCoordVector cur_outer_f_ind(cur_output_outer_ind.template as_type<scalar_t>() * stepsize_f_ind.rz_view(),
+      RZTCoordVector cur_outer_f_ind(cur_output_outer_ind.template as_type<scalar_t>() * stepsize_f_ind.rz_view() + start_f_ind.rz_view(),
 				     output_start_inner_f_ind);
       RZTVector chunk_local_f_ind = to_chunk_local_ind(cur_outer_f_ind, chunk_meta);
       
