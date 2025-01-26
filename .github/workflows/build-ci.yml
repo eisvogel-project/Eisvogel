@@ -47,5 +47,5 @@ jobs:
     - name: Run C++ tests
       run: |
         pushd build &&
-	ctest &&
-	popd
+        ctest &&
+        popd
