@@ -106,7 +106,9 @@ namespace GreensFunctionCalculator::Analytic {
 		      scalar_t os_factor, std::size_t max_pts_in_chunk) {
     
     // make sure to start from scratch
-    std::filesystem::remove_all(gf_path);
+    if(std::filesystem::exists(gf_path)) {
+      std::filesystem::remove_all(gf_path);
+    }
     
     // compute required step size for sampling of weighting field
     scalar_t c = 1.0;  // speed of light in vacuum

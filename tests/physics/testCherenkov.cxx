@@ -102,8 +102,8 @@ int main(int argc, char* argv[]) {
   unsigned int filter_order = 4;
 
   std::filesystem::path scratch_dir = std::filesystem::temp_directory_path() / "testCherenkov_scratch";    
-  std::filesystem::path gf_path_analytic = "./testCherenkov/gf_analytic";
-  std::filesystem::path gf_path_meep = "./testCherenkov/gf_meep";  
+  std::filesystem::path gf_path_analytic = "./workdir_testCherenkov/gf_analytic";
+  std::filesystem::path gf_path_meep = "./workdir_testCherenkov/gf_meep";  
   
   std::cout << "Using scratch_dir = " << scratch_dir << std::endl;
   
@@ -113,6 +113,10 @@ int main(int argc, char* argv[]) {
 
   // Run test
   run_test(gf_path_analytic, gf_path_meep);
+
+  std::filesystem::remove_all(scratch_dir);
+  std::filesystem::remove_all(gf_path_analytic);
+  std::filesystem::remove_all(gf_path_meep);
   
   return 0;
 }

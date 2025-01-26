@@ -17,13 +17,14 @@ add_subdirectory(eisvogel)
 add_subdirectory(applications)
 
 if(BUILD_EXAMPLES)
-    add_subdirectory(examples)
+  add_subdirectory(examples)
 endif(BUILD_EXAMPLES)
 
 if(BUILD_EXTERN OR BUILD_CORSIKA)
-    add_subdirectory(extern)
+  add_subdirectory(extern)
 endif(BUILD_EXTERN OR BUILD_CORSIKA)
 
 if(BUILD_TESTS)
-    add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
 endif(BUILD_TESTS)

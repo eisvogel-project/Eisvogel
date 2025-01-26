@@ -46,4 +46,6 @@ jobs:
 
     - name: Run C++ tests
       run: |
-        bash tests/run_tests.sh build/
+        pushd build &&
+        ctest &&
+        popd

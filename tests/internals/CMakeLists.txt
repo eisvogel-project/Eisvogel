@@ -1,20 +1,27 @@
 add_executable(testNDVecArray testNDVecArray.cxx)
 target_link_libraries(testNDVecArray eisvogel)
+add_test(NAME testNDVecArray COMMAND testNDVecArray)
 
 add_executable(testCompression testCompression.cxx)
 target_link_libraries(testCompression eisvogel)
+add_test(NAME testCompression COMMAND testCompression)
 
 add_executable(testDistributedNDVecArray testDistributedNDVecArray.cxx)
 target_link_libraries(testDistributedNDVecArray eisvogel)
+add_test(NAME testDistributedNDVecArray COMMAND testDistributedNDVecArray)
 
 add_executable(testNDVecArrayInterpolation testNDVecArrayInterpolation.cxx)
 target_link_libraries(testNDVecArrayInterpolation eisvogel)
+add_test(NAME testNDVecArrayInterpolation COMMAND testNDVecArrayInterpolation)
 
 add_executable(testGreensFunction testGreensFunction.cxx)
 target_link_libraries(testGreensFunction eisvogel)
+add_test(NAME testGreensFunction COMMAND testGreensFunction)
 
 add_executable(testDownsampling testDownsampling.cxx)
 target_link_libraries(testDownsampling eisvogel)
+add_test(NAME testDownsampling COMMAND testDownsampling)
 
 add_executable(testRStarTree testRStarTree.cxx)
 target_link_libraries(testRStarTree eisvogel)
+add_test(NAME testRStarTree COMMAND testRStarTree)
