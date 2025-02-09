@@ -47,6 +47,16 @@ struct VectorView : public std::span<T, vec_dims> {
   }
 };
 
+template <class T, std::size_t vec_dims>
+bool IsNullVector(const VectorView<T, vec_dims> view) {
+  for(T& cur : view) {
+    if(cur != (T)(0.0)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Some type shortcuts
 template <typename T>
 using Vector2DView = VectorView<T, 2>;
