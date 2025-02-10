@@ -182,9 +182,9 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
   }  
 }
 
-template <class KernelT, class QuadratureT>
+template <class KernelT, typename ResultT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-						 std::vector<scalar_t>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
+						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
 
   // std::cout << "HH in apply_accumulate HH" << std::endl;
   
@@ -315,9 +315,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	assert(block_sample_ind_start + block_num_samples <= signal.size());
 	
 	auto block_result = signal.begin() + block_sample_ind_start;	
-	accumulate_inner_product<KernelT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
-					  quadrature_weights[i_pt] * itgr_step * weight * (-1.0),  // negative sign from how Green's function is defined
-					  oob_mode);
+	accumulate_inner_product<KernelT, ResultT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
+						   quadrature_weights[i_pt] * itgr_step * weight * (-1.0),  // negative sign from how Green's function is defined
+						   oob_mode);
 
 	// std::cout << " . . . . . . . . " << std::endl;
       }
@@ -327,9 +327,9 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   }  
 }
 
-template <class KernelT>
+template <class KernelT, typename ResultT>
 void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView rz_coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-							 const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight,
+							 const RZFieldVectorView source, std::vector<ResultT>::iterator result, scalar_t weight,
 							 Green::OutOfBoundsBehavior oob_mode) {
 
   // Buffer to hold the interpolated values
