@@ -71,9 +71,11 @@ public:
 
   // Apply this Green's function to the line current segment `curr_seg` and accumulate the result in `signal`.
   // The signal is calculated starting from time `t_sig_start` with `num_samples` samples using `t_sig_samp` as sampling interval.
-  template <class KernelT, class QuadratureT = Quadrature::TrapezoidalRule>
+  template <class KernelT, typename ResultT = float, class QuadratureT = Quadrature::TrapezoidalRule>
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-			std::vector<scalar_t>& signal, Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError);
+			std::vector<ResultT>& signal, 
+			Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
+			scalar_t weight = 1.0);
 
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
@@ -84,9 +86,9 @@ public:
 public: // TODO: make this private, called by unit test at the moment
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
-  template <class KernelT>
+  template <class KernelT, typename ResultT = float>
   void accumulate_inner_product(const RZCoordVectorView coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
-				const RZFieldVectorView source, std::vector<scalar_t>::iterator result, scalar_t weight = 1.0f,
+				const RZFieldVectorView source, std::vector<ResultT>::iterator result, scalar_t weight = 1.0f,
 				Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError);
     
 private:
