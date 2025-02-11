@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 
   //Set this parameter for a shower peaking at the surface
   scalar_t d_peak = 0;
-  scalar_t tstart = -60, tend = 60;
+  scalar_t tstart = -70, tend = 60;
   scalar_t beta = 0.999f;
 
   //d is distance from surface
@@ -58,9 +58,9 @@ int main(int argc, char* argv[]) {
   };
 
   scalar_t bmax = 450.0;
-  scalar_t bmin = 449.0;
+  scalar_t bmin = 100.0;
 
-  scalar_t bstep = 349.0;
+  scalar_t bstep = 5.0;
   //scalar_t bstep = 10.0;
   std::vector<float> b_arr;
   for (float i = bmin; i < bmax; i += bstep) {
@@ -68,8 +68,8 @@ int main(int argc, char* argv[]) {
         //std::cout << "bval " << i << std::endl;
     }
 
-  scalar_t phi_step = 90;
-  //scalar_t phi_step = 30;
+  //scalar_t phi_step = 90;
+  scalar_t phi_step = 30;
   std::vector<float> phi_arr;
   for (int i = 0; i < 360; i += phi_step) {
         phi_arr.push_back(i * M_PI / 180.0);
@@ -121,7 +121,7 @@ int main(int argc, char* argv[]) {
         std::string directory = "/home/nalden/Eisvogel/build/surface_sweep_files/";
         std::string filepath = directory + fname;
 
-        std::cout << filepath << std::endl;
+        //std::cout << filepath << std::endl;
 
         std::ofstream myfile;
         myfile.open(filepath);
