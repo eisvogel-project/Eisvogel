@@ -171,13 +171,13 @@ namespace nullsup {
     
     auto buffer_it = buffer.begin();
     
-    auto null_desuppressor = [&](Vector<std::size_t, dims>& ind) {
+    auto null_desuppressor = [&](VectorView<T, vec_dims> elem) {
       
       if(num_nulls > 0) {
 	[[likely]];
 	
 	// Fill null elements into array
-	std::fill_n(std::execution::unseq, arr[ind].begin(), vec_dims, 0);
+	std::fill_n(std::execution::unseq, elem.begin(), vec_dims, 0);
 	num_nulls--;
       }
       else {
@@ -186,20 +186,16 @@ namespace nullsup {
 	for(std::size_t vec_ind = 0; vec_ind < vec_dims; vec_ind++) {	
 	  SerType ser_val = preprocessor(*buffer_it);
 	  buffer_it++;	
-	  std::memcpy(&vec_buffer[vec_ind], &ser_val, sizeof(ser_val));
-	}
+	  std::memcpy(&elem[vec_ind], &ser_val, sizeof(ser_val));
+	}       
 	
-	arr[ind] = vec_buffer;
-	
-	if(arr.IsNull(ind)) {
+	if(IsNullVector(elem)) {
 	  num_nulls = preprocessor(*buffer_it) - 1; // the first null has already been written into the array
 	  buffer_it++;
 	}
       }    
     };
-
-    // if performance becomes a problem, could consider moving this to `arr.loop_over_elements` which iterates move efficiently
-    IteratorUtils::index_loop_over_array_elements(arr, null_desuppressor);
+    arr.loop_over_elements(null_desuppressor);
     
     return buffer_it - buffer.begin();
   }

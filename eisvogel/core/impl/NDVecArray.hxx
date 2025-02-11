@@ -370,14 +370,8 @@ bool NDVecArray<T, dims, vec_dims>::ShapeAllowsConcatenation(const shape_t& arr_
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
-bool NDVecArray<T, dims, vec_dims>::IsNull(const ind_t& ind) const {
-  
-  for(T& cur : this -> operator[](ind)) {
-    if(cur != (T)(0.0)) {
-      return false;
-    }
-  }
-  return true;
+bool NDVecArray<T, dims, vec_dims>::IsNull(const ind_t& ind) const { 
+  return IsNullVector(this -> operator[](ind));  
 }
 
 template <typename T, std::size_t dims, std::size_t vec_dims>
