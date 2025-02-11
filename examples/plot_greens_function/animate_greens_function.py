@@ -19,12 +19,12 @@ def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]
     gs = GridSpec(1, 1, figure = fig)
     ax = fig.add_subplot(gs[0])
 
-    linthresh = 1e-5
+    linthresh = 1e-8
     vmin = -2e-3
     vmax = 2e-3
 
-    fieldplot = ax.pcolorfast(range_x, range_y, np.transpose(data[:, :, 0]), cmap = "bwr",
-                              norm = colors.SymLogNorm(linthresh = linthresh, linscale = 1, base = 10, vmin = vmin, vmax = vmax))
+    fieldplot = ax.imshow(np.flip(np.transpose(data[:, :, 0]), axis = 0), cmap = "bwr", extent = [*range_x, *range_y], interpolation = "bicubic",
+                          norm = colors.SymLogNorm(linthresh = linthresh, linscale = 1, base = 10, vmin = vmin, vmax = vmax))
     ax.set_aspect("equal")
     ax.set_xlabel(xlabel, fontsize = fs)
     ax.set_ylabel(ylabel, fontsize = fs)
@@ -46,7 +46,7 @@ def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]
         
     def animate(it):
         ind_t = downsample_t * it
-        fieldplot.set_array(np.transpose(data[:, :, ind_t]))
+        fieldplot.set_array(np.flip(np.transpose(data[:, :, ind_t]), axis = 0))
         timestep_text.set_text(r"$t = {:.2f}\,\mathrm{{ns}}$".format(range_t[0] + ind_t * (range_t[1] - range_t[0]) / num_frames))
         print(f"Rendered frame {ind_t} / {num_frames}")
         return fieldplot
