@@ -24,7 +24,8 @@ void create_greens_function(std::filesystem::path outdir, scalar_t filter_t_peak
 }
 
 void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar_t beta,
-			       scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples, std::vector<scalar_t>& signal_values) {
+			       scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples, std::vector<scalar_t>& signal_values,
+			       scalar_t delta_t_traj) {
   
   // Some parameters are fixed
   scalar_t z0 = 100;
@@ -45,12 +46,11 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
     std::fill(signal_values.begin(), signal_values.end(), (scalar_t)0.0f);
     
     // Build trajectory and integrate
-    constexpr scalar_t delta_t = 1.0f;
-    for(scalar_t cur_t = tstart; cur_t < tend; cur_t += delta_t) {
+    for(scalar_t cur_t = tstart; cur_t < tend; cur_t += delta_t_traj) {
       
-      LineCurrentSegment cur_track(XYZCoordVector{beta * cur_t, 0.0f, b},               // track start position
-				   XYZCoordVector{beta * (cur_t + delta_t), 0.0f, b},   // track end position
-				   cur_t, cur_t + delta_t, charge(cur_t));
+      LineCurrentSegment cur_track(XYZCoordVector{beta * cur_t, 0.0f, b},                    // track start position
+				   XYZCoordVector{beta * (cur_t + delta_t_traj), 0.0f, b},   // track end position
+				   cur_t, cur_t + delta_t_traj, charge(cur_t));
       
       auto start = std::chrono::high_resolution_clock::now();
       calc.AccumulateSignal(cur_track, t_sig_start, t_sig_samp, num_samples, signal_values);
@@ -74,13 +74,16 @@ void run_test(std::filesystem::path result_path, std::filesystem::path gf_path, 
   scalar_t t_sig_start = times[0];
   scalar_t t_sig_samp = times[1] - times[0];
   std::size_t num_samples = times.size();
-  std::vector<scalar_t> eisvogel_signal_buffer;
 
-  calculate_signal_eisvogel(gf_path, b, beta, t_sig_start, t_sig_samp, num_samples, eisvogel_signal_buffer);
-  assert(eisvogel_signal_buffer.size() == signal_result.size());
-
-  std::cout << result_path << std::endl;
-  assert(TestUtils::signals_close_match(eisvogel_signal_buffer, signal_result, rel_th, true));
+  // Build trajectory using different increments and verify signal correctness for each of them
+  std::vector<scalar_t> delta_ts_traj{1.0, 0.5, 0.1};
+  
+  for(scalar_t delta_t_traj : delta_ts_traj) {
+    std::vector<scalar_t> eisvogel_signal_buffer;
+    calculate_signal_eisvogel(gf_path, b, beta, t_sig_start, t_sig_samp, num_samples, eisvogel_signal_buffer, delta_t_traj);
+    assert(eisvogel_signal_buffer.size() == signal_result.size());
+    assert(TestUtils::signals_close_match(eisvogel_signal_buffer, signal_result, rel_th, true));
+  }
 }
 
 int main(int argc, char* argv[]) {
