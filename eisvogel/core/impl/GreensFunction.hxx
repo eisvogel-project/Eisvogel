@@ -191,6 +191,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 
   // Check if this is a short current segment and use the integration routine optimized for this purpose ...
   if(seg.end_time - seg.start_time < max_itgr_step) {
+    [[likely]];
     apply_accumulate_short_segment<KernelT, ResultT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight);
   }
   else {
