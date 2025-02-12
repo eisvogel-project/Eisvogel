@@ -94,7 +94,7 @@ private:
 				scalar_t weight = 1.0, scalar_t max_itgr_step = 1.0);
 
   // Optimized for short tracks that are shorter than `itgr_step`
-  template <class KernelT, typename ResultT, class QuadratureT>
+  template <class KernelT, typename ResultT>
   void apply_accumulate_short_segment(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 				      std::vector<ResultT>& signal, 
 				      Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,

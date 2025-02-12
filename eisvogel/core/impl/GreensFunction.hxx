@@ -188,7 +188,53 @@ template <class KernelT, typename ResultT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
 						 scalar_t max_itgr_step) {
-  apply_accumulate_general<KernelT, ResultT, QuadratureT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight, max_itgr_step);  
+
+  // Check if this is a short current segment and use the integration routine optimized for this purpose ...
+  if(seg.end_time - seg.start_time < max_itgr_step) {
+    apply_accumulate_short_segment<KernelT, ResultT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight);
+  }
+  else {
+    // ... if not, use the more-powerful general routine
+    apply_accumulate_general<KernelT, ResultT, QuadratureT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight, max_itgr_step);
+  }
+}
+
+template <class KernelT, typename ResultT>
+void CylindricalGreensFunction::apply_accumulate_short_segment(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+							       std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
+
+  scalar_t delta_t_p = seg.end_time - seg.start_time;
+  scalar_t t_p = (seg.start_time + seg.end_time) / 2.0; // Time t' at which this current segment contributes to the convolution integral
+  
+  // Find index of the first nonzero output sample, i.e. the first sample for which t - t' > 0 in the convolution integral  
+  std::size_t sample_ind_causal = std::max<int>(0, std::ceil((t_p - t_sig_start) / t_sig_samp));
+
+  if(sample_ind_causal >= num_samples) {
+    // Nothing to be done
+    return;
+  }
+  
+  scalar_t convolution_t_start = t_sig_start + sample_ind_causal * t_sig_samp - t_p;
+  assert(convolution_t_start >= 0.0);
+    
+  // Number of samples actually to be calculated
+  std::size_t num_samples_calc = num_samples - sample_ind_causal;
+  assert(sample_ind_causal + num_samples_calc <= signal.size());
+  auto signal_result = signal.begin() + sample_ind_causal;
+
+  // Prepare spatial part of current segment
+  XYZCoordVector seg_center_xyz = (seg.start_pos + seg.end_pos) / 2.0;  
+  RZCoordVector seg_center_rz;
+  coord_cart_to_cyl(seg_center_xyz, seg_center_rz);
+  
+  XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / delta_t_p;
+  XYZFieldVector source_xyz = seg_vel * seg.charge;
+  RZFieldVector source_rz;
+  field_cart_to_cyl(source_xyz, seg_center_xyz, source_rz);
+  
+  // Inner product and accumulate
+  accumulate_inner_product<KernelT, ResultT>(seg_center_rz, convolution_t_start, t_sig_samp, num_samples, source_rz, signal_result,
+					     weight * delta_t_p, oob_mode);
 }
 
 template <class KernelT, typename ResultT, class QuadratureT>
