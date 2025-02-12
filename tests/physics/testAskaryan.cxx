@@ -44,6 +44,8 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
     
     signal_values.resize(num_samples);
     std::fill(signal_values.begin(), signal_values.end(), (scalar_t)0.0f);
+
+    auto start = std::chrono::high_resolution_clock::now();
     
     // Build trajectory and integrate
     for(scalar_t cur_t = tstart; cur_t < tend; cur_t += delta_t_traj) {
@@ -51,8 +53,7 @@ void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar
       LineCurrentSegment cur_track(XYZCoordVector{beta * cur_t, 0.0f, b},                    // track start position
 				   XYZCoordVector{beta * (cur_t + delta_t_traj), 0.0f, b},   // track end position
 				   cur_t, cur_t + delta_t_traj, charge(cur_t));
-      
-      auto start = std::chrono::high_resolution_clock::now();
+       
       calc.AccumulateSignal(cur_track, t_sig_start, t_sig_samp, num_samples, signal_values);
       auto stop = std::chrono::high_resolution_clock::now();
       total_duration += std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
