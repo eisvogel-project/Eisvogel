@@ -233,8 +233,9 @@ void CylindricalGreensFunction::apply_accumulate_short_segment(const LineCurrent
   field_cart_to_cyl(source_xyz, seg_center_xyz, source_rz);
   
   // Inner product and accumulate
-  accumulate_inner_product<KernelT, ResultT>(seg_center_rz, convolution_t_start, t_sig_samp, num_samples, source_rz, signal_result,
-					     weight * delta_t_p, oob_mode);
+  accumulate_inner_product<KernelT, ResultT>(seg_center_rz, convolution_t_start, t_sig_samp, num_samples_calc, source_rz, signal_result,
+					     weight * delta_t_p * (-1.0), // negative sign from how Green's function is defined
+					     oob_mode);
 }
 
 template <class KernelT, typename ResultT, class QuadratureT>
