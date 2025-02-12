@@ -2,10 +2,14 @@
 #include "GreensFunction.hh"
 #include "Current.hh"
 #include "Vector.hh"
+#include "Splashscreen.hh"
 
 #include <iostream>
 
 C8SignalCalculator::C8SignalCalculator(std::filesystem::path gf_path, std::size_t cache_depth) {
+
+  std::cout << splash::get_splashscreen() << std::endl;
+  std::cout << "E I S V O G E L - Corsika 8" << std::endl;
   
   m_gf = std::make_shared<CylindricalGreensFunction>(gf_path, cache_depth);
 }
