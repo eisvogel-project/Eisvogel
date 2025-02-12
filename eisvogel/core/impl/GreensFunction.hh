@@ -75,18 +75,35 @@ public:
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 			std::vector<ResultT>& signal, 
 			Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
-			scalar_t weight = 1.0);
+			scalar_t weight = 1.0, scalar_t max_itgr_step = 1.0);
 
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
 
   RZTCoordVector start_coords();
   RZTCoordVector end_coords();
+
+private:
+
+  // Various specialized versions of `apply_accumulate`
+  // General version that works for arbitrary line segments
+  template <class KernelT, typename ResultT, class QuadratureT>
+  void apply_accumulate_general(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+				std::vector<ResultT>& signal, 
+				Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
+				scalar_t weight = 1.0, scalar_t max_itgr_step = 1.0);
+
+  // Optimized for short tracks that are shorter than `itgr_step`
+  template <class KernelT, typename ResultT, class QuadratureT>
+  void apply_accumulate_short_segment(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+				      std::vector<ResultT>& signal, 
+				      Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
+				      scalar_t weight = 1.0);
   
 public: // TODO: make this private, called by unit test at the moment
   
   // Calculate inner product with source current over the time interval [t_start, t_end) and accumulate into `result`
-  template <class KernelT, typename ResultT = float>
+  template <class KernelT, typename ResultT>
   void accumulate_inner_product(const RZCoordVectorView coords, scalar_t t_start, scalar_t t_samp, std::size_t num_samples,
 				const RZFieldVectorView source, std::vector<ResultT>::iterator result, scalar_t weight = 1.0f,
 				Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError);

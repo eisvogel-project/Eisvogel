@@ -186,16 +186,20 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
 template <class KernelT, typename ResultT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
+						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
+						 scalar_t max_itgr_step) {
+  apply_accumulate_general<KernelT, ResultT, QuadratureT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight, max_itgr_step);  
+}
+
+template <class KernelT, typename ResultT, class QuadratureT>
+void CylindricalGreensFunction::apply_accumulate_general(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+							 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
+							 scalar_t max_itgr_step) {
 
   // auto start = std::chrono::high_resolution_clock::now();
   // std::chrono::microseconds total_ip_duration{0};
   
-  // std::cout << "HH in apply_accumulate HH" << std::endl;
-  
-  // TODO: take this from the chunk sample rate / max frequency content of this Greens function
-  // Max. integration step size delta_t_p
-  scalar_t max_itgr_step = 1.0f;
+  // std::cout << "HH in apply_accumulate HH" << std::endl; 
   
   // Determine total number of quadrature intervals (always integer) ...
   const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
