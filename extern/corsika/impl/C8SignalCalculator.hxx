@@ -10,6 +10,8 @@ C8SignalCalculator::C8SignalCalculator(std::filesystem::path gf_path, std::size_
   m_gf = std::make_unique<CylindricalGreensFunction>(gf_path, cache_depth);
 }
 
+C8SignalCalculator::~C8SignalCalculator() = default;
+
 void C8SignalCalculator::get_antenna_location(std::array<float, 3>& ant_xyz) {
   // TODO: store in Green's function metadata and read back
   ant_xyz.fill(0.0f);

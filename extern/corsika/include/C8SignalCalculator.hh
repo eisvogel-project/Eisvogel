@@ -10,6 +10,7 @@ class C8SignalCalculator {
   
 public:
   C8SignalCalculator(std::filesystem::path gf_path, std::size_t cache_depth = 5);
+  ~C8SignalCalculator();
 
   void get_antenna_location(std::array<float, 3>& ant_xyz);
     
