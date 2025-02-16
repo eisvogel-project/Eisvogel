@@ -18,6 +18,6 @@ public:
   
 private:
 
-  std::shared_ptr<CylindricalGreensFunction> m_gf;
+  std::unique_ptr<CylindricalGreensFunction> m_gf;
   
 };
