@@ -13,7 +13,7 @@ void C8CylindricalGreensFunctionCalculator::calculate(float r_max, float z_min, 
 						      std::filesystem::path gf_path,
 						      std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
 						      double courant_factor, double resolution, double timestep, double pml_width,
-						      std::size_t downsampling_on_disk, scalar_t dynamic_range, scalar_t abs_min_field,
+						      std::size_t downsampling_on_disk, double dynamic_range, double abs_min_field,
 						      std::size_t chunk_overlap, std::size_t chunk_size_linear, std::size_t rechunk_cache_depth) {
 
   m_geom = std::make_unique<CylinderGeometry>(r_max, z_min, z_max, eps);
