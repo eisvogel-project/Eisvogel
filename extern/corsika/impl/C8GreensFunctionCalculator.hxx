@@ -20,5 +20,6 @@ void C8CylindricalGreensFunctionCalculator::calculate(float r_max, float z_min, 
   m_ant = std::make_unique<InfEDipoleAntenna>(0.0, t_end, z_ant, impulse_response);
   m_gfc = std::make_unique<GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator>(*m_geom, *m_ant, t_end);
   
-  m_gfc -> Calculate(gf_path, local_scratchdir, global_scratchdir);
+  m_gfc -> Calculate(gf_path, local_scratchdir, global_scratchdir, courant_factor, resolution, timestep, pml_width, downsampling_on_disk,
+		     dynamic_range, abs_min_field, chunk_overlap, chunk_size_linear, rechunk_cache_depth);
 }
