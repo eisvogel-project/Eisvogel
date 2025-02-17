@@ -1,8 +1,8 @@
-#include "C8SignalCalculator.hh"
 #include "GreensFunction.hh"
 #include "Current.hh"
 #include "Vector.hh"
 #include "Splashscreen.hh"
+#include "Eisvogel/C8SignalCalculator.hh"
 
 #include <iostream>
 
