@@ -212,8 +212,8 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::MoveCache(std::filesystem::path new_
     if(cur_entry.path().extension() != m_suffix) {
       continue;
     }
-    std::filesystem::copy(cur_entry, new_workdir);
-    std::filesystem::remove(cur_entry);
+    std::filesystem::path new_entry = new_workdir / cur_entry.path().filename();
+    move_or_copydelete_file(cur_entry, new_entry);
   }
 
   // Update the working directory
@@ -238,14 +238,22 @@ void ChunkCache<ArrayT, T, dims, vec_dims>::ClearCache() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkCache<ArrayT, T, dims, vec_dims>::ImportCache(std::filesystem::path workdir) {
+void ChunkCache<ArrayT, T, dims, vec_dims>::ImportCache(std::filesystem::path workdir, bool move) {
 
-  // Simply copy all the chunk files from the other work directory
   for(auto const& cur_entry : std::filesystem::directory_iterator(workdir)) {
     if(cur_entry.path().extension() != m_suffix) {
       continue;
     }
-    std::filesystem::copy(cur_entry, m_workdir);
+    std::filesystem::path new_entry = m_workdir / cur_entry.path().filename();
+    if(move) {
+      [[likely]]      
+      // If we're asked to move the file, do that; in most cases this is what will happen
+      move_or_copydelete_file(cur_entry, new_entry);
+    }
+    else {
+      // If we're not asked to move contents, need to actually make a copy
+      std::filesystem::copy(cur_entry, new_entry);
+    }
   }
 }
 
@@ -606,7 +614,7 @@ void ChunkIndex<dims>::ClearIndex() {
 }
 
 template <std::size_t dims>
-void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
+void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path, bool move) {
 
   invalidate_cached_index_metadata();
 
@@ -621,6 +629,11 @@ void ChunkIndex<dims>::ImportIndex(std::filesystem::path index_path) {
   // Add them to the tree
   for(metadata_t& cur_meta : index_entries) {
     m_chunk_tree.InsertElement(cur_meta, cur_meta.start_ind, cur_meta.end_ind);
+  }
+
+  // Delete the imported index if we're asked to do that
+  if(move) {
+    std::filesystem::remove(index_path);
   }
 }
 
@@ -1014,11 +1027,11 @@ void ChunkLibrary<ArrayT, T, dims, vec_dims>::FlushLibrary() {
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void ChunkLibrary<ArrayT, T, dims, vec_dims>::ImportLibrary(std::filesystem::path libdir) {
+void ChunkLibrary<ArrayT, T, dims, vec_dims>::ImportLibrary(std::filesystem::path libdir, bool move) {
 
   // import and merge both the chunk index and the "cache"
-  m_index.ImportIndex(libdir / m_index_filename);
-  m_cache.ImportCache(libdir);
+  m_index.ImportIndex(libdir / m_index_filename, move);
+  m_cache.ImportCache(libdir, move);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1294,8 +1307,8 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::index_loop_over_penetrati
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
-void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::Import(std::filesystem::path dir) {
-  m_library.ImportLibrary(dir);
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::Import(std::filesystem::path dir, bool move) {
+  m_library.ImportLibrary(dir, move);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
@@ -1335,4 +1348,17 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunks(const ind_t
   };
   std::size_t overlap = 0;
   RebuildChunks(requested_chunk_shape, tmpdir, overlap, error_on_evaluation, hints);
+}
+
+void move_or_copydelete_file(const std::filesystem::path& from, const std::filesystem::path& to) {
+
+  try {
+    // Try if renaming works (it should always work if both `from` and `to` are on the same physical disk)
+    std::filesystem::rename(from, to);
+  }
+  catch(std::filesystem::filesystem_error& e) {
+    // `rename` didn't work, now do the (much less efficient) thing of copying and removing
+    std::filesystem::copy(from, to);
+    std::filesystem::remove(from);
+  }
 }

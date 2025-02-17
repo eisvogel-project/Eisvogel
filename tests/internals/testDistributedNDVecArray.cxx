@@ -301,7 +301,7 @@ int main(int argc, char* argv[]) {
   {
     darr_t darr_merge(workdir_final);
     for(std::size_t i = 0; i < job_id; i++) {
-      darr_merge.Import("./rechunk_" + std::to_string(i));
+      darr_merge.Import("./rechunk_" + std::to_string(i), true);
     }
   }
 
