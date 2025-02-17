@@ -10,8 +10,10 @@ C8SignalCalculator::C8SignalCalculator(std::filesystem::path gf_path, std::size_
 
   std::cout << splash::get_splashscreen() << std::endl;
   
-  m_gf = std::make_shared<CylindricalGreensFunction>(gf_path, cache_depth);
+  m_gf = std::make_unique<CylindricalGreensFunction>(gf_path, cache_depth);
 }
+
+C8SignalCalculator::~C8SignalCalculator() = default;
 
 void C8SignalCalculator::get_antenna_location(std::array<float, 3>& ant_xyz) {
   // TODO: store in Green's function metadata and read back

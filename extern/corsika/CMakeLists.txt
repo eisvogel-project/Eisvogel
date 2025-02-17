@@ -1,9 +1,23 @@
-add_library(eisvogel-corsika SHARED
-            src/C8SignalCalculator.cxx)
-set_target_properties(eisvogel-corsika PROPERTIES PUBLIC_HEADER include/C8SignalCalculator.hh)
+add_library(eisvogel-corsika SHARED src/C8.cxx)
 
-target_include_directories(eisvogel-corsika PUBLIC include/)
-target_link_libraries(eisvogel-corsika eisvogel)
+if(BUILD_MEEP)
+
+  target_compile_definitions(eisvogel-corsika PRIVATE WITHMEEP=1)  
+  set_target_properties(eisvogel-corsika PROPERTIES
+    PUBLIC_HEADER include/C8SignalCalculator.hh
+    PUBLIC_HEADER include/C8GreensFunctionCalculator.hh)
+  target_link_libraries(eisvogel-corsika eisvogel-meep)
+  
+else()
+
+  set_target_properties(eisvogel-corsika PROPERTIES
+    PUBLIC_HEADER include/C8SignalCalculator.hh)
+  target_link_libraries(eisvogel-corsika eisvogel)
+  
+endif(BUILD_MEEP)
+
+target_include_directories(eisvogel-corsika
+  PUBLIC include/ impl/)
 
 configure_file(eisvogel-corsika.pc.in eisvogel-corsika.pc @ONLY)
 
