@@ -1,5 +1,5 @@
-#include "C8GreensFunctionCalculator.hh"
 #include "MEEPCylindricalGreensFunctionCalculator.hh"
+#include "Eisvogel/C8GreensFunctionCalculator.hh"
 
 C8CylindricalGreensFunctionCalculator::C8CylindricalGreensFunctionCalculator(int argc, char* argv[]) {
   m_mpi = std::make_unique<meep::initialize>(argc, argv);
