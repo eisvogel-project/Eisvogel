@@ -74,21 +74,21 @@ private:
 
 };
 
-// Data container to keep track of metadata information pertaining to a single spatial simulation chunk.
+// Data container to keep track of metadata information pertaining to a single spatial simulation chunk as used by MEEP.
 template <typename SpatialSymmetryT>
 struct SimulationChunkMetadata {
 
   using shape_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
   using ind_t = Vector<std::size_t, SpatialSymmetryT::dims - 1>;
 
-  SimulationChunkMetadata(const shape_t& chunk_shape, const ind_t& chunk_start_ind) :
-    chunk_shape(chunk_shape), chunk_start_ind(chunk_start_ind) { }
+  SimulationChunkMetadata(const shape_t& chunk_shape, const ind_t& chunk_start_ind, const shape_t& storage_chunk_shape, const shape_t& storage_chunk_start_ind) :
+    chunk_shape(chunk_shape), chunk_start_ind(chunk_start_ind), storage_chunk_shape(storage_chunk_shape), storage_chunk_start_ind(storage_chunk_start_ind) { }
   
   shape_t chunk_shape;  // Shape of this simulation chunk as it is used by MEEP
   ind_t chunk_start_ind;  // Start index of this simulation chunk
 
-  // TODO: to support partial saving
-  // -> Add `storage_chunk_shape` and `storage_chunk_start_ind` that define the to-be-saved region
+  shape_t storage_chunk_shape;  // Shape of the portion of this chunk that is to be saved
+  ind_t storage_chunk_start_ind;  // Start index of the portion of the chunk that is to be saved
 };
 
 // Data container to pass into the MEEP callbacks defined below. Contains all the relevant information that needs to be passed
@@ -219,14 +219,17 @@ namespace meep {
       std::size_t cur_len = std::max(0, (ie.in_direction(d) - is.in_direction(d)) / 2 + 1);
       shape[index++] = cur_len;
     }
+    
+    ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
 
     // Build and record the chunk metadata
     // TODO: to support saving of parts of the MEEP simulation volume:
     // -> get the correct `storage_chunk_shape` and `storage_chunk_start_ind` here
-    // -> pass it to the constructor
+    // -> pass it to the constructor of the SimulationChunkMetadata
+    ZRVector<std::size_t> storage_chunk_shape{chunk_shape};
+    ZRIndexVector storage_chunk_start_ind{chunk_start_ind};
     
-    ZRVector<std::size_t> chunk_shape{shape[0], shape[1]};
-    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, chunk_start_ind);
+    CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, chunk_start_ind, storage_chunk_shape, storage_chunk_start_ind);
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
 
     // Setup field statistics tracker for this chunk
