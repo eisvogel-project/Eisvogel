@@ -472,7 +472,7 @@ namespace GreensFunctionCalculator::MEEP {
     darr_t darr(outdir, cache_depth, init_cache_el_shape, streamer_chunk_shape); // no big cache needed here, this is just for merging
     
     for(const std::filesystem::path& indir : indirs) {
-      darr.Import(indir);
+      darr.Import(indir, true);
       std::filesystem::remove_all(indir);
     }
   }
