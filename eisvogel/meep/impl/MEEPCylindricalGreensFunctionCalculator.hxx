@@ -283,7 +283,7 @@ namespace meep {
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
     
     // Setup field statistics tracker for this chunk
-    chunkloop_data -> fstats.AddRegion(ichunk, chunk_shape);
+    chunkloop_data -> fstats.AddRegion(ichunk, storage_chunk_shape);
   }
 
   // This is called for every simulation timestep and performs the saving of the Green's function.
@@ -293,30 +293,31 @@ namespace meep {
 					     const symmetry& S, int sn, void* cld) {
     
     CylindricalChunkloopData* chunkloop_data = static_cast<CylindricalChunkloopData*>(cld);    
+
+    // Nothing to be done for chunks that we don't need
+    if(!(chunkloop_data -> sim_chunk_meta.contains(ichunk))) {
+      return;
+    }
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 200;
 
     // TODO: to support partial saving
     // -> Make sure to use the `storage_chunk_shape` here
-
-    // if(!(chunkloop_data -> sim_chunk_meta.contains(ichunk))) {
-    // return;
-    //}
     
     // Make sure the buffers are of the correct size for this simulation chunk    
-    ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);    
-    TZRVector<std::size_t> field_slice_shape(1, spatial_chunk_shape);
+    ZRVector<std::size_t> spatial_storage_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_shape);
+    TZRVector<std::size_t> field_slice_storage_shape(1, spatial_storage_chunk_shape);
 
-    chunkloop_data -> field_absval_buffer.resize(spatial_chunk_shape);
-    chunkloop_data -> field_buffer.resize(field_slice_shape);
+    chunkloop_data -> field_absval_buffer.resize(spatial_storage_chunk_shape);
+    chunkloop_data -> field_buffer.resize(field_slice_storage_shape);
 
-    // Start index of this simulation chunk
+    // Make sure that start index of this simulation chunk hasn't changed since the geometry was probed at the very beginning
     ZRIndexVector spatial_chunk_start_ind = get_cylindrical_chunk_start_ind(is);
-
-    // otherwise this chunk has changed since we probed the geometry at the beginning
     assert(spatial_chunk_start_ind == chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_start_ind);
-    TZRIndexVector chunk_start_ind(chunkloop_data -> ind_time, spatial_chunk_start_ind);
+
+    ZRIndexVector spatial_storage_chunk_start_ind(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_start_ind);
+    TZRIndexVector storage_chunk_start_ind(chunkloop_data -> ind_time, spatial_storage_chunk_start_ind);
       
     // some preliminary setup
     vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
@@ -343,22 +344,25 @@ namespace meep {
       };
       TZRIndexVector cur_ind(chunkloop_data -> ind_time, cur_spatial_ind);
       
-      // fetch field components at child point ...
-      data.update_values(idx);
-      double E_z_val = data.values[0].real();
-      double E_r_val = data.values[1].real();      
-      double E_abs_val = std::sqrt(E_z_val * E_z_val + E_r_val * E_r_val);
-
       // TODO: to support partial saving
       // -> Check here if `cur_ind` is to be included in the output
       // -> `continue` if it is not
       // -> Make sure to index the `field_buffer` correctly: `field_buffer[cur_ind - storage_chunk_start_ind]` etc.
-      
-      // ... and store them
-      CylindricalChunkloopData::view_t field_elem = chunkloop_data -> field_buffer[cur_ind - chunk_start_ind];
-      field_elem[0] = (scalar_t)E_r_val;
-      field_elem[1] = (scalar_t)E_z_val;
-      chunkloop_data -> field_absval_buffer[cur_spatial_ind - spatial_chunk_start_ind] = (scalar_t)E_abs_val;      
+
+      if(ChunkUtils::contains(spatial_storage_chunk_start_ind, spatial_storage_chunk_shape, cur_spatial_ind)) {
+
+	// fetch field components at child point ...
+	data.update_values(idx);
+	double E_z_val = data.values[0].real();
+	double E_r_val = data.values[1].real();      
+	double E_abs_val = std::sqrt(E_z_val * E_z_val + E_r_val * E_r_val);
+	
+	// ... and store them
+	CylindricalChunkloopData::view_t field_elem = chunkloop_data -> field_buffer[cur_ind - storage_chunk_start_ind];
+	field_elem[0] = (scalar_t)E_r_val;
+	field_elem[1] = (scalar_t)E_z_val;
+	chunkloop_data -> field_absval_buffer[cur_spatial_ind - spatial_storage_chunk_start_ind] = (scalar_t)E_abs_val;	
+      }      
     }
 
     // Update statistics tracker
@@ -369,10 +373,15 @@ namespace meep {
 			      chunkloop_data -> abs_min_field, chunkloop_data -> dynamic_range);
 
     // Downsample the field buffer before it is registered in the output storage
+    // Start index of this storage chunk relative to the full storage domain
+    TZRIndexVector storage_chunk_rel_start_ind(chunkloop_data -> ind_time,
+					       spatial_storage_chunk_start_ind - chunkloop_data -> storage_domain_start_ind);
+    
     TZRIndexVector processed_chunk_start_ind(0);
-    Downsampling::downsample(chunkloop_data -> field_buffer, chunk_start_ind, chunkloop_data -> downsampling_factor,
+    Downsampling::downsample(chunkloop_data -> field_buffer, storage_chunk_rel_start_ind, chunkloop_data -> downsampling_factor,
 			     chunkloop_data -> field_buffer_processed, processed_chunk_start_ind);
-    assert((chunkloop_data -> field_buffer_processed).GetShape() == Downsampling::get_downsampled_shape(chunk_start_ind, field_slice_shape,
+    assert((chunkloop_data -> field_buffer_processed).GetShape() == Downsampling::get_downsampled_shape(storage_chunk_start_ind,
+													field_slice_storage_shape,
 													chunkloop_data -> downsampling_factor));
 
     // The downsampling has resulted in an empty chunk, nothing further to do
@@ -384,22 +393,23 @@ namespace meep {
     //   chunkloop_data -> field_buffer_processed.GetShape() << std::endl;
     
     using shape_t = CylindricalChunkloopData::chunk_t::shape_t;
-    shape_t requested_storage_chunk_size(400);
+    shape_t requested_output_chunk_size(400);
 
     // Register the processed buffer
     if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
       
       // Register this slice as the beginning of a new chunk ...
       TZRIndexVector start(0);
-      auto simulation_chunk_storer = [&](const TZRIndexVector& storage_chunk_start, const TZRIndexVector& storage_chunk_end) {
-	chunkloop_data -> field_chunk_buffer.resize(storage_chunk_end - storage_chunk_start);
+      auto simulation_chunk_storer = [&](const TZRIndexVector& output_chunk_start, const TZRIndexVector& output_chunk_end) {
+	chunkloop_data -> field_chunk_buffer.resize(output_chunk_end - output_chunk_start);
 	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer_processed,
-						       storage_chunk_start,
-						       storage_chunk_end,
+						       output_chunk_start,
+						       output_chunk_end,
 						       start);
-	chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_chunk_buffer, processed_chunk_start_ind + storage_chunk_start);
+	chunkloop_data -> fstor.RegisterChunk(chunkloop_data -> field_chunk_buffer, processed_chunk_start_ind + output_chunk_start);
       };
-      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_storage_chunk_size, simulation_chunk_storer);
+      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_output_chunk_size,
+					    simulation_chunk_storer);
       
       // std::cout << "registering new chunk at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;      
     }
@@ -407,15 +417,16 @@ namespace meep {
 
       // ... or append it to an already-existing chunk along the outermost (time) direction
       TZRIndexVector start(0);
-      auto simulation_chunk_appender = [&](const TZRIndexVector& storage_chunk_start, const TZRIndexVector& storage_chunk_end) {
-	chunkloop_data -> field_chunk_buffer.resize(storage_chunk_end - storage_chunk_start);
+      auto simulation_chunk_appender = [&](const TZRIndexVector& output_chunk_start, const TZRIndexVector& output_chunk_end) {
+	chunkloop_data -> field_chunk_buffer.resize(output_chunk_end - output_chunk_start);
 	chunkloop_data -> field_chunk_buffer.fill_from(chunkloop_data -> field_buffer_processed,
-						       storage_chunk_start,
-						       storage_chunk_end,
+						       output_chunk_start,
+						       output_chunk_end,
 						       start);
-	chunkloop_data -> fstor.AppendSlice<0>(processed_chunk_start_ind + storage_chunk_start, chunkloop_data -> field_chunk_buffer);
+	chunkloop_data -> fstor.AppendSlice<0>(processed_chunk_start_ind + output_chunk_start, chunkloop_data -> field_chunk_buffer);
       };
-      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_storage_chunk_size, simulation_chunk_appender);
+      IteratorUtils::index_loop_over_chunks(start, chunkloop_data -> field_buffer_processed.GetShape(), requested_output_chunk_size,
+					    simulation_chunk_appender);
       
       // std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;     
     }

@@ -5,6 +5,16 @@
 namespace ChunkUtils {
 
   template <typename T, std::size_t dims>
+  bool contains(const Vector<T, dims>& chunk_start_ind, const Vector<T, dims>& chunk_shape, const Vector<T, dims>& ind) {
+    for(std::size_t i = 0; i < dims; i++) {
+      if((ind[i] - chunk_start_ind[i]) >= chunk_shape[i]) {
+	return false;
+      }
+    }
+    return true;
+  }
+  
+  template <typename T, std::size_t dims>
   bool overlaps(const Vector<T, dims>& chunk_a_start_ind, const Vector<T, dims>& chunk_a_shape,
 		const Vector<T, dims>& chunk_b_start_ind, const Vector<T, dims>& chunk_b_shape) {
 

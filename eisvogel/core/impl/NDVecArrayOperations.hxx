@@ -28,7 +28,8 @@ namespace Downsampling {
   }
   
   template <typename T, std::size_t dims, std::size_t vec_dims>
-  void downsample(const NDVecArray<T, dims, vec_dims>& to_downsample, const Vector<std::size_t, dims> start_ind, const Vector<std::size_t, dims> downsampling,
+  void downsample(const NDVecArray<T, dims, vec_dims>& to_downsample, const Vector<std::size_t, dims> start_ind,
+		  const Vector<std::size_t, dims> downsampling,
 		  NDVecArray<T, dims, vec_dims>& downsampled, Vector<std::size_t, dims>& downsampled_start_ind) {
     
     using ind_t = typename NDVecArray<T, dims, vec_dims>::ind_t;
