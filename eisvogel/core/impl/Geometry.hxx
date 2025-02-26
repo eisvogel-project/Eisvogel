@@ -18,11 +18,11 @@ void CylinderRegion::SetRegion(scalar_t r_min, scalar_t r_max, scalar_t z_min, s
 void CylinderRegion::throw_if_unphysical() {
   if((m_r_min < (scalar_t)(0.0)) ||
      (m_r_max < (scalar_t)(0.0)) ||
-     (m_r_min >= m_r_max)) {
-    throw std::runtime_error("Error: unphysical configuration of CylinderGeometry");
+     (m_r_min > m_r_max)) {
+    throw std::runtime_error("Error: unphysical configuration of CylinderRegion");
   }
-  if(m_z_min >= m_z_max) {
-    throw std::runtime_error("Error: unphysical configuration of CylinderGeometry");
+  if(m_z_min > m_z_max) {
+    throw std::runtime_error("Error: unphysical configuration of CylinderRegion");
   }
 }
 
@@ -33,16 +33,16 @@ CylinderGeometry::CylinderGeometry(scalar_t r_max, scalar_t z_min, scalar_t z_ma
 }
 
 void CylinderGeometry::throw_if_unphysical() {
-  if((m_r_max < (scalar_t)(0.0)) || (m_z_min >= m_z_max)) {
+  if((m_r_max < (scalar_t)(0.0)) || (m_z_min > m_z_max)) {
     throw std::runtime_error("Error: unphysical configuration of CylinderGeometry");
   }
 }
 
 bool CylinderGeometry::contains(const CylinderRegion& reg) {
   if((reg.GetZMin() >= GetZMin()) &&
-     (reg.GetZMax() < GetZMax()) &&
+     (reg.GetZMax() <= GetZMax()) &&
      (reg.GetRMin() >= GetRMin()) &&
-     (reg.GetRMax() < GetRMax())) {
+     (reg.GetRMax() <= GetRMax())) {
     return true;
   }
   return false;

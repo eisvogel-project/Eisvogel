@@ -447,8 +447,8 @@ namespace GreensFunctionCalculator::MEEP {
     TZRVector<std::size_t> calc_domain_shape{1u, (std::size_t)(meep_gv -> nz()), (std::size_t)(meep_gv -> nr())};
     TZRIndexVector storage_domain_start_ind{
       0u,
-      std::size_t((m_request_to_store.GetZMin() - m_geom.GetZMin()) * calc_domain_shape.z()),
-      std::size_t((m_request_to_store.GetRMin() - m_geom.GetRMin()) * calc_domain_shape.r())
+      std::size_t((m_request_to_store.GetZMin() - m_geom.GetZMin()) / m_geom.GetZSize() * calc_domain_shape.z()),
+      std::size_t((m_request_to_store.GetRMin() - m_geom.GetRMin()) / m_geom.GetRSize() * calc_domain_shape.r())
     };
     TZRVector<std::size_t> storage_domain_shape{
       1u,
@@ -461,10 +461,21 @@ namespace GreensFunctionCalculator::MEEP {
     assert(calc_domain_shape.r() == m_geom.GetRSize() * resolution);
     
     TZRIndexVector storage_domain_end_ind = storage_domain_start_ind + storage_domain_shape;
-    region_stored.SetRegion((scalar_t)(storage_domain_start_ind.r()) / resolution,
-			    (scalar_t)(storage_domain_end_ind.r()) / resolution,
-			    (scalar_t)(storage_domain_start_ind.z()) / resolution,
-			    (scalar_t)(storage_domain_end_ind.z()) / resolution);
+
+    std::cout << "HHHH region_request: r_min = " << m_request_to_store.GetRMin() << std::endl;
+    std::cout << "HHHH region_request: r_max = " << m_request_to_store.GetRMax() << std::endl;
+    std::cout << "HHHH region_request: z_min = " << m_request_to_store.GetZMin() << std::endl;
+    std::cout << "HHHH region_request: z_max = " << m_request_to_store.GetZMax() << std::endl;
+    
+    std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
+    std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
+    std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
+    std::cout << "setting region" << std::endl;
+    
+    region_stored.SetRegion((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
+			    (scalar_t)(storage_domain_end_ind.r()) / resolution + m_geom.GetRMin(),
+			    (scalar_t)(storage_domain_start_ind.z()) / resolution + m_geom.GetZMin(),
+			    (scalar_t)(storage_domain_end_ind.z()) / resolution + m_geom.GetZMin());
 
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
@@ -475,6 +486,13 @@ namespace GreensFunctionCalculator::MEEP {
 				 darr, fstats, dynamic_range, abs_min_field, downsampling_on_disk,
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
+
+    std::cout << "HHHH region_stored: r_min = " << region_stored.GetRMin() << std::endl;
+    std::cout << "HHHH region_stored: r_max = " << region_stored.GetRMax() << std::endl;
+    std::cout << "HHHH region_stored: z_min = " << region_stored.GetZMin() << std::endl;
+    std::cout << "HHHH region_stored: z_max = " << region_stored.GetZMax() << std::endl;
+    
+    exit(1);
     
     // Setup simulation run
     meep_f -> loop_in_chunks(meep::eisvogel_setup_cylindrical_storage_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());

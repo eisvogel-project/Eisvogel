@@ -43,7 +43,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     scalar_t m_t_end;
     CylinderGeometry& m_geom;
-    const CylinderRegion& m_request_to_store; // Spatial region that is requested to be stored
+    CylinderRegion m_request_to_store; // Spatial region that is requested to be stored
     Antenna& m_antenna;    
   };
 }
