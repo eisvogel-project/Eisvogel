@@ -507,7 +507,7 @@ namespace GreensFunctionCalculator::MEEP {
     TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
     ZRVector<std::size_t> init_field_absval_buffer_shape(1);
     CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_start_ind, storage_domain_shape,
-				 darr, fstats, dynamic_range, abs_min_field, downsampling_on_disk,
+				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
 
