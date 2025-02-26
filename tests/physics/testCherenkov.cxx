@@ -26,13 +26,14 @@ void create_greens_function_analytic(std::filesystem::path outdir, scalar_t filt
 }
 
 void create_greens_function_meep(std::filesystem::path outdir, scalar_t filter_t_peak, unsigned int filter_order,
-				 std::filesystem::path scratchdir) {
+				 std::filesystem::path scratchdir, scalar_t ior = 1.0) {
 
-  auto eps = [](scalar_t r, scalar_t z) {
+  auto eps = [=](scalar_t r, scalar_t z) -> scalar_t {
     (void)r;
     (void)z;
 
-    return 1.0;
+    scalar_t eps = std::pow(ior, 2.0);    
+    return eps;
   };
 
   auto impulse_response = [=](scalar_t t) {
