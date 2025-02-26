@@ -3,6 +3,7 @@
 #include "NDVecArrayOperations.hh"
 #include "Symmetry.hh"
 #include "GreensFunction.hh"
+#include "ChunkUtils.hh"
 #include <unordered_map>
 
 // TODO: general strategy to suport partial saving
@@ -100,11 +101,13 @@ struct ChunkloopData {
   using sim_chunk_meta_t = SimulationChunkMetadata<SpatialSymmetryT>;
   using darr_t = typename SpatialSymmetryT::darr_t;
   using chunk_t = typename SpatialSymmetryT::darr_t::chunk_t;
+  using spatial_chunk_t = typename SpatialSymmetryT::spatial_chunk_t;
   using view_t = typename chunk_t::view_t;  
   using fstats_t = FieldStatisticsTracker<meep_chunk_ind_t, SpatialSymmetryT::dims - 1>;
 
   ChunkloopData(std::size_t ind_time,
-		darr_t::shape_t calc_domain_shape, darr_t::shape_t storage_domain_start_ind, darr_t::shape_t storage_domain_shape,
+		spatial_chunk_t::shape_t calc_domain_shape, spatial_chunk_t::ind_t storage_domain_start_ind,
+		spatial_chunk_t::shape_t storage_domain_shape,
 		darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range,
 		scalar_t abs_min_field, const chunk_t::ind_t& downsampling_factor,
 		const chunk_t::shape_t& init_field_buffer_shape, const chunk_t::shape_t& init_field_buffer_processed_shape,
@@ -117,10 +120,10 @@ struct ChunkloopData {
   
   std::size_t ind_time;  // Time index
 
-  darr_t::shape_t calc_domain_shape; // Shape of the region in which MEEP calculates the fields (always starts at zero)
+  spatial_chunk_t::shape_t calc_domain_shape; // Shape of the region in which MEEP calculates the fields (always starts at zero)
   
-  darr_t::ind_t storage_domain_start_ind; // Start index of the domain in which the fields should be stored
-  darr_t::shape_t storage_domain_shape; // Shape of the domain in which the fields should be stored
+  spatial_chunk_t::ind_t storage_domain_start_ind; // Start index of the domain in which the fields should be stored
+  spatial_chunk_t::shape_t storage_domain_shape; // Shape of the domain in which the fields should be stored
   
   darr_t& fstor;  // Reference to field storage
   fstats_t& fstats;  // Reference to field statistics tracker
@@ -247,16 +250,38 @@ namespace meep {
     ZRIndexVector chunk_start_ind = get_cylindrical_chunk_start_ind(is);
     ZRVector<std::size_t> chunk_shape = get_cylindrical_chunk_shape(fc, is, ie);
 
-    // Build and record the chunk metadata
-    // TODO: to support saving of parts of the MEEP simulation volume:
-    // -> get the correct `storage_chunk_shape` and `storage_chunk_start_ind` here
-    // -> pass it to the constructor of the SimulationChunkMetadata
-    ZRVector<std::size_t> storage_chunk_shape{chunk_shape};
-    ZRIndexVector storage_chunk_start_ind{chunk_start_ind};
+    // Nothing to be done for simulation chunks that don't overlap the region that is to be saved
+    if(!ChunkUtils::overlaps(chunk_start_ind, chunk_shape,
+			     chunkloop_data -> storage_domain_start_ind, chunkloop_data -> storage_domain_shape)) {
+
+      std::cout << "------------" << std::endl;
+      std::cout << "chunk #: " << ichunk << " does not overlap" << std::endl;
+      std::cout << "------------" << std::endl;
+      
+      return;
+    }
+    
+    // Determine the portion of this chunk that is to be stored
+    ZRVector<std::size_t> storage_chunk_shape;
+    ZRIndexVector storage_chunk_start_ind;
+    ChunkUtils::get_chunk_overlap(chunk_start_ind, chunk_shape,
+				  (ZRIndexVector)(chunkloop_data -> storage_domain_start_ind),
+				  (ZRVector<std::size_t>)(chunkloop_data -> storage_domain_shape),
+				  storage_chunk_start_ind, storage_chunk_shape);
+    
+    std::cout << "------------" << std::endl;
+    std::cout << "chunk #: " << ichunk << std::endl;
+    std::cout << "storage_domain_start_ind = " << chunkloop_data -> storage_domain_start_ind << std::endl;
+    std::cout << "storage_domain_shape = " << chunkloop_data -> storage_domain_shape << std::endl;
+    std::cout << "chunk_start_ind = " << chunk_start_ind << std::endl;
+    std::cout << "chunk_shape = " << chunk_shape << std::endl;
+    std::cout << "storage_chunk_start_ind = " << storage_chunk_start_ind << std::endl;
+    std::cout << "storage_chunk_shape = " << storage_chunk_shape << std::endl;
+    std::cout << "------------" << std::endl;
     
     CylindricalChunkloopData::sim_chunk_meta_t cur_meta(chunk_shape, chunk_start_ind, storage_chunk_shape, storage_chunk_start_ind);
     chunkloop_data -> sim_chunk_meta.emplace(std::make_pair(ichunk, cur_meta));
-
+    
     // Setup field statistics tracker for this chunk
     chunkloop_data -> fstats.AddRegion(ichunk, chunk_shape);
   }
@@ -274,6 +299,10 @@ namespace meep {
 
     // TODO: to support partial saving
     // -> Make sure to use the `storage_chunk_shape` here
+
+    // if(!(chunkloop_data -> sim_chunk_meta.contains(ichunk))) {
+    // return;
+    //}
     
     // Make sure the buffers are of the correct size for this simulation chunk    
     ZRVector<std::size_t> spatial_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).chunk_shape);    
@@ -444,14 +473,12 @@ namespace GreensFunctionCalculator::MEEP {
     FieldStatisticsTracker<meep_chunk_ind_t, dims - 1> fstats(fstats_downsampling);
         
     // Figure out which index range gives us the region that we are asked to store
-    TZRVector<std::size_t> calc_domain_shape{1u, (std::size_t)(meep_gv -> nz()), (std::size_t)(meep_gv -> nr())};
-    TZRIndexVector storage_domain_start_ind{
-      0u,
+    ZRVector<std::size_t> calc_domain_shape{(std::size_t)(meep_gv -> nz()), (std::size_t)(meep_gv -> nr())};
+    ZRIndexVector storage_domain_start_ind{
       std::size_t((m_request_to_store.GetZMin() - m_geom.GetZMin()) / m_geom.GetZSize() * calc_domain_shape.z()),
       std::size_t((m_request_to_store.GetRMin() - m_geom.GetRMin()) / m_geom.GetRSize() * calc_domain_shape.r())
     };
-    TZRVector<std::size_t> storage_domain_shape{
-      1u,
+    ZRVector<std::size_t> storage_domain_shape{
       std::size_t(m_request_to_store.GetZSize() / m_geom.GetZSize() * calc_domain_shape.z()),
       std::size_t(m_request_to_store.GetRSize() / m_geom.GetRSize() * calc_domain_shape.r()),
     };
@@ -460,17 +487,17 @@ namespace GreensFunctionCalculator::MEEP {
     assert(calc_domain_shape.z() == m_geom.GetZSize() * resolution);
     assert(calc_domain_shape.r() == m_geom.GetRSize() * resolution);
     
-    TZRIndexVector storage_domain_end_ind = storage_domain_start_ind + storage_domain_shape;
+    ZRIndexVector storage_domain_end_ind = storage_domain_start_ind + storage_domain_shape;
 
-    std::cout << "HHHH region_request: r_min = " << m_request_to_store.GetRMin() << std::endl;
-    std::cout << "HHHH region_request: r_max = " << m_request_to_store.GetRMax() << std::endl;
-    std::cout << "HHHH region_request: z_min = " << m_request_to_store.GetZMin() << std::endl;
-    std::cout << "HHHH region_request: z_max = " << m_request_to_store.GetZMax() << std::endl;
+    // std::cout << "HHHH region_request: r_min = " << m_request_to_store.GetRMin() << std::endl;
+    // std::cout << "HHHH region_request: r_max = " << m_request_to_store.GetRMax() << std::endl;
+    // std::cout << "HHHH region_request: z_min = " << m_request_to_store.GetZMin() << std::endl;
+    // std::cout << "HHHH region_request: z_max = " << m_request_to_store.GetZMax() << std::endl;
     
-    std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
-    std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
-    std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
-    std::cout << "setting region" << std::endl;
+    // std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
+    // std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
+    // std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
+    // std::cout << "setting region" << std::endl;
     
     region_stored.SetRegion((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
 			    (scalar_t)(storage_domain_end_ind.r()) / resolution + m_geom.GetRMin(),
@@ -487,12 +514,10 @@ namespace GreensFunctionCalculator::MEEP {
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
 
-    std::cout << "HHHH region_stored: r_min = " << region_stored.GetRMin() << std::endl;
-    std::cout << "HHHH region_stored: r_max = " << region_stored.GetRMax() << std::endl;
-    std::cout << "HHHH region_stored: z_min = " << region_stored.GetZMin() << std::endl;
-    std::cout << "HHHH region_stored: z_max = " << region_stored.GetZMax() << std::endl;
-    
-    exit(1);
+    // std::cout << "HHHH region_stored: r_min = " << region_stored.GetRMin() << std::endl;
+    // std::cout << "HHHH region_stored: r_max = " << region_stored.GetRMax() << std::endl;
+    // std::cout << "HHHH region_stored: z_min = " << region_stored.GetZMin() << std::endl;
+    // std::cout << "HHHH region_stored: z_max = " << region_stored.GetZMax() << std::endl;
     
     // Setup simulation run
     meep_f -> loop_in_chunks(meep::eisvogel_setup_cylindrical_storage_chunkloop, static_cast<void*>(&cld), meep_f -> total_volume());
