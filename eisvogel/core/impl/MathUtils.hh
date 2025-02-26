@@ -5,6 +5,10 @@
 
 namespace MathUtils {
 
+  bool is_integer(scalar_t k) {
+    return std::floor(k) == k;
+  }
+  
   constexpr std::size_t IntDivCeil(std::size_t x, std::size_t y) {
     // calculates ceil(x/y)
     return (x + y - 1) / y;
