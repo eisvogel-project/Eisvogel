@@ -362,14 +362,19 @@ namespace meep {
     // Start index of this storage chunk relative to the full storage domain
     TZRIndexVector storage_chunk_rel_start_ind(chunkloop_data -> ind_time,
 					       spatial_storage_chunk_start_ind - chunkloop_data -> storage_domain_start_ind);
+
+    // std::cout << "storage_chunk_rel_start_ind = " << storage_chunk_rel_start_ind << std::endl;
+    // std::cout << "downsampling_factor = " << chunkloop_data -> downsampling_factor << std::endl;
     
     TZRIndexVector processed_chunk_start_ind(0);
     Downsampling::downsample(chunkloop_data -> field_buffer, storage_chunk_rel_start_ind, chunkloop_data -> downsampling_factor,
 			     chunkloop_data -> field_buffer_processed, processed_chunk_start_ind);
-    assert((chunkloop_data -> field_buffer_processed).GetShape() == Downsampling::get_downsampled_shape(storage_chunk_start_ind,
+    assert((chunkloop_data -> field_buffer_processed).GetShape() == Downsampling::get_downsampled_shape(storage_chunk_rel_start_ind,
 													field_slice_storage_shape,
 													chunkloop_data -> downsampling_factor));
 
+    // std::cout << "processed_chunk_start_ind = " << processed_chunk_start_ind << std::endl;
+    
     // The downsampling has resulted in an empty chunk, nothing further to do
     if((chunkloop_data -> field_buffer_processed).GetNumberElements() == 0) {
       return;
