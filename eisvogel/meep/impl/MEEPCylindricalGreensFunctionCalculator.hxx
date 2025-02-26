@@ -6,12 +6,6 @@
 #include "ChunkUtils.hh"
 #include <unordered_map>
 
-// TODO: general strategy to suport partial saving
-// -> Still keep track of all MEEP chunks (not only those that are being saved)
-//    (This is useful to verify that e.g. MEEP doesn't rebalance any chunks and in general provides more flexibility)
-// -> For each MEEP chunk, also keep track of which portion of it is to be recorded and saved
-//    (This means that the field output buffers may be smaller than the actual simulation chunk)
-
 template <typename RegionKeyT, std::size_t dims>
 class FieldStatisticsTracker {
 
@@ -301,9 +295,6 @@ namespace meep {
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 200;
-
-    // TODO: to support partial saving
-    // -> Make sure to use the `storage_chunk_shape` here
     
     // Make sure the buffers are of the correct size for this simulation chunk    
     ZRVector<std::size_t> spatial_storage_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_shape);
@@ -344,11 +335,6 @@ namespace meep {
       };
       TZRIndexVector cur_ind(chunkloop_data -> ind_time, cur_spatial_ind);
       
-      // TODO: to support partial saving
-      // -> Check here if `cur_ind` is to be included in the output
-      // -> `continue` if it is not
-      // -> Make sure to index the `field_buffer` correctly: `field_buffer[cur_ind - storage_chunk_start_ind]` etc.
-
       if(ChunkUtils::contains(spatial_storage_chunk_start_ind, spatial_storage_chunk_shape, cur_spatial_ind)) {
 
 	// fetch field components at child point ...
