@@ -769,8 +769,8 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
     RZTVector<std::size_t> requested_chunk_size(chunk_size_linear);
-    RZTVector<std::size_t> padding_pre(0);
-    RZTVector<std::size_t> padding_post(0);
+    RZTVector<std::size_t> padding_pre(mpi_calc_res.padding_pre.r(), mpi_calc_res.padding_pre.z(), 0u);
+    RZTVector<std::size_t> padding_post(mpi_calc_res.padding_post.r(), mpi_calc_res.padding_post.z(), 0u);
     rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size,
 		chunk_overlap, padding_pre, padding_post, rechunk_cache_depth);
     
