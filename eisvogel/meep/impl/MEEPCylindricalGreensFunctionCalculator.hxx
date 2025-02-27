@@ -536,6 +536,8 @@ namespace GreensFunctionCalculator::MEEP {
     // Note: `padding_pre` and `padding_post` here correspond to the padding that will exist *after* the downsampling has been applied
     ZRVector<std::size_t> padding_pre = VectorUtils::min(storage_domain_start_ind / downsampling_on_disk, padding_requested);
     ZRVector<std::size_t> padding_post = VectorUtils::min((calc_domain_shape - storage_domain_end_ind) / downsampling_on_disk, padding_requested);
+    assert(storage_domain_start_ind >= padding_pre * downsampling_on_disk);
+    assert(calc_domain_shape >= storage_domain_end_ind + padding_post * downsampling_on_disk);
 
     std::cout << "HHHH padding_pre = " << padding_pre << std::endl;
     std::cout << "HHHH padding_post = " << padding_post << std::endl;
@@ -549,7 +551,8 @@ namespace GreensFunctionCalculator::MEEP {
     // Now extend the storage domain such that, after downsampling, the correct padding is achieved
     ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre * downsampling_on_disk;
     ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + (padding_pre + padding_post) * downsampling_on_disk;
-    
+
+    // Package up all the information
     CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_padded_start_ind, storage_domain_padded_shape,
 				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
 				 init_field_buffer_shape, init_field_buffer_shape,
