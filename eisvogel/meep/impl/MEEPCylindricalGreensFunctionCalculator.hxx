@@ -162,6 +162,7 @@ namespace {
   template <class darr_t, class shape_t>
   bool verify_shape(std::filesystem::path dir, const shape_t& expected_shape) {
     darr_t darr(dir);
+    std::cout << "GGGG found darr with shape = " << darr.GetShape() << ", expected " << expected_shape << std::endl;
     return(darr.GetShape() == expected_shape);
   }
 }
@@ -299,8 +300,8 @@ namespace meep {
       return;
     }
 
-    std::cout << "------------" << std::endl;
-    std::cout << "chunk #: " << ichunk << std::endl;
+    // std::cout << "------------" << std::endl;
+    // std::cout << "chunk #: " << ichunk << std::endl;
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 200;
@@ -319,7 +320,7 @@ namespace meep {
     ZRIndexVector spatial_storage_chunk_start_ind(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_start_ind);
     TZRIndexVector storage_chunk_start_ind(chunkloop_data -> ind_time, spatial_storage_chunk_start_ind);
 
-    std::cout << "storage_chunk_start_ind = " << storage_chunk_start_ind << std::endl;
+    // std::cout << "storage_chunk_start_ind = " << storage_chunk_start_ind << std::endl;
     
     // some preliminary setup
     vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
@@ -520,9 +521,10 @@ namespace GreensFunctionCalculator::MEEP {
     // std::cout << "HHHH region_request: z_min = " << m_request_to_store.GetZMin() << std::endl;
     // std::cout << "HHHH region_request: z_max = " << m_request_to_store.GetZMax() << std::endl;
     
-    // std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
-    // std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
-    // std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
+    std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
+    std::cout << "HHHH storage_domain_shape = " << storage_domain_shape << std::endl;
+    std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
+    std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
     // std::cout << "setting region" << std::endl;
 
     CylinderRegion region_stored((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
@@ -531,8 +533,12 @@ namespace GreensFunctionCalculator::MEEP {
 				 (scalar_t)(storage_domain_end_ind.z()) / resolution + m_geom.GetZMin());
 
     // Attempt to extend the storage domain by adding the requested padding around it
-    ZRVector<std::size_t> padding_pre = VectorUtils::min(storage_domain_start_ind, padding_requested);
-    ZRVector<std::size_t> padding_post = VectorUtils::min(calc_domain_shape - storage_domain_end_ind, padding_requested);
+    // Note: `padding_pre` and `padding_post` here correspond to the padding that will exist *after* the downsampling has been applied
+    ZRVector<std::size_t> padding_pre = VectorUtils::min(storage_domain_start_ind / downsampling_on_disk, padding_requested);
+    ZRVector<std::size_t> padding_post = VectorUtils::min((calc_domain_shape - storage_domain_end_ind) / downsampling_on_disk, padding_requested);
+
+    std::cout << "HHHH padding_pre = " << padding_pre << std::endl;
+    std::cout << "HHHH padding_post = " << padding_post << std::endl;
     
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
@@ -540,14 +546,18 @@ namespace GreensFunctionCalculator::MEEP {
     TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
     ZRVector<std::size_t> init_field_absval_buffer_shape(1);
 
-    ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre;
-    ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + padding_pre + padding_post;
+    // Now extend the storage domain such that, after downsampling, the correct padding is achieved
+    ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre * downsampling_on_disk;
+    ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + (padding_pre + padding_post) * downsampling_on_disk;
     
     CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_padded_start_ind, storage_domain_padded_shape,
 				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
 
+    std::cout << "HHHH storage_domain_padded_start_ind = " << storage_domain_padded_start_ind << std::endl;
+    std::cout << "HHHH storage_domain_padded_shape = " << storage_domain_padded_shape << std::endl;
+    
     // std::cout << "HHHH region_stored: r_min = " << region_stored.GetRMin() << std::endl;
     // std::cout << "HHHH region_stored: r_max = " << region_stored.GetRMax() << std::endl;
     // std::cout << "HHHH region_stored: z_min = " << region_stored.GetZMin() << std::endl;
