@@ -435,15 +435,16 @@ namespace GreensFunctionCalculator::MEEP {
 
   struct CylindricalGreensFunctionCalculator::MPIChunkCalculationResult {
     
-    MPIChunkCalculationResult(CylinderRegion region_stored) :
-      region_stored(region_stored) { }
+    MPIChunkCalculationResult(CylinderRegion& region_stored, ZRVector<std::size_t>& padding_pre, ZRVector<std::size_t>& padding_post) :
+      region_stored(region_stored), padding_pre(padding_pre), padding_post(padding_post) { }
     
-    CylinderRegion region_stored;
-    
+    CylinderRegion region_stored;  // region of the cylindrical simulation volume that has been stored to disk
+    ZRVector<std::size_t> padding_pre;  // spatial padding on the `bottom-left' of the calculated domain (number of elements)
+    ZRVector<std::size_t> padding_post;  // spatial padding on the `top-right' of the calculated domain (number of elements)
   };
   
   CylindricalGreensFunctionCalculator::MPIChunkCalculationResult
-  CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
+  CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::size_t padding_requested,
 							   double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
 							   scalar_t dynamic_range, scalar_t abs_min_field) {
     
@@ -522,13 +523,21 @@ namespace GreensFunctionCalculator::MEEP {
 				 (scalar_t)(storage_domain_end_ind.r()) / resolution + m_geom.GetRMin(),
 				 (scalar_t)(storage_domain_start_ind.z()) / resolution + m_geom.GetZMin(),
 				 (scalar_t)(storage_domain_end_ind.z()) / resolution + m_geom.GetZMin());
+
+    // Attempt to extend the storage domain by adding the requested padding around it
+    ZRVector<std::size_t> padding_pre = VectorUtils::min(storage_domain_start_ind, padding_requested);
+    ZRVector<std::size_t> padding_post = VectorUtils::min(calc_domain_shape - storage_domain_end_ind, padding_requested);
     
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
     TZRVector<std::size_t> init_field_buffer_shape(1);
     TZRVector<std::size_t> init_field_chunk_buffer_shape(1);
     ZRVector<std::size_t> init_field_absval_buffer_shape(1);
-    CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_start_ind, storage_domain_shape,
+
+    ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre;
+    ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + padding_pre + padding_post;
+    
+    CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_padded_start_ind, storage_domain_padded_shape,
 				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
@@ -566,7 +575,7 @@ namespace GreensFunctionCalculator::MEEP {
     darr.Move(outdir);
 
     // Return information describing the result of this calculation
-    return MPIChunkCalculationResult(region_stored);
+    return MPIChunkCalculationResult(region_stored, padding_pre, padding_post);
   }
 
   // No dedicated storage region is passed, store everything
@@ -720,8 +729,10 @@ namespace GreensFunctionCalculator::MEEP {
     
     // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
     std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
-    MPIChunkCalculationResult mpi_calc_res = calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution,
-								 timestep, pml_width, downsampling_on_disk, dynamic_range, abs_min_field);
+    std::size_t padding_requested = chunk_overlap; // number of additional elements that should be foreseen as padding around the calculated array
+    MPIChunkCalculationResult mpi_calc_res = calculate_mpi_chunk(job_outdir, local_scratchdir, padding_requested,
+								 courant_factor, resolution, timestep, pml_width,
+								 downsampling_on_disk, dynamic_range, abs_min_field);
     
     meep::all_wait();   // Wait for all processes to have finished providing their output
     

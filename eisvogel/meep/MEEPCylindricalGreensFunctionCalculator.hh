@@ -33,7 +33,8 @@ namespace GreensFunctionCalculator::MEEP {
     struct MPIChunkCalculationResult;
     
     // Main steps of the Green's function calculation
-    MPIChunkCalculationResult calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, double courant_factor, double resolution, double timestep, double pml_width,
+    MPIChunkCalculationResult calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::size_t padding_requested,
+						  double courant_factor, double resolution, double timestep, double pml_width,
 						  std::size_t downsampling_on_disk, scalar_t dynamic_range, scalar_t abs_min_field);
     static void merge_mpi_chunks(std::filesystem::path outdir, const std::vector<std::filesystem::path>& indirs);
     static void rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratchdir, int cur_mpi_id, int number_mpi_jobs,
