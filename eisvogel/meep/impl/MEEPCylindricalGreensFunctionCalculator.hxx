@@ -292,6 +292,9 @@ namespace meep {
     if(!(chunkloop_data -> sim_chunk_meta.contains(ichunk))) {
       return;
     }
+
+    std::cout << "------------" << std::endl;
+    std::cout << "chunk #: " << ichunk << std::endl;
     
     // Number of time slices before a new chunk is started
     std::size_t requested_chunk_size_t = 200;
@@ -309,7 +312,9 @@ namespace meep {
 
     ZRIndexVector spatial_storage_chunk_start_ind(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_start_ind);
     TZRIndexVector storage_chunk_start_ind(chunkloop_data -> ind_time, spatial_storage_chunk_start_ind);
-      
+
+    std::cout << "storage_chunk_start_ind = " << storage_chunk_start_ind << std::endl;
+    
     // some preliminary setup
     vec rshift(shift * (0.5*fc->gv.inva));  // shift into unit cell for PBC geometries
     
@@ -421,15 +426,27 @@ namespace meep {
       
       // std::cout << "appending slice at start_ind = " << chunk_start_ind << " with shape = " << chunkloop_data -> field_buffer.GetShape() << std::endl;     
     }
+
+    // std::cout << "------------" << std::endl;
   }  
 } // end namespace meep
 
 namespace GreensFunctionCalculator::MEEP {
 
-  void CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, CylinderRegion& region_stored,
-								double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
-								scalar_t dynamic_range, scalar_t abs_min_field) {
-
+  struct CylindricalGreensFunctionCalculator::MPIChunkCalculationResult {
+    
+    MPIChunkCalculationResult(CylinderRegion region_stored) :
+      region_stored(region_stored) { }
+    
+    CylinderRegion region_stored;
+    
+  };
+  
+  CylindricalGreensFunctionCalculator::MPIChunkCalculationResult
+  CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir,
+							   double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
+							   scalar_t dynamic_range, scalar_t abs_min_field) {
+    
     // Make sure that MEEP will not silently round the domain size
     if(!MathUtils::is_integer(m_geom.GetRSize() * resolution)) {
       throw std::runtime_error("Error: chosen radial size of geometry would introduce rounding.");
@@ -500,12 +517,12 @@ namespace GreensFunctionCalculator::MEEP {
     // std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
     // std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
     // std::cout << "setting region" << std::endl;
-    
-    region_stored.SetRegion((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
-			    (scalar_t)(storage_domain_end_ind.r()) / resolution + m_geom.GetRMin(),
-			    (scalar_t)(storage_domain_start_ind.z()) / resolution + m_geom.GetZMin(),
-			    (scalar_t)(storage_domain_end_ind.z()) / resolution + m_geom.GetZMin());
 
+    CylinderRegion region_stored((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
+				 (scalar_t)(storage_domain_end_ind.r()) / resolution + m_geom.GetRMin(),
+				 (scalar_t)(storage_domain_start_ind.z()) / resolution + m_geom.GetZMin(),
+				 (scalar_t)(storage_domain_end_ind.z()) / resolution + m_geom.GetZMin());
+    
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
     TZRVector<std::size_t> init_field_buffer_shape(1);
@@ -546,7 +563,10 @@ namespace GreensFunctionCalculator::MEEP {
     darr.SwapAxes<0, 2>();
     
     // Move Green's function to the requested output location
-    darr.Move(outdir);  
+    darr.Move(outdir);
+
+    // Return information describing the result of this calculation
+    return MPIChunkCalculationResult(region_stored);
   }
 
   // No dedicated storage region is passed, store everything
@@ -699,9 +719,9 @@ namespace GreensFunctionCalculator::MEEP {
     };
     
     // First stage: each MPI process calculates and stores its part of the Green's function in `job_outdir`
-    CylinderRegion region_stored;
     std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
-    calculate_mpi_chunk(job_outdir, local_scratchdir, region_stored, courant_factor, resolution, timestep, pml_width, downsampling_on_disk, dynamic_range, abs_min_field);
+    MPIChunkCalculationResult mpi_calc_res = calculate_mpi_chunk(job_outdir, local_scratchdir, courant_factor, resolution,
+								 timestep, pml_width, downsampling_on_disk, dynamic_range, abs_min_field);
     
     meep::all_wait();   // Wait for all processes to have finished providing their output
     
@@ -737,8 +757,8 @@ namespace GreensFunctionCalculator::MEEP {
       darr_t darr(outdir);
       RZTVector<std::size_t> darr_shape = darr.GetShape();
 
-      RZTCoordVector storage_start_coords(region_stored.GetRMin(), region_stored.GetZMin(), (scalar_t)0.0);
-      RZTCoordVector storage_end_coords(region_stored.GetRMax(), region_stored.GetZMax(), m_t_end);
+      RZTCoordVector storage_start_coords(mpi_calc_res.region_stored.GetRMin(), mpi_calc_res.region_stored.GetZMin(), (scalar_t)0.0);
+      RZTCoordVector storage_end_coords(mpi_calc_res.region_stored.GetRMax(), mpi_calc_res.region_stored.GetZMax(), m_t_end);
             
       std::cout << "Green's function with storage_start = " << storage_start_coords << " and storage_end = " << storage_end_coords << std::endl;
       
