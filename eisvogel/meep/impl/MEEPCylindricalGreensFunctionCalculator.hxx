@@ -552,6 +552,13 @@ namespace GreensFunctionCalculator::MEEP {
     ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre * downsampling_on_disk;
     ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + (padding_pre + padding_post) * downsampling_on_disk;
 
+    std::cout << "HHH expected shape with padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_padded_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
+    std::cout << "HHH expected shape without padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
+    
+    assert(Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_padded_shape, ZRVector<std::size_t>(downsampling_on_disk)) ==
+	   Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_shape, ZRVector<std::size_t>(downsampling_on_disk))
+	   + padding_pre + padding_post);
+    
     // Package up all the information
     CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_padded_start_ind, storage_domain_padded_shape,
 				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
@@ -678,6 +685,7 @@ namespace GreensFunctionCalculator::MEEP {
     // Build the domain that will be rechunked, considering any padding that has been added before
     RZTIndexVector rechunk_start(padding_pre);
     RZTIndexVector rechunk_shape(darr.GetShape() - padding_pre - padding_post);
+    RZTIndexVector rechunk_end = rechunk_start + rechunk_shape;
 
     std::cout << "after rechunking and accounting for padding will have array with shape " << rechunk_shape << ", starting at " << rechunk_start << std::endl;
     
@@ -708,7 +716,7 @@ namespace GreensFunctionCalculator::MEEP {
       
       num_rechunking++;
     };
-    IteratorUtils::index_loop_over_chunks(rechunk_start, rechunk_shape, partition_size, rechunker);
+    IteratorUtils::index_loop_over_chunks(rechunk_start, rechunk_end, partition_size, rechunker);
     
     // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
     meep::all_wait(); 
