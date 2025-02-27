@@ -158,6 +158,12 @@ namespace {
       }
     }
   }
+
+  template <class darr_t, class shape_t>
+  bool verify_shape(std::filesystem::path dir, const shape_t& expected_shape) {
+    darr_t darr(dir);
+    return(darr.GetShape() == expected_shape);
+  }
 }
 
 using CylindricalChunkloopData = ChunkloopData<SpatialSymmetry::Cylindrical<scalar_t>>;
@@ -641,7 +647,8 @@ namespace GreensFunctionCalculator::MEEP {
   }
   
   void CylindricalGreensFunctionCalculator::rechunk_mpi(std::filesystem::path outdir, std::filesystem::path indir, std::filesystem::path global_scratch_dir,
-							int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size, std::size_t overlap,
+							int cur_mpi_id, int number_mpi_jobs, const RZTVector<std::size_t>& requested_chunk_size,
+							std::size_t overlap, const RZTVector<std::size_t>& padding_pre, const RZTVector<std::size_t>& padding_post,
 							std::size_t cache_depth) {
     
     using darr_t = typename SpatialSymmetry::Cylindrical<scalar_t>::darr_t;
@@ -654,10 +661,15 @@ namespace GreensFunctionCalculator::MEEP {
     std::cout << "now rechunking; have input array with shape " << darr.GetShape() << std::endl;
     std::cout << "this is rechunking job " << cur_mpi_id << " / " << number_mpi_jobs << " jobs" << std::endl;
     std::cout << "rechunking onto chunk_size = " << requested_chunk_size << " and overlap = " << overlap << std::endl;
+
+    // Build the domain that will be rechunked, considering any padding that has been added before
+    RZTIndexVector rechunk_start(padding_pre);
+    RZTIndexVector rechunk_shape(darr.GetShape() - padding_pre - padding_post);
+
+    std::cout << "after rechunking and accounting for padding will have array with shape " << rechunk_shape << ", starting at " << rechunk_start << std::endl;
     
     // Determine nonoverlapping rectangular partitions that are handled by each job; try to make them of similar size for optimal work sharing
-    RZTVector<std::size_t> shape = darr.GetShape();
-    RZTVector<std::size_t> partition_size = get_partition_size(shape, requested_chunk_size, number_mpi_jobs);
+    RZTVector<std::size_t> partition_size = get_partition_size(rechunk_shape, requested_chunk_size, number_mpi_jobs);
     
     auto rechunk_dir = [](int rechunk_num) -> std::filesystem::path {
       return std::format("rechunk_job_{}", rechunk_num);
@@ -683,14 +695,16 @@ namespace GreensFunctionCalculator::MEEP {
       
       num_rechunking++;
     };
-    RZTIndexVector start(0);
-    IteratorUtils::index_loop_over_chunks(start, shape, partition_size, rechunker);
+    IteratorUtils::index_loop_over_chunks(rechunk_start, rechunk_shape, partition_size, rechunker);
     
     // After all jobs are finished with rechunking their respective regions, merge all outputs into `outdir`
     meep::all_wait(); 
     
     if(meep::am_master()) {
       merge_mpi_chunks(outdir, rechunking_dirs);
+
+      // Verify that the shape is what is expected
+      assert(verify_shape<darr_t>(outdir, rechunk_shape));
     }
   }
   
@@ -755,7 +769,10 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Third stage: rechunk the complete array and introduce overlap between neighbouring chunks, if requested
     RZTVector<std::size_t> requested_chunk_size(chunk_size_linear);
-    rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size, chunk_overlap, rechunk_cache_depth);
+    RZTVector<std::size_t> padding_pre(0);
+    RZTVector<std::size_t> padding_post(0);
+    rechunk_mpi(outdir, mergedir, global_workdir, job_mpi_rank, number_mpi_jobs, requested_chunk_size,
+		chunk_overlap, padding_pre, padding_post, rechunk_cache_depth);
     
     meep::all_wait();
     
