@@ -13,6 +13,8 @@ public:
   CylinderRegion();
   CylinderRegion(scalar_t r_min, scalar_t r_max, scalar_t z_min, scalar_t z_max);
   void SetRegion(scalar_t r_min, scalar_t r_max, scalar_t z_min, scalar_t z_max);
+
+  bool IsEmpty();
   
   scalar_t GetRMin() const {return m_r_min;};
   scalar_t GetRMax() const {return m_r_max;};

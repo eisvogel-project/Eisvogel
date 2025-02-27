@@ -613,8 +613,12 @@ namespace GreensFunctionCalculator::MEEP {
     m_t_end(t_end), m_geom(geom), m_request_to_store(request_to_store), m_antenna(antenna) {
 
     // Sanity checks
-    if(!m_geom.contains(request_to_store)) {
+    if(!m_geom.contains(m_request_to_store)) {
       throw std::runtime_error("Error: requested storage region contains undefined domain!");
+    }
+
+    if(m_request_to_store.IsEmpty()) {
+      throw std::runtime_error("Error: requested storage region is empty!");
     }
   }
   

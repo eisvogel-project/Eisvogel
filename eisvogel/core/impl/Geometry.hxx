@@ -26,6 +26,10 @@ void CylinderRegion::throw_if_unphysical() {
   }
 }
 
+bool CylinderRegion::IsEmpty() {
+  return ((m_r_min == m_r_max) || (m_z_min == m_z_max));
+}
+
 CylinderGeometry::CylinderGeometry(scalar_t r_max, scalar_t z_min, scalar_t z_max,
 				   std::function<scalar_t(scalar_t r, scalar_t z)> eps_func) :
   m_r_max(r_max), m_z_min(z_min), m_z_max(z_max), m_eps_func(eps_func) {
