@@ -1172,13 +1172,24 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     throw std::logic_error("This should never be encountered!");
   };
   std::size_t overlap = 0;
-  RebuildChunksPartial(start_ind, end_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation, hints);
+  RebuildChunksPartial(start_ind, end_ind, start_ind, requested_chunk_shape, outdir, overlap, error_on_evaluation, hints);
 }
 
 template <template<typename, std::size_t, std::size_t> class ArrayT,
 	  typename T, std::size_t dims, std::size_t vec_dims>
 template <class BoundaryCallableT>
 void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
+									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
+									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
+									    const ChunkHints& hints) {
+  ind_t output_start_ind(start_ind);
+  RebuildChunksPartial(start_ind, end_ind, output_start_ind, requested_chunk_shape, outdir, overlap, boundary_evaluator, hints);
+}
+
+template <template<typename, std::size_t, std::size_t> class ArrayT,
+	  typename T, std::size_t dims, std::size_t vec_dims>
+template <class BoundaryCallableT>
+void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind, const ind_t& output_start_ind,
 									    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
 									    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
 									    const ChunkHints& hints) {
@@ -1199,6 +1210,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
 
   ind_t global_start_ind = m_library.GetStartInd();
   ind_t global_end_ind = m_library.GetEndInd();
+  ind_t ind_shift = output_start_ind - start_ind; // In case the output is asked to start at a different index
   
   auto rebuilder = [&](const ind_t& chunk_start_ind, const ind_t& chunk_end_ind) {
 
@@ -1262,7 +1274,7 @@ void DistributedNDVecArray<ArrayT, T, dims, vec_dims>::RebuildChunksPartial(cons
     }
     
     // ... and finally register the thus constructed chunk in the new library under the original start index, and pass on the information about the overlap
-    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind, chunk_end_ind, overlap, hints);
+    rebuilt_library.RegisterChunk(chunk_buffer, chunk_start_ind + ind_shift, chunk_end_ind + ind_shift, overlap, hints);
   };
   IteratorUtils::index_loop_over_chunks(start_ind, end_ind, requested_chunk_shape, rebuilder);
 

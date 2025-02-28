@@ -436,6 +436,12 @@ public:
 			    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
 			    const ChunkHints& hints = NONE);
   
+  template <class BoundaryCallableT>
+  void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind, const ind_t& output_start_ind,
+			    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
+			    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
+			    const ChunkHints& hints = NONE);
+  
   // Change the order of the axes
   template <std::size_t axis_1, std::size_t axis_2>
   void SwapAxes();

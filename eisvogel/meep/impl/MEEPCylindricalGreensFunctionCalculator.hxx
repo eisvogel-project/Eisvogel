@@ -713,7 +713,9 @@ namespace GreensFunctionCalculator::MEEP {
 	ensure_empty_directory(cur_rechunking_dir);
 	
 	std::cout << "job " << cur_mpi_id << " rechunking " << partition_start << " -> " << partition_end << " into " << cur_rechunking_dir << std::endl;
-	darr.RebuildChunksPartial(partition_start, partition_end, requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator,
+	darr.RebuildChunksPartial(partition_start, partition_end,
+				  partition_start - rechunk_start, // The rechunked output array should be zero-indexed again
+				  requested_chunk_size, cur_rechunking_dir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator,
 				  ChunkHints::ENABLE_OPT);
 	std::cout << "job " << cur_mpi_id << " done" << std::endl;
       }
