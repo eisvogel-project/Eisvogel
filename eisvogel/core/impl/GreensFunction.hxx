@@ -71,6 +71,11 @@ namespace {
 CylindricalGreensFunction::CylindricalGreensFunction(std::filesystem::path path, std::size_t cache_size) :
   lib_t(path, cache_size), m_meta(), m_meta_path(path / m_meta_filename) {
   load_metadata();   // Load metadata from disk
+
+  // `coords_to_index` assumes (for simplicity) that the array is indexed starting from zero
+  assert(m_index.get_start_ind() == 0u);
+
+  std::cout << "Have Green's function with uncompressed size of " << get_uncompressed_size_TB() << " TB" << std::endl;  
 }
 
 CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval,
@@ -85,6 +90,15 @@ RZTCoordVector CylindricalGreensFunction::start_coords() {
 
 RZTCoordVector CylindricalGreensFunction::end_coords() {
   return m_meta.end_pos_rzt;
+}
+
+scalar_t CylindricalGreensFunction::get_uncompressed_size_GB() {
+  std::size_t num_bytes = m_index.GetVolume() * Green::DimTraits<CylindricalGreensFunction>::vec_dims * sizeof(scalar_t);
+  return (scalar_t)(num_bytes) * 1e-9;
+}
+
+scalar_t CylindricalGreensFunction::get_uncompressed_size_TB() {
+  return get_uncompressed_size_GB() * 1e-3;
 }
 
 template <class KernelT>
@@ -336,6 +350,8 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
   // TODO: check if this reallocation is slow
   NDVecArray<scalar_t, 1, vec_dims> interp_buffer(num_samples);
 
+  // std::cout << "rz_coords = " << rz_coords << std::endl;
+  
   // Convert everything from coordinates to floating-point array indices (`f_ind`)
   RZVector rz_f_ind = coords_to_index(rz_coords);
   scalar_t t_start_f_ind = (t_start - m_meta.start_pos_rzt.t()) / m_meta.sample_interval_rzt.t();
@@ -354,9 +370,16 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     RZTIndexVector cur_ind = cur_f_ind.template as_type<std::size_t>();
     const metadata_t* meta = m_index.GetChunk(cur_ind);
 
+    // std::cout << "start_ind = " << m_index.get_start_ind() << std::endl;
+    // std::cout << "end_ind = " << m_index.get_end_ind() << std::endl;
+    // std::cout << "cur_ind = " << cur_ind << std::endl;
+    // std::cout << "start_pos_rzt = " << m_meta.start_pos_rzt << std::endl;
+    // std::cout << "end_pos_rzt = " << m_meta.end_pos_rzt << std::endl;
+    // std::cout << "sample_interval_rzt = " << m_meta.sample_interval_rzt << std::endl;
+    
     // (Silently) ignore (part of) this track if this is what we're asked to do
     if((oob_mode == Green::OutOfBoundsBehavior::Ignore) && (meta == nullptr)) {
-      std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
+      // std::cout << "WARNING: track outside of Green's function domain; ignored!" << std::endl;
       return;
     }
 

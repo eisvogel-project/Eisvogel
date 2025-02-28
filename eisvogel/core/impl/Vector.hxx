@@ -70,6 +70,19 @@ namespace VectorUtils {
     std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), vec_b.begin(), result.begin(), take_min);
     return result;
   }
+
+  template <std::integral T1, std::integral T2, std::size_t vec_dims>
+  Vector<T1, vec_dims> min(const Vector<T1, vec_dims>& vec_a, const T2 val_b) {
+    
+    Vector<T1, vec_dims> result;
+    
+    auto take_min = [&](const T1& a) -> T1 {
+      return std::cmp_less(a, val_b) ? a : static_cast<T1>(val_b);
+    };
+    
+    std::transform(std::execution::unseq, vec_a.begin(), vec_a.end(), result.begin(), take_min);
+    return result;
+  }  
   
   template <std::integral T1, std::integral T2, std::size_t vec_dims>
   Vector<T1, vec_dims> max(const Vector<T1, vec_dims>& vec_a, const Vector<T2, vec_dims>& vec_b) {

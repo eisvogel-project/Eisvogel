@@ -13,6 +13,7 @@ namespace SpatialSymmetry {
 
     using darr_t = DistributedNDVecArray<NDVecArray, T, dims, vec_dims>;
     using chunk_t = NDVecArray<T, dims, vec_dims>;
+    using spatial_chunk_t = NDVecArray<T, dims - 1, vec_dims>;
     using view_t = typename darr_t::view_t;
 
     static void boundary_evaluator(chunk_t& chunk, const RZTSignedIndexVector& chunk_start_ind, const RZTSignedIndexVector& chunk_end_ind,
