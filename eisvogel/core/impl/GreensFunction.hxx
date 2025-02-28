@@ -71,6 +71,15 @@ namespace {
 CylindricalGreensFunction::CylindricalGreensFunction(std::filesystem::path path, std::size_t cache_size) :
   lib_t(path, cache_size), m_meta(), m_meta_path(path / m_meta_filename) {
   load_metadata();   // Load metadata from disk
+
+  // `coords_to_index` assumes (for simplicity) that the array is indexed starting from zero
+  assert(m_index.get_start_ind() == 0u);
+  
+  std::cout << "start_ind = " << m_index.get_start_ind() << std::endl;
+  std::cout << "end_ind = " << m_index.get_end_ind() << std::endl;
+  std::cout << "start_pos_rzt = " << m_meta.start_pos_rzt << std::endl;
+  std::cout << "end_pos_rzt = " << m_meta.end_pos_rzt << std::endl;
+  std::cout << "sample_interval_rzt = " << m_meta.sample_interval_rzt << std::endl;  
 }
 
 CylindricalGreensFunction::CylindricalGreensFunction(const RZTCoordVector& start_pos, const RZTCoordVector& end_pos, const RZTCoordVector& sample_interval,
