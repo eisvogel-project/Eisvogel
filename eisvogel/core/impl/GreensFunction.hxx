@@ -98,12 +98,12 @@ RZTCoordVector CylindricalGreensFunction::end_coords() {
   return m_meta.end_pos_rzt;
 }
 
-scalar_t CylindricalGreensFunction::get_uncompressed_size_GB() {  
+scalar_t CylindricalGreensFunction::get_uncompressed_size_GB() {
   std::size_t num_bytes = m_index.GetVolume() * Green::DimTraits<CylindricalGreensFunction>::vec_dims * sizeof(scalar_t);
   return (scalar_t)(num_bytes) * 1e-9;
 }
 
-scalar_t CylindricalGreensFunction::get_uncompressed_size_TB() {  
+scalar_t CylindricalGreensFunction::get_uncompressed_size_TB() {
   return get_uncompressed_size_GB() * 1e-3;
 }
 
