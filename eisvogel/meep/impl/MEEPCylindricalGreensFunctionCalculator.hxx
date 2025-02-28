@@ -521,10 +521,10 @@ namespace GreensFunctionCalculator::MEEP {
     // std::cout << "HHHH region_request: z_min = " << m_request_to_store.GetZMin() << std::endl;
     // std::cout << "HHHH region_request: z_max = " << m_request_to_store.GetZMax() << std::endl;
     
-    std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
-    std::cout << "HHHH storage_domain_shape = " << storage_domain_shape << std::endl;
-    std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
-    std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
+    // std::cout << "HHHH calc_domain_shape = " << calc_domain_shape << std::endl;
+    // std::cout << "HHHH storage_domain_shape = " << storage_domain_shape << std::endl;
+    // std::cout << "HHHH storage_domain_start_ind = " << storage_domain_start_ind << std::endl;
+    // std::cout << "HHHH storage_domain_end_ind = " << storage_domain_end_ind << std::endl;    
     // std::cout << "setting region" << std::endl;
 
     CylinderRegion region_stored((scalar_t)(storage_domain_start_ind.r()) / resolution + m_geom.GetRMin(),
@@ -539,8 +539,8 @@ namespace GreensFunctionCalculator::MEEP {
     assert(storage_domain_start_ind >= padding_pre * downsampling_on_disk);
     assert(calc_domain_shape >= storage_domain_end_ind + padding_post * downsampling_on_disk);
 
-    std::cout << "HHHH padding_pre = " << padding_pre << std::endl;
-    std::cout << "HHHH padding_post = " << padding_post << std::endl;
+    // std::cout << "HHHH padding_pre = " << padding_pre << std::endl;
+    // std::cout << "HHHH padding_post = " << padding_post << std::endl;
     
     // Prepare data container to pass to all MEEP callbacks
     TZRVector<std::size_t> downsampling_factor(downsampling_on_disk); downsampling_factor.t() = 1;  // downsample only along the spatial directions
@@ -552,8 +552,8 @@ namespace GreensFunctionCalculator::MEEP {
     ZRIndexVector storage_domain_padded_start_ind = storage_domain_start_ind - padding_pre * downsampling_on_disk;
     ZRVector<std::size_t> storage_domain_padded_shape = storage_domain_shape + (padding_pre + padding_post) * downsampling_on_disk;
 
-    std::cout << "HHH expected shape with padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_padded_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
-    std::cout << "HHH expected shape without padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
+    // std::cout << "HHH expected shape with padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_padded_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
+    // std::cout << "HHH expected shape without padding after downsampling: " << Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_shape, ZRVector<std::size_t>(downsampling_on_disk)) << std::endl;
     
     assert(Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_padded_shape, ZRVector<std::size_t>(downsampling_on_disk)) ==
 	   Downsampling::get_downsampled_shape(ZRVector<std::size_t>(0), storage_domain_shape, ZRVector<std::size_t>(downsampling_on_disk))
@@ -565,8 +565,8 @@ namespace GreensFunctionCalculator::MEEP {
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
 
-    std::cout << "HHHH storage_domain_padded_start_ind = " << storage_domain_padded_start_ind << std::endl;
-    std::cout << "HHHH storage_domain_padded_shape = " << storage_domain_padded_shape << std::endl;
+    // std::cout << "HHHH storage_domain_padded_start_ind = " << storage_domain_padded_start_ind << std::endl;
+    // std::cout << "HHHH storage_domain_padded_shape = " << storage_domain_padded_shape << std::endl;
     
     // std::cout << "HHHH region_stored: r_min = " << region_stored.GetRMin() << std::endl;
     // std::cout << "HHHH region_stored: r_max = " << region_stored.GetRMax() << std::endl;
