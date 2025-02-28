@@ -102,15 +102,16 @@ struct ChunkloopData {
   ChunkloopData(std::size_t ind_time,
 		spatial_chunk_t::shape_t calc_domain_shape, spatial_chunk_t::ind_t storage_domain_start_ind,
 		spatial_chunk_t::shape_t storage_domain_shape,
-		darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range,
+		darr_t& fstor, fstats_t& fstats, scalar_t dynamic_range, std::size_t calc_chunk_size_t, std::size_t calc_chunk_size_linear,
 		scalar_t abs_min_field, const chunk_t::ind_t& downsampling_factor,
 		const chunk_t::shape_t& init_field_buffer_shape, const chunk_t::shape_t& init_field_buffer_processed_shape,
 		const fstats_t::shape_t& init_stat_buffer_shape, const chunk_t::shape_t& init_field_chunk_buffer_shape) :
     ind_time(ind_time),
     calc_domain_shape(calc_domain_shape), storage_domain_start_ind(storage_domain_start_ind), storage_domain_shape(storage_domain_shape),
-    fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), abs_min_field(abs_min_field),
-    downsampling_factor(downsampling_factor), field_buffer(init_field_buffer_shape), field_buffer_processed(init_field_buffer_processed_shape),
-    field_absval_buffer(init_stat_buffer_shape), field_chunk_buffer(init_field_chunk_buffer_shape) { }
+    fstor(fstor), fstats(fstats), dynamic_range(dynamic_range), calc_chunk_size_t(calc_chunk_size_t), calc_chunk_size_linear(calc_chunk_size_linear),
+    abs_min_field(abs_min_field), downsampling_factor(downsampling_factor), field_buffer(init_field_buffer_shape),
+    field_buffer_processed(init_field_buffer_processed_shape), field_absval_buffer(init_stat_buffer_shape),
+    field_chunk_buffer(init_field_chunk_buffer_shape) { }
   
   std::size_t ind_time;  // Time index
 
@@ -123,6 +124,8 @@ struct ChunkloopData {
   fstats_t& fstats;  // Reference to field statistics tracker
   
   scalar_t dynamic_range;  // Dynamic range of field to keep
+  std::size_t calc_chunk_size_t;  // Chunk size along the time direction that is used during Green's function calculation
+  std::size_t calc_chunk_size_linear;  // Chunk size along the spatial direction(s) used during Green's function calculation
   scalar_t abs_min_field;  // Abs. minimum field value to keep
   chunk_t::ind_t downsampling_factor;
 
@@ -301,10 +304,7 @@ namespace meep {
     }
 
     // std::cout << "------------" << std::endl;
-    // std::cout << "chunk #: " << ichunk << std::endl;
-    
-    // Number of time slices before a new chunk is started
-    std::size_t requested_chunk_size_t = 200;
+    // std::cout << "chunk #: " << ichunk << std::endl;   
     
     // Make sure the buffers are of the correct size for this simulation chunk    
     ZRVector<std::size_t> spatial_storage_chunk_shape(chunkloop_data -> sim_chunk_meta.at(ichunk).storage_chunk_shape);
@@ -396,10 +396,10 @@ namespace meep {
     //   chunkloop_data -> field_buffer_processed.GetShape() << std::endl;
     
     using shape_t = CylindricalChunkloopData::chunk_t::shape_t;
-    shape_t requested_output_chunk_size(400);
+    shape_t requested_output_chunk_size(chunkloop_data -> calc_chunk_size_linear);
 
     // Register the processed buffer
-    if(chunkloop_data -> ind_time % requested_chunk_size_t == 0) {
+    if(chunkloop_data -> ind_time % chunkloop_data -> calc_chunk_size_t == 0) {
       
       // Register this slice as the beginning of a new chunk ...
       TZRIndexVector start(0);
@@ -452,7 +452,8 @@ namespace GreensFunctionCalculator::MEEP {
   
   CylindricalGreensFunctionCalculator::MPIChunkCalculationResult
   CylindricalGreensFunctionCalculator::calculate_mpi_chunk(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::size_t padding_requested,
-							   double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
+							   double courant_factor, double resolution, double timestep, std::size_t calc_chunk_size_t,
+							   std::size_t calc_chunk_size_linear, double pml_width, std::size_t downsampling_on_disk,
 							   scalar_t dynamic_range, scalar_t abs_min_field) {
     
     // Make sure that MEEP will not silently round the domain size
@@ -561,7 +562,7 @@ namespace GreensFunctionCalculator::MEEP {
     
     // Package up all the information
     CylindricalChunkloopData cld(0, calc_domain_shape, storage_domain_padded_start_ind, storage_domain_padded_shape,
-				 darr, fstats, dynamic_range, abs_min_field, downsampling_factor,
+				 darr, fstats, dynamic_range, calc_chunk_size_t, calc_chunk_size_linear, abs_min_field, downsampling_factor,
 				 init_field_buffer_shape, init_field_buffer_shape,
 				 init_field_absval_buffer_shape, init_field_chunk_buffer_shape);
 
@@ -738,7 +739,7 @@ namespace GreensFunctionCalculator::MEEP {
   void CylindricalGreensFunctionCalculator::Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
 						      double courant_factor, double resolution, double timestep, double pml_width, std::size_t downsampling_on_disk,
 						      scalar_t dynamic_range, scalar_t abs_min_field, std::size_t chunk_overlap, std::size_t chunk_size_linear,
-						      std::size_t rechunk_cache_depth) {
+						      std::size_t rechunk_cache_depth, std::size_t calc_chunk_size_t, std::size_t calc_chunk_size_linear) {
     
     int number_mpi_jobs = meep::count_processors();
     int job_mpi_rank = meep::my_rank();
@@ -772,8 +773,8 @@ namespace GreensFunctionCalculator::MEEP {
     std::filesystem::path job_outdir = global_workdir / calc_job_dir(job_mpi_rank);
     std::size_t padding_requested = chunk_overlap; // number of additional elements that should be foreseen as padding around the calculated array
     MPIChunkCalculationResult mpi_calc_res = calculate_mpi_chunk(job_outdir, local_scratchdir, padding_requested,
-								 courant_factor, resolution, timestep, pml_width,
-								 downsampling_on_disk, dynamic_range, abs_min_field);
+								 courant_factor, resolution, timestep, calc_chunk_size_t, calc_chunk_size_linear,
+								 pml_width, downsampling_on_disk, dynamic_range, abs_min_field);
     
     meep::all_wait();   // Wait for all processes to have finished providing their output
     
