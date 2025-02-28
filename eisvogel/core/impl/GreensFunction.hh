@@ -82,6 +82,9 @@ public:
 
   RZTCoordVector start_coords();
   RZTCoordVector end_coords();
+
+  scalar_t get_uncompressed_size_GB();
+  scalar_t get_uncompressed_size_TB();
   
 public: // TODO: make this private, called by unit test at the moment
   

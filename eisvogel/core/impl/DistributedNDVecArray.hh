@@ -114,6 +114,7 @@ public:
   void UpdateChunkInIndex(const metadata_t& previous_meta, const metadata_t& updated_meta);
   
   shape_t GetShape();
+  long unsigned int GetVolume();
 
   template <typename CallableT>
   void Map(CallableT&& worker);
@@ -123,6 +124,8 @@ public:
   void MoveIndex(std::filesystem::path new_index_path);
   void ClearIndex();
   void ImportIndex(std::filesystem::path index_path, bool move = false);
+
+  scalar_t GetUncompressedSize();
   
   // iterators over chunk metadata sets
   // auto begin();

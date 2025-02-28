@@ -662,6 +662,16 @@ ChunkIndex<dims>::shape_t ChunkIndex<dims>::GetShape() {
 }
 
 template <std::size_t dims>
+long unsigned int ChunkIndex<dims>::GetVolume() {
+  shape_t shape = GetShape();
+  long unsigned int volume = 1;
+  for(std::size_t i = 0; i < dims; i++) {
+    volume *= shape[i];
+  }
+  return volume;
+}
+
+template <std::size_t dims>
 template <typename CallableT>
 void ChunkIndex<dims>::Map(CallableT&& worker) {
 
