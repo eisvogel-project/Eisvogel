@@ -114,6 +114,7 @@ public:
   void UpdateChunkInIndex(const metadata_t& previous_meta, const metadata_t& updated_meta);
   
   shape_t GetShape();
+  long unsigned int GetVolume();
 
   template <typename CallableT>
   void Map(CallableT&& worker);
@@ -122,7 +123,9 @@ public:
   void FlushIndex();
   void MoveIndex(std::filesystem::path new_index_path);
   void ClearIndex();
-  void ImportIndex(std::filesystem::path index_path);
+  void ImportIndex(std::filesystem::path index_path, bool move = false);
+
+  scalar_t GetUncompressedSize();
   
   // iterators over chunk metadata sets
   // auto begin();
@@ -259,7 +262,7 @@ public:
   void FlushCache();
   void MoveCache(std::filesystem::path new_workdir);
   void ClearCache();
-  void ImportCache(std::filesystem::path workdir);
+  void ImportCache(std::filesystem::path workdir, bool move = false);
   
 private:
 
@@ -340,7 +343,7 @@ public:
   void ClearLibrary();
   void DeleteLibrary();
   void FlushLibrary();
-  void ImportLibrary(std::filesystem::path libdir);
+  void ImportLibrary(std::filesystem::path libdir, bool move = false);
   
   // Other properties
   shape_t GetShape() {return m_index.GetShape();};
@@ -412,7 +415,7 @@ public:
   void Move(std::filesystem::path dest);
   
   // Imports another distributed array and add it to this one
-  void Import(std::filesystem::path dir);
+  void Import(std::filesystem::path dir, bool move = false);
   
   // Rebalance chunks in-place, i.e. output will remain in the same location
   void RebuildChunks(const ind_t& requested_chunk_shape, std::filesystem::path tmpdir, const ChunkHints& hints = ChunkHints::NONE);
@@ -432,6 +435,12 @@ public:
   // to specify the value of `ind` that lies outside the shape of this distributed array
   template <class BoundaryCallableT>
   void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind,
+			    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
+			    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
+			    const ChunkHints& hints = NONE);
+  
+  template <class BoundaryCallableT>
+  void RebuildChunksPartial(const ind_t& start_ind, const ind_t& end_ind, const ind_t& output_start_ind,
 			    const ind_t& requested_chunk_shape, std::filesystem::path outdir,
 			    std::size_t overlap, BoundaryCallableT&& boundary_evaluator,
 			    const ChunkHints& hints = NONE);
@@ -469,5 +478,8 @@ private:
 // Type shortcuts for good semantics
 using Distributed_RZT_ErEz_Array = DistributedNDVecArray<NDVecArray, scalar_t, 3, 2>;
 using Distributed_TRZ_ErEz_Array = DistributedNDVecArray<NDVecArray, scalar_t, 3, 2>;
+
+// Utility function(s) for file and directory rearrangements
+void move_or_copydelete_file(const std::filesystem::path& from, const std::filesystem::path& to);
 
 #include "DistributedNDVecArray.hxx"

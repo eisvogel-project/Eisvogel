@@ -9,7 +9,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.colors as colors
 import imageio_ffmpeg as ffmpeg
 
-def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]", ylabel = "z [m]", zlabel = "", epilog = None, fs = 13, downsample_t = 1):
+def generate_animation(outpath, data, range_x, range_y, range_t, xlim = None, ylim = None, xlabel = "r [m]", ylabel = "z [m]", zlabel = "", epilog = None, fs = 13, downsample_t = 10):
     num_frames = data.shape[2]
 
     figsize_y = 5
@@ -28,6 +28,12 @@ def generate_animation(outpath, data, range_x, range_y, range_t, xlabel = "r [m]
     ax.set_aspect("equal")
     ax.set_xlabel(xlabel, fontsize = fs)
     ax.set_ylabel(ylabel, fontsize = fs)
+
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+
+    if ylim is not None:
+        ax.set_ylim(*ylim)
     
     ax.tick_params(axis = "y", direction = "in", left = True, right = True, labelsize = fs)
     ax.tick_params(axis = "x", direction = "in", bottom = True, top = True, labelsize = fs)
@@ -81,11 +87,11 @@ def animate_greens_function(exported_green_path, outdir, config_path):
 
     outpath = os.path.join(outdir, "E_z.mp4")
     generate_animation(outpath, E_z_data, range_x = config["range_x"], range_y = config["range_y"], range_t = config["range_t"],
-                       zlabel = r"$E_z$ [a.u.]", epilog = show_interface)
+                       xlim = config["lim_x"], ylim = config["lim_y"], zlabel = r"$E_z$ [a.u.]", epilog = show_interface)
 
     outpath = os.path.join(outdir, "E_r.mp4")
     generate_animation(outpath, E_r_data, range_x = config["range_x"], range_y = config["range_y"], range_t = config["range_t"],
-                       zlabel = r"$E_r$ [a.u.]", epilog = show_interface)
+                       xlim = config["lim_x"], ylim = config["lim_y"], zlabel = r"$E_r$ [a.u.]", epilog = show_interface)
     
 if __name__ == "__main__":
 

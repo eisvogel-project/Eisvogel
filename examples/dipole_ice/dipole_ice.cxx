@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
   
   auto eps = []([[maybe_unused]] scalar_t r, scalar_t z) {
     
-    scalar_t z_m = z / 3.0;    
+    scalar_t z_m = z * 0.3;
     if(z_m > 0.0) {
       return 1.0;
     }

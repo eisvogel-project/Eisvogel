@@ -99,6 +99,11 @@ private:
 				      std::vector<ResultT>& signal, 
 				      Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
 				      scalar_t weight = 1.0);
+
+public:
+  
+  scalar_t get_uncompressed_size_GB();
+  scalar_t get_uncompressed_size_TB();
   
 public: // TODO: make this private, called by unit test at the moment
   

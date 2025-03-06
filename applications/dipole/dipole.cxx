@@ -48,17 +48,28 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/project/avieregg/eisvogel/gf_dipole_summit_pert19_butterworth/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/summit_ice_pert19.csv";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/butterworth_bandpass.csv";
-  std::filesystem::path scratch_dir = "/scratch/midway3/windischhofer/";
+  std::filesystem::path gf_path = "/scratch1/windischhofer/gf_partial_test/";
+  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_exp1_kaeli.txt";
+  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_antenna_signal_chain_amplitude_response_tscale2x.txt";
+  std::filesystem::path scratch_dir = "/scratch1/windischhofer/tmp/";
 
-  scalar_t geom_r_max = 300;  // Radial extent of the simulation domain
+  // scalar_t geom_r_max = 600;  // Radial extent of the simulation domain
+  // scalar_t geom_z_min = -350;  // Lower z-coordinate of the simulation domain
+  // scalar_t geom_z_max = 200;  // Upper z-coordinate of the simulation domain
+  // scalar_t antenna_z = -580;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  // scalar_t t_end = 2000;  // Last timestep in the simulation
+
+  scalar_t geom_r_max = 60;  // Radial extent of the simulation domain
   scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 100;  // Upper z-coordinate of the simulation domain
-  scalar_t antenna_z = -30;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 300;  // Last timestep in the simulation
+  scalar_t geom_z_max = 50;  // Upper z-coordinate of the simulation domain
+  scalar_t antenna_z = -58;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  scalar_t t_end = 1000;  // Last timestep in the simulation
 
+  scalar_t stor_r_min = 0.0;
+  scalar_t stor_r_max = 60;
+  scalar_t stor_z_min = -20.123;
+  scalar_t stor_z_max = 20.123;
+  
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);
   std::vector<float> z_data;
@@ -105,11 +116,12 @@ int main(int argc, char* argv[]) {
     scalar_t response = lin_interp(t_data, imp_res_data, t);    
     return response;
   };
-  
+
+  CylinderRegion to_store(stor_r_min, stor_r_max, stor_z_min, stor_z_max);  
   CylinderGeometry geom(geom_r_max, geom_z_min, geom_z_max, eps);
   InfEDipoleAntenna dipole(0.0, imp_res_t_end, antenna_z, impulse_response);
 
-  GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, dipole, t_end);
+  GreensFunctionCalculator::MEEP::CylindricalGreensFunctionCalculator gfc(geom, to_store, dipole, t_end);
   gfc.Calculate(gf_path, scratch_dir, scratch_dir);
   
   std::cout << "done" << std::endl;
