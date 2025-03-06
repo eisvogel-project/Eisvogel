@@ -201,10 +201,18 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 template <class KernelT, typename ResultT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
-						 scalar_t max_itgr_step) {
+						 scalar_t max_itgr_step, scalar_t min_segment_length) {
 
+  assert(min_segment_length > 0.0);
+  
+  scalar_t delta_t = seg.end_time - seg.start_time;
+  
   // Check if this is a short current segment and use the integration routine optimized for this purpose ...
-  if(seg.end_time - seg.start_time < max_itgr_step) {
+  if(delta_t < min_segment_length) {
+    // Explicitly includes negative delta_t, i.e. unphysical tracks that end before they begin
+    return;
+  }
+  else if(delta_t < max_itgr_step) {
     [[likely]];
     apply_accumulate_short_segment<KernelT, ResultT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight);
   }

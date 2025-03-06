@@ -75,7 +75,7 @@ public:
   void apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
 			std::vector<ResultT>& signal, 
 			Green::OutOfBoundsBehavior oob_mode = Green::OutOfBoundsBehavior::RaiseError,
-			scalar_t weight = 1.0, scalar_t max_itgr_step = 1.0);
+			scalar_t weight = 1.0, scalar_t max_itgr_step = 0.5, scalar_t min_segment_length = 1e-10);
 
   template <class KernelT>
   void fill_array(const RZTCoordVector& start_coords, const RZTCoordVector& end_coords, const RZTVector<std::size_t>& num_samples, chunk_t& array);
