@@ -4,6 +4,8 @@
 #include "Interpolation.hh"
 #include "MemoryUtils.hh"
 
+#include <chrono>
+
 CylindricalGreensFunctionMetadata::CylindricalGreensFunctionMetadata() :
   start_pos_rzt(0), end_pos_rzt(0), sample_interval_rzt(0) { }
 
@@ -198,13 +200,76 @@ void CylindricalGreensFunction::fill_array(const RZTCoordVector& start_pos, cons
 
 template <class KernelT, typename ResultT, class QuadratureT>
 void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
-						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
+						 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
+						 scalar_t max_itgr_step, scalar_t min_segment_length) {
 
-  // std::cout << "HH in apply_accumulate HH" << std::endl;
+  assert(min_segment_length > 0.0);
   
-  // TODO: take this from the chunk sample rate / max frequency content of this Greens function
-  // Max. integration step size delta_t_p
-  scalar_t max_itgr_step = 1.0f;
+  scalar_t delta_t = seg.end_time - seg.start_time;
+  
+  // Check if this is a short current segment and use the integration routine optimized for this purpose ...
+  if(delta_t < min_segment_length) {
+    // Explicitly includes negative delta_t, i.e. unphysical tracks that end before they begin
+    return;
+  }
+  else if(delta_t < max_itgr_step) {
+    [[likely]];
+    apply_accumulate_short_segment<KernelT, ResultT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight);
+  }
+  else {
+    // ... if not, use the more-powerful general routine
+    apply_accumulate_general<KernelT, ResultT, QuadratureT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight, max_itgr_step);
+  }
+}
+
+template <class KernelT, typename ResultT>
+void CylindricalGreensFunction::apply_accumulate_short_segment(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+							       std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight) {
+
+  scalar_t delta_t_p = seg.end_time - seg.start_time;
+  scalar_t t_p = (seg.start_time + seg.end_time) / 2.0; // Time t' at which this current segment contributes to the convolution integral
+  
+  // Find index of the first nonzero output sample, i.e. the first sample for which t - t' > 0 in the convolution integral  
+  std::size_t sample_ind_causal = std::max<int>(0, std::ceil((t_p - t_sig_start) / t_sig_samp));
+
+  if(sample_ind_causal >= num_samples) {
+    // Nothing to be done
+    return;
+  }
+  
+  scalar_t convolution_t_start = t_sig_start + sample_ind_causal * t_sig_samp - t_p;
+  assert(convolution_t_start >= 0.0);
+    
+  // Number of samples actually to be calculated
+  std::size_t num_samples_calc = num_samples - sample_ind_causal;
+  assert(sample_ind_causal + num_samples_calc <= signal.size());
+  auto signal_result = signal.begin() + sample_ind_causal;
+
+  // Prepare spatial part of current segment
+  XYZCoordVector seg_center_xyz = (seg.start_pos + seg.end_pos) / 2.0;  
+  RZCoordVector seg_center_rz;
+  coord_cart_to_cyl(seg_center_xyz, seg_center_rz);
+  
+  XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / delta_t_p;
+  XYZFieldVector source_xyz = seg_vel * seg.charge;
+  RZFieldVector source_rz;
+  field_cart_to_cyl(source_xyz, seg_center_xyz, source_rz);
+  
+  // Inner product and accumulate
+  accumulate_inner_product<KernelT, ResultT>(seg_center_rz, convolution_t_start, t_sig_samp, num_samples_calc, source_rz, signal_result,
+					     weight * delta_t_p * (-1.0), // negative sign from how Green's function is defined
+					     oob_mode);
+}
+
+template <class KernelT, typename ResultT, class QuadratureT>
+void CylindricalGreensFunction::apply_accumulate_general(const LineCurrentSegment& seg, scalar_t t_sig_start, scalar_t t_sig_samp, std::size_t num_samples,
+							 std::vector<ResultT>& signal, Green::OutOfBoundsBehavior oob_mode, scalar_t weight,
+							 scalar_t max_itgr_step) {
+
+  // auto start = std::chrono::high_resolution_clock::now();
+  // std::chrono::microseconds total_ip_duration{0};
+  
+  // std::cout << "HH in apply_accumulate HH" << std::endl; 
   
   // Determine total number of quadrature intervals (always integer) ...
   const std::size_t num_quadrature_intervals = std::ceil((seg.end_time - seg.start_time) / max_itgr_step);
@@ -214,7 +279,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 
   // The set of integration steps includes the first and last point of the full interval
   const std::size_t num_itgr_steps = num_quadrature_intervals + 1;
-
+  
   // calculate velocity vector and step size along the trajectory
   XYZCoordVector seg_vel = (seg.end_pos - seg.start_pos) / (seg.end_time - seg.start_time);
   XYZCoordVector seg_step = seg_vel * itgr_step;
@@ -233,7 +298,7 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
   // TODO: add heuristic to find good block sizes
   // For the t_sig direction, can just take the average chunk size along t -> convert into number of samples by dividing by t_sig_samp
   // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by itgr_step
-  const std::size_t max_sample_block_size = 100; // number of signal samples in block
+  const std::size_t max_sample_block_size = 1000; // number of signal samples in block
   const std::size_t max_itgr_block_size = 100; // number of integration steps in block
   // ------
   
@@ -328,17 +393,31 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
 	// Make sure we don't run over the end of the vector
 	assert(block_sample_ind_start + block_num_samples <= signal.size());
 	
-	auto block_result = signal.begin() + block_sample_ind_start;	
+	auto block_result = signal.begin() + block_sample_ind_start;
+
+	// auto ip_start = std::chrono::high_resolution_clock::now();
+	
 	accumulate_inner_product<KernelT, ResultT>(coords_rz[i_pt], convolution_t_start, t_sig_samp, block_num_samples, source_rz[i_pt], block_result,
 						   quadrature_weights[i_pt] * itgr_step * weight * (-1.0),  // negative sign from how Green's function is defined
 						   oob_mode);
 
+	// auto ip_stop = std::chrono::high_resolution_clock::now();
+	// auto ip_duration = std::chrono::duration_cast<std::chrono::microseconds>(ip_stop - ip_start);
+	// total_ip_duration += ip_duration;
+	
 	// std::cout << " . . . . . . . . " << std::endl;
       }
 
       // std::cout << "-----------" << std::endl;
     }         
-  }  
+  }
+
+  // auto stop = std::chrono::high_resolution_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  // std::cout << " --- " << std::endl;
+  // std::cout << "total time in apply_accumulate: " << duration << std::endl;
+  // std::cout << "spent in accumulate_inner_product: " << total_ip_duration << std::endl;
+  // std::cout << " --- " << std::endl;
 }
 
 template <class KernelT, typename ResultT>
@@ -346,6 +425,8 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 							 const RZFieldVectorView source, std::vector<ResultT>::iterator result, scalar_t weight,
 							 Green::OutOfBoundsBehavior oob_mode) {
 
+  // auto start = std::chrono::high_resolution_clock::now();
+  
   // Buffer to hold the interpolated values
   // TODO: check if this reallocation is slow
   NDVecArray<scalar_t, 1, vec_dims> interp_buffer(num_samples);
@@ -406,6 +487,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 
     // Perform the calculations only if the chunk is actually specified on disk
     if(meta -> chunk_type == ChunkType::specified) {
+      [[unlikely]];
     
       // Retrieve chunk
       const chunk_t& chunk = m_cache.RetrieveChunk(*meta);
@@ -431,9 +513,18 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 	std::advance(result, 1);
       }
     }
+    else {
+      std::advance(result, samples_to_request);
+    }
       
     cur_sample_ind += samples_to_request;
   }
+
+  // auto stop = std::chrono::high_resolution_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  // std::cout << " --- " << std::endl;
+  // std::cout << "total time in accumulate_inner_product: " << duration << std::endl;
+  // std::cout << " --- " << std::endl;
 }
 
 void CylindricalGreensFunction::coord_cart_to_cyl(const XYZCoordVector& coords_cart, RZCoordVectorView coords_cyl) {

@@ -162,8 +162,8 @@ int main(int argc, char* argv[]) {
     // RZFieldVector source{1.0f, 1.0f};
     RZFieldVector source{7.07107f, 0.0f};
 
-    gf.accumulate_inner_product<Interpolation::Kernel::Keys>(cur_pt, t_start, t_samp, num_samples,
-							     source, accum.begin());
+    gf.accumulate_inner_product<Interpolation::Kernel::Keys, scalar_t>(cur_pt, t_start, t_samp, num_samples,
+								       source, accum.begin());
 
     // test closure
     std::cout << "Testing closure ... ";

@@ -1,4 +1,5 @@
 #pragma once
+#define NDEBUG
 
 #include <array>
 #include <vector>
