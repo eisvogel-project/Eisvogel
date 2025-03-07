@@ -513,6 +513,9 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
 	std::advance(result, 1);
       }
     }
+    else {
+      std::advance(result, samples_to_request);
+    }
       
     cur_sample_ind += samples_to_request;
   }
