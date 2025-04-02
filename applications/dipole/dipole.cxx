@@ -48,27 +48,21 @@ int main(int argc, char* argv[]) {
 
   meep::initialize mpi(argc, argv);
 
-  std::filesystem::path gf_path = "/scratch1/windischhofer/gf_partial_test/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_exp1_kaeli.txt";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_antenna_signal_chain_amplitude_response_tscale2x.txt";
+  std::filesystem::path gf_path = "/scratch1/windischhofer/gf_corals_zant_0.1/";
+  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_1.48.txt";
+  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/impresp_tukey_fmin0.07_fmax0.5_alpha0.3.txt";
   std::filesystem::path scratch_dir = "/scratch1/windischhofer/tmp/";
 
-  // scalar_t geom_r_max = 600;  // Radial extent of the simulation domain
-  // scalar_t geom_z_min = -350;  // Lower z-coordinate of the simulation domain
-  // scalar_t geom_z_max = 200;  // Upper z-coordinate of the simulation domain
-  // scalar_t antenna_z = -580;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  // scalar_t t_end = 2000;  // Last timestep in the simulation
-
-  scalar_t geom_r_max = 60;  // Radial extent of the simulation domain
-  scalar_t geom_z_min = -100;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 50;  // Upper z-coordinate of the simulation domain
-  scalar_t antenna_z = -58;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 1000;  // Last timestep in the simulation
+  scalar_t geom_r_max = 150.0;  // Radial extent of the simulation domain
+  scalar_t geom_z_min = -100.0;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = 100.0;  // Upper z-coordinate of the simulation domain
+  scalar_t antenna_z = 0.1;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  scalar_t t_end = 200;  // Last timestep in the simulation
 
   scalar_t stor_r_min = 0.0;
-  scalar_t stor_r_max = 60;
-  scalar_t stor_z_min = -20.123;
-  scalar_t stor_z_max = 20.123;
+  scalar_t stor_r_max = 150;
+  scalar_t stor_z_min = -100.0;
+  scalar_t stor_z_max = 100.0;
   
   // Complicated ice model
   CSVReader<float> ior_file(ior_path);
