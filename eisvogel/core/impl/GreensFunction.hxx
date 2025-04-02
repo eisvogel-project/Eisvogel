@@ -216,7 +216,8 @@ void CylindricalGreensFunction::apply_accumulate(const LineCurrentSegment& seg, 
     [[likely]];
     apply_accumulate_short_segment<KernelT, ResultT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight);
   }
-  else {
+  else
+  {
     // ... if not, use the more-powerful general routine
     apply_accumulate_general<KernelT, ResultT, QuadratureT>(seg, t_sig_start, t_sig_samp, num_samples, signal, oob_mode, weight, max_itgr_step);
   }
@@ -298,7 +299,7 @@ void CylindricalGreensFunction::apply_accumulate_general(const LineCurrentSegmen
   // TODO: add heuristic to find good block sizes
   // For the t_sig direction, can just take the average chunk size along t -> convert into number of samples by dividing by t_sig_samp
   // For the t_p direction, take min[average_chunk_size_rz / velocity_rz] -> convert into number of integration steps by dividing by itgr_step
-  const std::size_t max_sample_block_size = 1000; // number of signal samples in block
+  const std::size_t max_sample_block_size = 96; // number of signal samples in block
   const std::size_t max_itgr_block_size = 100; // number of integration steps in block
   // ------
   
@@ -518,6 +519,7 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
     }
       
     cur_sample_ind += samples_to_request;
+    assert(cur_sample_ind <= num_samples); // Make sure we never went outside the available index range
   }
 
   // auto stop = std::chrono::high_resolution_clock::now();
