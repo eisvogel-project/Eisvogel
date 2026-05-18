@@ -1,4 +1,4 @@
-import argparse, yaml
+import argparse, yaml, os
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -19,7 +19,7 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, n
         E_abs_max_data /= normval
 
     figsize_y = 5
-    figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.2
+    figsize_x = (config["range_x"][1] - config["range_x"][0]) / (config["range_y"][1] - config["range_y"][0]) * figsize_y * 1.05
     fig = plt.figure(figsize = (figsize_x, figsize_y), layout = "constrained")
     ax = fig.add_subplot(111)    
 
@@ -27,7 +27,7 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, n
         ax.axhline(0.0, color = "gray", ls = "dashed")
     
     fieldplot = plotting_utils.plot_field(ax, E_abs_max_data, range_x = config["range_x"], range_y = config["range_y"], fs = fs, epilog = show_ice_surface, cmap = "coolwarm")
-
+    
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.05)
     cbar = fig.colorbar(fieldplot, cax = cax)
@@ -38,6 +38,10 @@ def greens_function_absmax(exported_green_path, outpath, config_path, fs = 15, n
     ax.set_ylim(*config["lim_y"])
     
     fig.savefig(outpath, dpi = 300)
+    plt.close()
+
+    outpath_data = os.path.splitext(outpath)[0] + ".npy"
+    np.save(outpath_data, E_abs_max_data)
 
 if __name__ == "__main__":
 

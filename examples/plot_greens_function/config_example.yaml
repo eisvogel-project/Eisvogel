@@ -1,8 +1,8 @@
-range_x: [0, 333.33]
-range_y: [-100.0, 66.66]
-range_t: [0.0, 1500.0]
-lim_x: [0, 300.0]
-lim_y: [-100.0, 66.66]
+range_x: [9, 384]
+range_y: [-87, 42]
+range_t: [0.0, 2000.0]
+lim_x: [10, 350.0]
+lim_y: [-85, 40]
 annotation_cols: 3
 annotation_rows: 2
 field_scale_fact: 1.0

@@ -49,9 +49,11 @@ int main(int argc, char* argv[]) {
   meep::initialize mpi(argc, argv);
 
   // std::filesystem::path gf_path = "/scratch1/windischhofer/gf_PA_antenna_signal_chain_amplitude_response_ior_exp1_kaeli_zant_580_res_60_surfaceonly/";
-  std::filesystem::path gf_path = "/scratch1/windischhofer/gf_PA_antenna_signal_chain_amplitude_response_ior_exp1_kaeli_zant_330_res_65_surfaceonly/";
-  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_exp1_kaeli.txt";
-  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_antenna_signal_chain_amplitude_response.txt";
+  std::filesystem::path gf_path = "/scratch1/windischhofer/gf_PA_antenna_signal_chain_amplitude_response_tscale2x_ior_spice1_zant_65_res_28/";
+  // std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_exp1_kaeli.txt";
+  std::filesystem::path ior_path = "/home/windischhofer/Eisvogel/applications/dipole/ior_spice1_exp1.txt";
+  // std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_antenna_signal_chain_amplitude_response.txt";
+  std::filesystem::path impulse_response_path = "/home/windischhofer/Eisvogel/applications/dipole/PA_antenna_signal_chain_amplitude_response_tscale2x.txt";
   std::filesystem::path scratch_dir = "/scratch1/windischhofer/tmp/";
 
   // // ----------------------------------------------
@@ -70,18 +72,32 @@ int main(int argc, char* argv[]) {
   
   // ----------------------------------------------
   // RNO-G type geometry with PA at -100m
-  scalar_t geom_r_max = 550;  // Radial extent of the simulation domain
-  scalar_t geom_z_min = -400;  // Lower z-coordinate of the simulation domain
-  scalar_t geom_z_max = 250;  // Upper z-coordinate of the simulation domain
-  scalar_t antenna_z = -330;  // z-coordinate of the antenna position (antenna is at r=0 by default)
-  scalar_t t_end = 1100;  // Last timestep in the simulation
+  // scalar_t geom_r_max = 550;  // Radial extent of the simulation domain
+  // scalar_t geom_z_min = -400;  // Lower z-coordinate of the simulation domain
+  // scalar_t geom_z_max = 250;  // Upper z-coordinate of the simulation domain
+  // scalar_t antenna_z = -330;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  // scalar_t t_end = 1100;  // Last timestep in the simulation
   
-  scalar_t stor_r_min = 30;
-  scalar_t stor_r_max = 530;
-  scalar_t stor_z_min = -150;
-  scalar_t stor_z_max = 250;  
+  // scalar_t stor_r_min = 30;
+  // scalar_t stor_r_max = 530;
+  // scalar_t stor_z_min = -150;
+  // scalar_t stor_z_max = 250;  
   // ----------------------------------------------
 
+  // ----------------------------------------------
+  // Surface type geometry with antenna at -30m
+  scalar_t geom_r_max = 1300;  // Radial extent of the simulation domain
+  scalar_t geom_z_min = -300;  // Lower z-coordinate of the simulation domain
+  scalar_t geom_z_max = 150;  // Upper z-coordinate of the simulation domain
+  scalar_t antenna_z = -65;  // z-coordinate of the antenna position (antenna is at r=0 by default)
+  scalar_t t_end = 2000;  // Last timestep in the simulation
+  
+  scalar_t stor_r_min = 30;
+  scalar_t stor_r_max = 1280;
+  scalar_t stor_z_min = -290;
+  scalar_t stor_z_max = 140;  
+  // ----------------------------------------------
+  
   std::cout << "Reading impulse response from " << impulse_response_path << std::endl;
   std::cout << "Reading ice model from " << ior_path << std::endl;
   

@@ -18,7 +18,7 @@ int main(int argc, char* argv[]) {
   Vector<std::size_t, 3> init_shape(10);
   CylindricalGreensFunction::chunk_t array(init_shape);
   
-  RZTVector<std::size_t> num_samples{1000u, 1000u, 1000u};
+  RZTVector<std::size_t> num_samples{1300u, 400u, 5000u};
 
   RZTCoordVector start_coords = gf.start_coords();
   RZTCoordVector end_coords = gf.end_coords();
