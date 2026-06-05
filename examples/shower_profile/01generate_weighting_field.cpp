@@ -32,5 +32,6 @@ int main(int argc, char* argv[]) {
 
   std::cout << "Building Green's function ..." << std::endl;
 
-  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, index_of_refraction, filter_t_peak, filter_order, r_min, os_factor);
+  std::filesystem::path scratchdir = "/tmp/";
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, scratchdir, start_coords, end_coords, t_end, index_of_refraction, filter_t_peak, filter_order, r_min, os_factor);
 }

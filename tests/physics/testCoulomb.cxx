@@ -20,7 +20,8 @@ void create_greens_function(std::filesystem::path outdir, scalar_t filter_t_peak
   scalar_t os_factor = 20;
   scalar_t r_min = 0.1;
   
-  GreensFunctionCalculator::Analytic::ElectricDipole(outdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
+  std::filesystem::path scratchdir = "./tmp";
+  GreensFunctionCalculator::Analytic::ElectricDipole(outdir, scratchdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }
 
 void calculate_signal_eisvogel(std::filesystem::path gf_path, scalar_t b, scalar_t beta,
