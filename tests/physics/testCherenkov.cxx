@@ -21,8 +21,9 @@ void create_greens_function_analytic(std::filesystem::path outdir, scalar_t filt
   // Sampling parameters
   scalar_t os_factor = 50;
   scalar_t r_min = 0.1;
-  
-  GreensFunctionCalculator::Analytic::ElectricDipole(outdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
+
+  std::filesystem::path scratchdir = "/tmp/";
+  GreensFunctionCalculator::Analytic::ElectricDipole(outdir, scratchdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }
 
 void create_greens_function_meep(std::filesystem::path outdir, scalar_t filter_t_peak, unsigned int filter_order,

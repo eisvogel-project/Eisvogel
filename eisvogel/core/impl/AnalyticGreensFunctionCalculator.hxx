@@ -101,7 +101,7 @@ namespace {
 
 namespace GreensFunctionCalculator::Analytic {
   
-  void ElectricDipole(std::filesystem::path gf_path, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
+  void ElectricDipole(std::filesystem::path gf_path, std::filesystem::path scratchdir, const RZCoordVector& start_coords, const RZCoordVector& end_coords, scalar_t t_end, scalar_t ior,
 		      scalar_t filter_t_peak, unsigned int filter_order, scalar_t r_min,
 		      scalar_t os_factor, std::size_t max_pts_in_chunk) {
     
@@ -172,8 +172,7 @@ namespace GreensFunctionCalculator::Analytic {
     
     // Reshape the chunks to make sure the overlap required for the interpolation is respected
     std::size_t overlap = 2;
-    std::filesystem::path workdir_tmp = "./darr_test_tmp";
-    darr.RebuildChunks(chunk_size, workdir_tmp, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
+    darr.RebuildChunks(chunk_size, scratchdir, overlap, SpatialSymmetry::Cylindrical<scalar_t>::boundary_evaluator);
     
     // Create the actual Green's function from the sampled data
     CylindricalGreensFunction(start_coords_rzt, end_coords_rzt, stepsize, std::move(darr));
