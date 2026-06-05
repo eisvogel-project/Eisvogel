@@ -25,5 +25,6 @@ int main(int argc, char* argv[]) {
   scalar_t os_factor = 15;
   scalar_t r_min = 0.1;
 
-  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
+  std::filesystem::path scratchdir = "/tmp/";
+  GreensFunctionCalculator::Analytic::ElectricDipole(gf_path, scratchdir, start_coords, end_coords, t_end, ior, filter_t_peak, filter_order, r_min, os_factor);
 }
