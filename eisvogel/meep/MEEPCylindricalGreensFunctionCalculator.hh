@@ -24,7 +24,7 @@ namespace GreensFunctionCalculator::MEEP {
     // dynamic_range ... max. dynamic range of field strength to keep in the stored output
     // abs_min_field ... absolute minimum of field to retain in the stored output
     void Calculate(std::filesystem::path outdir, std::filesystem::path local_scratchdir, std::filesystem::path global_scratchdir,
-		   double courant_factor = 0.5, double resolution = 28, double timestep = 0.1, double pml_width = 1.0, std::size_t downsampling_on_disk = 2,
+		   double courant_factor = 0.5, double resolution = 65, double timestep = 0.06, double pml_width = 1.0, std::size_t downsampling_on_disk = 2,
 		   scalar_t dynamic_range = 100, scalar_t abs_min_field = 1e-20, std::size_t chunk_overlap = 2, std::size_t chunk_size_linear = 800,
 		   std::size_t rechunk_cache_depth = 5, std::size_t calc_chunk_size_t = 800, std::size_t calc_chunk_size_linear = 800);
     
