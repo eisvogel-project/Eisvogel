@@ -3,6 +3,20 @@ name: tests
 on: [push, pull_request, workflow_dispatch]
 
 jobs:
+
+  code_format:
+    name: "Check code formatting"
+    runs-on: ubuntu-22.04
+    steps:
+
+    - name: Checkout Eisvogel repository
+      uses: actions/checkout@v4
+
+    - name: Run clang-format
+      run: |
+        echo "Running `clang-format --version`"
+        find . -iname '*.hxx' -o -iname '*.hh' -o -iname '*.cpp' -o -iname '*.h' | xargs clang-format --dry-run --Werror --style=file
+
   build_and_test:
     name: "Run build and tests"
     runs-on: ubuntu-22.04
