@@ -10,7 +10,7 @@ if(BUILD_MEEP)
   target_compile_definitions(eisvogel-corsika PRIVATE WITHMEEP=1)
   target_sources(
     eisvogel-corsika
-    PUBLIC FILE_SET HEADERS
+    PUBLIC FILE_SET HEADERS BASE_DIRS include
     FILES
     ./include/Eisvogel/C8SignalCalculator.hh
     ./include/Eisvogel/C8GreensFunctionCalculator.hh
@@ -21,7 +21,7 @@ else()
 
   target_sources(
     eisvogel-corsika
-    PUBLIC FILE_SET HEADERS
+    PUBLIC FILE_SET HEADERS BASE_DIRS include
     FILES
     ./include/Eisvogel/C8SignalCalculator.hh
   )  
@@ -32,9 +32,9 @@ endif(BUILD_MEEP)
 message("Eisvogel will be installed at '${CMAKE_INSTALL_PREFIX}'")
 
 install(TARGETS eisvogel-corsika
-  LIBRARY DESTINATION ./${CMAKE_INSTALL_LIBDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   FILE_SET HEADERS
-  DESTINATION ./${CMAKE_INSTALL_INCLUDEDIR})
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 configure_file(eisvogel-corsika.pc.in eisvogel-corsika.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/extern/corsika/eisvogel-corsika.pc DESTINATION ./${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+install(FILES ${CMAKE_BINARY_DIR}/extern/corsika/eisvogel-corsika.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)

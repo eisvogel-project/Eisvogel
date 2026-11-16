@@ -7,6 +7,8 @@ set(CMAKE_CXX_FLAGS "-O3 -Wall -Wpedantic -Wextra -ftree-vectorize -ffast-math -
 
 project(eisvogel)
 
+include(GNUInstallDirs)
+
 option(BUILD_EXAMPLES "Build examples." OFF)
 option(BUILD_TESTS "Build tests." OFF)
 option(BUILD_MEEP "Also build weighting field creator." OFF)
