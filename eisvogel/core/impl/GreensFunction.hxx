@@ -423,15 +423,19 @@ void CylindricalGreensFunction::accumulate_inner_product(const RZCoordVectorView
       
       // Compute inner products and accumulate in output range
       for(std::size_t i = 0; i < samples_to_request; i++) {
-	*result += inner_product(interp_buffer[i], source) * weight;
-	// std::cout << "rz_start = " << chunk_local_ind.rz_view() << std::endl;
-	// std::cout << "t_start = " << chunk_local_ind.t() << std::endl;
-	// std::cout << "G: " << interp_buffer[i] << std::endl;
-	// std::cout << "accum: " << inner_product(interp_buffer[i], source) * weight << std::endl;
-	std::advance(result, 1);
+          result[i] += inner_product(interp_buffer[i], source) * weight;
+          // std::cout << "rz_start = " << chunk_local_ind.rz_view() << std::endl;
+          // std::cout << "t_start = " << chunk_local_ind.t() << std::endl;
+          // std::cout << "G: " << interp_buffer[i] << std::endl;
+          // std::cout << "accum: " << inner_product(interp_buffer[i], source) * weight << std::endl;
       }
     }
-      
+    else {
+        assert(meta -> chunk_type == ChunkType::all_null);
+    }
+   
+    // Move the iterator forward by the number of samples we just calculated
+    std::advance(result, samples_to_request);
     cur_sample_ind += samples_to_request;
   }
 }
