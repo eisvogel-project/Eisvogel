@@ -813,12 +813,16 @@ namespace GreensFunctionCalculator::MEEP {
       darr_t darr(outdir);
       RZTVector<std::size_t> darr_shape = darr.GetShape();
 
-      RZTCoordVector storage_start_coords(mpi_calc_res.region_stored.GetRMin(), mpi_calc_res.region_stored.GetZMin(), (scalar_t)0.0);
-      RZTCoordVector storage_end_coords(mpi_calc_res.region_stored.GetRMax(), mpi_calc_res.region_stored.GetZMax(), m_t_end);
+      // Stored samples: every `downsampling_on_disk`-th pixel in space, one every `timestep` in time
+      scalar_t spatial_step = (scalar_t)downsampling_on_disk / resolution;
+      scalar_t half_pixel = 0.5 / resolution;
+      RZTCoordVector step_size(spatial_step, spatial_step, (scalar_t)timestep);
+      // The first sample is at the centre of the first pixel, i.e. half a pixel above the region start
+      RZTCoordVector storage_start_coords(mpi_calc_res.region_stored.GetRMin() + half_pixel, mpi_calc_res.region_stored.GetZMin() + half_pixel, (scalar_t)0.0);
+      // The last sample is (N - 1) steps after the first one (not at the region end, which may lie past a dropped pixel)
+      RZTCoordVector storage_end_coords = storage_start_coords + (darr_shape.template as_type<scalar_t>() - 1) * step_size;
             
       std::cout << "Green's function with storage_start = " << storage_start_coords << " and storage_end = " << storage_end_coords << std::endl;
-      
-      RZTCoordVector step_size = (storage_end_coords - storage_start_coords) / (darr_shape.template as_type<scalar_t>() - 1);
       CylindricalGreensFunction(storage_start_coords, storage_end_coords, step_size, std::move(darr));
     }
   }
